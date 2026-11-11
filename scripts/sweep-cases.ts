@@ -23,7 +23,7 @@ const snap = (g: GameState) => { const o: Record<string, unknown> = {}; for (con
 type Ctx = { g: GameState; me: ReturnType<typeof P>; op: ReturnType<typeof P>; X: TutCard; put: (c?: TutCard, o?: Record<string, unknown>) => void }
 const only = process.argv[3]
 function scen(title: string, cardName: string, setup: (c: Ctx) => void, act: (c: Ctx) => void) {
-  if (only === 'new' && !NEW) return
+  if ((only === 'new' && !NEW) || (only === 'p770' && !P770) || (only !== 'p770' && P770)) return
   try {
     const g: GameState = createGame(Array.from({ length: 30 }, () => van()), Array.from({ length: 30 }, () => van()), 'ai', { format: 'classic', curseCards: curses.slice(0, 8).map((x, i) => ({ ...x, uid: 'cu' + i })) } as never); beginTurn(g)
     const me = P(g, 'ai'), op = P(g, 'you'); me.hp = 20; op.hp = 20; me.gold = 5000; op.gold = 5000
@@ -35,7 +35,7 @@ function scen(title: string, cardName: string, setup: (c: Ctx) => void, act: (c:
     console.log(`\n## ${cardName} — ${title}`); for (const s of ['ai', 'you']) if (a[s] !== b[s]) console.log(`   ${s}: ${a[s]}\n     →  ${b[s]}`); console.log('   log:', ev.join(' · ') || '—')
   } catch (e) { console.log(`\n## ${cardName} — ${title}\n   CRASH ${(e as Error).message}`) }
 }
-let NEW = false
+let NEW = false, P770 = false
 const killOwn = (c: Ctx, i = 0) => { const sp = spell({ effect: 'damage', target: 'ownUnit', value: 50, requiresSelection: true }); c.me.hand.push(sp); const u = c.me.units[i] as unknown as { uid: string }; playCard(c.g, 'ai', sp.uid, { target: { kind: 'unit', side: 'ai', uid: u.uid } }) }
 const sub = (c: Ctx, st: string | null, i = 0) => { const u = c.me.units[i] as unknown as { card: TutCard }; u.card = { ...u.card, subtype: st } as TutCard }
 const buffX = (c: Ctx) => { const sp = spell({ effect: 'buffAttack', target: 'ownUnit', value: 1, requiresSelection: true }, { spellType: 'buff' }); c.me.hand.push(sp); playCard(c.g, 'ai', sp.uid, { target: { kind: 'unit', side: 'ai', uid: 'X' } }) }
@@ -117,3 +117,15 @@ if (only === 'curse') for (const cc of curses) {
     const pend = Object.keys(g).filter((k) => k.startsWith('pending') && (g as unknown as Record<string, unknown>)[k] && !(Array.isArray((g as unknown as Record<string, unknown>)[k]) && !((g as unknown as Record<string, unknown[]>)[k]).length))
     console.log(`CURSE | ${cc.name} | ${[...new Set(((cc.mappings ?? []) as unknown as { trigger: string; effect: string; target: string; value?: number }[]).map((m) => `${m.trigger}:${m.effect}→${m.target}${m.value != null ? '=' + m.value : ''}`))].join('; ') || 'BE EFEKTŲ'} | ai ${a.ai === b.ai ? '=' : a.ai + ' → ' + b.ai} | you ${a.you === b.you ? '=' : 'pakito'} | auksas ${g0}→${me.gold} | ${ev.join(',')} ${pend.join(',')} | ${(cc.effectText ?? '').slice(0, 90)}`)
   } catch (e) { console.log('CURSE CRASH', cc.name, (e as Error).message.slice(0, 100)) } }
+// 770 pataisų patikra (paleisti su pataisytu eksportu): node ... sweep-cases.ts cards770.json p770
+P770 = true
+const oppSpell = (c: Ctx) => { const sp = spell({ effect: 'damage', target: 'enemyPlayer', value: 3 }, { spellType: 'damage' }); c.op.hand.push(sp); playCard(c.g, 'you', sp.uid) }
+scen('padėta; priešas sužaidžia burtą (−3 man)', 'Sprogstanti magija', (c) => { c.me.hand.push(c.X); playCard(c.g, 'ai', 'X'); oppTurn(c) }, oppSpell)
+scen('padėta; priešas sužaidžia burtą (−3 man)', 'Stichijų skydas', (c) => { c.me.hand.push(c.X); playCard(c.g, 'ai', 'X'); oppTurn(c) }, oppSpell)
+scen('sužaidžiama kaip burtas', 'Dūmų uždanga', () => {}, (c) => play(c))
+scen('sužaidžiama, savi sužeisti', 'Meditacija', (c) => { (c.me.units[0] as unknown as { hp: number }).hp = 1; (c.me.units[1] as unknown as { hp: number }).hp = 3 }, (c) => play(c))
+scen('padaras prikeliamas iš kapinyno', 'Kapinių žibintas', (c) => c.put(), (c) => revive(c, van()))
+scen('Liliana lentoje, traukiu kortą', 'Mergelė Liliana', (c) => c.put(), (c) => { oppTurn(c); endTurn(c.g); beginTurn(c.g) })
+scen('yra aktyvus priešo laukas', 'Išeinam', (c) => { const f = all.find((x) => x.type === 'field'); if (f) { oppTurn(c); c.op.hand.push({ ...f, uid: 'F' } as TutCard); console.log('   laukas:', f.name, JSON.stringify(playCard(c.g, 'you', 'F'))); endTurn(c.g); beginTurn(c.g); c.me.gold = 5000 } }, (c) => { console.log('   field prieš:', !!(c.g as unknown as { field?: unknown }).field); play(c); console.log('   field po:', !!(c.g as unknown as { field?: unknown }).field) })
+scen('sužaidžiama', 'Šventintas vanduo', () => {}, (c) => play(c))
+scen('sužaidžiama esant pilnam HP', 'Šventintas vanduo', (c) => { c.me.hp = 40 }, (c) => play(c))

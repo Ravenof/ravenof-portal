@@ -119,7 +119,9 @@ export function getVfxQuality(): VfxQuality {
   } catch { /* */ }
   // auto: silpnesni įrenginiai → medium
   const hc = (navigator as { hardwareConcurrency?: number }).hardwareConcurrency ?? 8
-  return hc <= 4 ? 'medium' : 'high'
+  // 770: lietimo įrenginiai (telefonai, planšetės) – medium: be papildomų sluoksnių, kurie skirti tik „high“
+  let coarse = false; try { coarse = window.matchMedia('(pointer: coarse)').matches } catch { /* */ }
+  return hc <= 4 || coarse ? 'medium' : 'high'
 }
 export function setVfxQuality(q: VfxQuality) { try { localStorage.setItem('rvn-vfx-quality', q) } catch { /* */ } }
 

@@ -709,7 +709,10 @@ function evolveCast(key: string, phase: number): number {
 // ═══════════════════════════════════════════════════════════════════════════
 function isLow(): boolean {
   try { const q = localStorage.getItem('rvn-vfx-quality'); if (q === 'low') return true; if (q === 'high') return false } catch { /* */ }
-  return window.innerWidth < 820 || (navigator.hardwareConcurrency || 8) <= 4
+  // 770: telefonai ir planšetės (lietimo ekranas) – visada taupus režimas. Anksčiau gulsčias telefonas (≥820 px, 8 branduoliai)
+  // gaudavo pilną kokybę: viso ekrano drobė 2× tankiu = ~4× daugiau pikselių kiekvieną kadrą.
+  let coarse = false; try { coarse = window.matchMedia('(pointer: coarse)').matches } catch { /* */ }
+  return coarse || window.innerWidth < 820 || (navigator.hardwareConcurrency || 8) <= 4
 }
 function reducedMotion(): boolean { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches } catch { return false } }
 
@@ -822,7 +825,7 @@ function hardReset() {
   for (const sc of SCENES) finalize(sc)
   PENDING.forEach((l) => l.style.removeProperty('opacity')); PENDING.clear()
   OLD_IMGS.forEach((im) => im.remove()); OLD_IMGS.clear()
-  SCENES.length = 0; Q.length = 0; FX.length = 0; TW.length = 0; pN = 0; freeze = 0; running = false
+  SCENES.length = 0; Q.length = 0; FX.length = 0; TW.length = 0; pN = 0; freeze = 0; running = false; IDLE = 0
   if (cv) { try { cv.remove() } catch { /* */ } cv = null }
 }
 
@@ -841,9 +844,15 @@ function tri(p: Part, x: number, y: number, s: number, a: number) {
   ctx.moveTo(x + c * s, y + n * s); ctx.lineTo(x - n * s * 0.45, y + c * s * 0.45); ctx.lineTo(x - c * s * 0.6 + n * s * 0.3, y - n * s * 0.6 - c * s * 0.3); ctx.fill()
 }
 
+// 770: nuolatinių statusų (statusOn) skaičius ir kadro trukmės sekimas
+let IDLE = 0, idleSkip = false, slowN = 0, ema = 16
 function tick(now: number) {
   if (!cv || !cv.isConnected) { hardReset(); return }
+  // Taupiame režime, kai ekrane tik nuolatiniai statusai (jokių smūgių, eilės ar dalelių pliūpsnių), piešiam kas antrą kadrą (~30 k/s).
+  if (LOW && IDLE > 0 && FX.length <= IDLE && Q.length === 0 && TW.length === 0 && freeze <= 0) { idleSkip = !idleSkip; if (idleSkip) { requestAnimationFrame(tick); return } }
   const raw = Math.min(50, now - last); last = now
+  // Prisitaikymas: jei kadrai stabiliai lėti (>26 ms ~40 kadrų iš eilės), iki sesijos pabaigos pereinam į taupų režimą.
+  if (!LOW) { ema = ema * 0.9 + raw * 0.1; if (ema > 26) { if (++slowN > 40) { LOW = true; MAXP = 350; resize() } } else slowN = 0 }
   let dt = raw; if (freeze > 0) { freeze -= raw; dt = 0 }
   live = dt > 0; time += dt
   const f = dt / 16.67
@@ -1476,7 +1485,8 @@ export function statusOn(id: FxStatusId, el: HTMLElement, o: { root?: HTMLElemen
     if (a > 0) STATUS4[id](c, a, sd)
   }, id === 'shield' || id === 'immortal' || id === 'blessed' ? 0 : 1)
   const it = FX[FX.length - 1]
-  function stop() { if (stopAt >= 0) return; stopAt = time; it.t0 = time; it.dur = 360; kick() }
+  IDLE++
+  function stop() { if (stopAt >= 0) return; stopAt = time; it.t0 = time; it.dur = 360; IDLE = Math.max(0, IDLE - 1); kick() }
   kick(); return stop
 }
 /**

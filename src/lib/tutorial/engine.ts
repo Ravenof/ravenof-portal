@@ -1353,6 +1353,7 @@ function dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: 
     p.discard.push(target.card)
     log(g, { t: 'death', side: owner, cardName: target.card.name, key: 'battleLog.artifactDestroyed', params: { card: target.card.name }, src: { side: owner, uid: target.uid } })
     recomputeAuras(g)
+    fireArtifactDeath(g, owner, target.card)
   }
 }
 
@@ -1690,6 +1691,15 @@ function healPlayerPrim(g: GameState, s: Side, n: number) {
   if (gained > 0) { log(g, { t: 'heal', side: s, value: gained, key: `battleLog.playerHeal.${SK(s)}`, params: { hp: gained }, sound: 'heal' }); fireGlobalListeners(g, 'onAnyHeal', { side: s }) }
 }
 
+/** 770: „+X HP savo čempionui" (buffHealth → žaidėjas): prideda HP ir, jei reikia, pakelia maksimumą – kaip padaro +HP. */
+function buffPlayerHpPrim(g: GameState, s: Side, n: number) {
+  if (n <= 0 || g.winner) return
+  const t = g.mode === '2v2' && g.teams ? g.teams[teamOfSeat(g, s)] : P(g, s)
+  t.hp += n; if (t.hp > t.maxHp) t.maxHp = t.hp
+  log(g, { t: 'heal', side: s, value: n, key: `battleLog.playerHeal.${SK(s)}`, params: { hp: n }, sound: 'heal' })
+  fireGlobalListeners(g, 'onAnyHeal', { side: s })
+}
+
 function buffUnitPrim(g: GameState, owner: Side, u: BoardUnit, atk: number, hp: number, duration?: 'permanent' | 'endOfTurn' | 'untilNextTurn' | 'thisAttack') {
   if (atk !== 0) {
     u.atk = Math.max(0, u.atk + atk)
@@ -1824,6 +1834,26 @@ function destroyArtifactPrim(g: GameState, owner: Side, uid: string) {
   p.discard.push(a.card)
   recomputeAuras(g)
   log(g, { t: 'death', side: owner, cardName: a.card.name, key: 'battleLog.artifactDestroyed', params: { card: a.card.name }, sound: 'death' })
+  fireArtifactDeath(g, owner, a.card)
+}
+
+/** 770: „Panaikina aktyvų lauką" (destroy → activeField): laukas keliauja į savininko kapinyną. */
+function destroyActiveFieldPrim(g: GameState, caster: Side, srcName: string) {
+  if (!g.field) { log(g, { t: 'blocked', side: caster, key: 'battleLog.noValidTarget', params: { src: srcName } }); return }
+  const f = g.field
+  fireTrigger(gameApi, g, f.owner, 'onFieldLeave', 1)
+  P(g, f.owner).discard.push(f.card)
+  log(g, { t: 'field', side: caster, cardName: f.card.name, key: 'battleLog.fieldReplaced', params: { card: f.card.name }, sound: 'death' })
+  g.field = null
+  recomputeAuras(g)
+}
+
+/** 770: sunaikinto artefakto „kai sunaikinamas" (onDeath) efektai – iki tol variklis juos šaudė tik padarams. */
+function fireArtifactDeath(g: GameState, owner: Side, card: TutCard) {
+  const ms = (card.mappings ?? []).filter((m) => m.trigger === 'onDeath')
+  if (ms.length === 0 || g.winner) return
+  log(g, { t: 'lastwish', side: owner, cardName: card.name, key: 'battleLog.artifactTrigger', params: { card: card.name } })
+  applyMappings(gameApi, g, owner, card.mappings ?? [], 'onDeath', { sourceName: card.name, depth: 1 })
 }
 
 function returnUnitToHandPrim(g: GameState, owner: Side, u: BoardUnit) {
@@ -3213,6 +3243,8 @@ export const gameApi: GameApi = {
   dealToUnit, dealToPlayer, dealToArtifact,
   healUnit: healUnitPrim,
   healPlayer: healPlayerPrim,
+  buffPlayerHp: buffPlayerHpPrim,
+  destroyActiveField: destroyActiveFieldPrim,
   drawCards: (g, s, n) => drawCards(g, s, n),
   discardCards: discardCardsPrim,
   killUnit,

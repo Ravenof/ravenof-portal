@@ -17,6 +17,8 @@ export type GameApi = {
   dealToArtifact(g: GameState, target: BoardArtifact, owner: Side, base: number, actor: Side): void
   healUnit(g: GameState, owner: Side, u: BoardUnit, n: number): void
   healPlayer(g: GameState, s: Side, n: number): void
+  buffPlayerHp(g: GameState, s: Side, n: number): void
+  destroyActiveField(g: GameState, caster: Side, srcName: string): void
   drawCards(g: GameState, s: Side, n: number): void
   drawAdvanced(g: GameState, s: Side, opts: { count: number; fromGraveyard?: boolean; cardType?: string; keep?: number }): void
   reviveCards(g: GameState, s: Side, cards: TutCard[], stats?: { atk?: number; hp?: number }): void
@@ -263,6 +265,12 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
     return true
   }
 
+  // 770: taikinys „aktyvi lauko korta" su efektu „sunaikinti" – panaikina lauką (pvz. „Išeinam!").
+  if (m.effect === 'destroy' && (m.target === 'activeField' || (m.targetTypes?.length === 1 && m.targetTypes[0] === 'activeField'))) {
+    api.destroyActiveField(g, caster, ctx.sourceName)
+    return true
+  }
+
   // Reikšmė: dinaminė (base + perEach * metrika) arba fiksuota.
   const dvs = m.dynamicValue?.source
   const dvMetric = dvs === 'lastDamageDealt' ? (ctx.chainDamage ?? 0)
@@ -504,7 +512,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, v, 0, m.buffDuration) }
       break
     case 'buffHealth':
-      for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, 0, v, m.buffDuration) }
+      for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, 0, v, m.buffDuration); else if (t.kind === 'player') api.buffPlayerHp(g, t.side, v) }
       break
     case 'debuffAttack':
       for (const t of targets) { const f = findUnit(g, t); if (f) api.buffUnit(g, f.owner, f.u, -v, 0, m.buffDuration) }
