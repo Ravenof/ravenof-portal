@@ -1983,6 +1983,20 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     }, 420)
   }, [])
 
+  /** „Trūksta aukso": aukso skaitiklis trumpai sumirksi raudonai – matosi, KO trūksta, ne tik tekstas (759). */
+  const flashGold = useCallback(() => {
+    try {
+      const el = document.querySelector('[data-tut="gold"]') as HTMLElement | null
+      if (!el || typeof el.animate !== 'function') return
+      if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return
+      el.animate([
+        { transform: 'scale(1)', filter: 'none' },
+        { transform: 'scale(1.16)', filter: 'brightness(1.5) saturate(1.6) hue-rotate(-38deg)', offset: 0.3 },
+        { transform: 'scale(0.98)', filter: 'brightness(1.2) hue-rotate(-38deg)', offset: 0.6 },
+        { transform: 'scale(1)', filter: 'none' },
+      ], { duration: 460, easing: 'ease-out' })
+    } catch { /* fx niekada nelaužia UI */ }
+  }, [])
   const pushToast = useCallback((msg: string) => {
     playError()
     setToast(msg)
@@ -3514,6 +3528,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       ch.on('broadcast', { event: 'reject' }, ({ payload }) => {
         const { reason, params } = payload as { reason?: string; params?: Record<string, string | number> }
         pushToast(reason ? t(reason, params) : 'Veiksmas negalimas')
+        if (reason && /notEnoughGold/.test(reason)) flashGold()
       })
       // Host prašo svečio kaladės – atsiunčiam pasirinktą kaladę
       ch.on('broadcast', { event: 'reqdeck' }, () => {
@@ -3711,6 +3726,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           reasonRefs?: { side: Side; uid: string }[]
         }
         pushToast(rr.reason ? t(rr.reason, rr.reasonParams) : 'Veiksmas negalimas')
+        if (rr.reason && /notEnoughGold/.test(rr.reason)) flashGold()
         // Status VFX: bandymas veikti su frozen/stunned → trigger animacija ant kortos
         const aid = (a as { uid?: string; attackerUid?: string }).attackerUid ?? (a as { uid?: string }).uid
         if (aid && r.reason) {
@@ -3730,7 +3746,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       }
       return gateCommit(g, prev)   // reakcijos → būsena atskleidžiama po grandinės animacijos
     })
-  }, [isGuest, pushToast, tutorial, gateCommit, t])
+  }, [isGuest, pushToast, flashGold, tutorial, gateCommit, t])
 
   // ── Nuoseklūs Kovos šūksnio iškvietimai ─────────────────────────────────────
   // Kol `game.summonChain` netuščias, kas BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS
@@ -3907,7 +3923,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       const hasBoardSac = game!.you.units.some((u) => u && !u.isChampion)
       const handSacCount = game!.you.hand.filter((h) => h.uid !== c.uid).length
       if (!hasBoardSac && handSacCount < 2) { pushToast(t('battle.game.toastChampionTribute')); return }
-      { const cNow = effectiveCost(game!, 'you', c); if (game!.you.gold < cNow) { pushToast(t('battle.game.toastNotEnoughGold', { cost: cNow, gold: game!.you.gold })); return } }
+      { const cNow = effectiveCost(game!, 'you', c); if (game!.you.gold < cNow) { pushToast(t('battle.game.toastNotEnoughGold', { cost: cNow, gold: game!.you.gold })); flashGold(); return } }
       playUiClick()
       setSelect({ kind: 'sacrifice', cardUid: c.uid, picked: [] })
       pushToast(t('battle.game.toastTributeHint'))
@@ -3917,7 +3933,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     const legacyNeedsTarget = (c.type === 'spell' || (c.type === 'unit' && c.keywords.includes('battlecry'))) && !!c.effect?.targeted
     if (selMap || legacyNeedsTarget) {
       const cNow = effectiveCost(game!, 'you', c)
-      if (game!.you.gold < cNow) { pushToast(t('battle.game.toastNotEnoughGold', { cost: cNow, gold: game!.you.gold })); return }
+      if (game!.you.gold < cNow) { pushToast(t('battle.game.toastNotEnoughGold', { cost: cNow, gold: game!.you.gold })); flashGold(); return }
       const need = Math.max(1, selMap?.hitCount ?? 1)
       const availRefs = selMap ? spellTargetRefs(game!, 'you', selMap) : []
       const avail = availRefs.length
@@ -4617,11 +4633,12 @@ doAction({ t: 'endTurn', actor: 'you' })
               className={'rounded-lg flex items-center justify-center' + (myDropGlow ? ' rvn-tac-slot-live' : '')}
               style={{
                 width: rowUnitW, height: Math.round(rowUnitW * 4 / 3),
-                border: myDropGlow ? '2px solid rgba(74,222,128,0.85)' : '1px solid rgba(240,180,41,0.22)',
-                background: myDropGlow ? 'rgba(74,222,128,0.12)' : 'linear-gradient(160deg, rgba(28,23,38,0.9), rgba(10,8,14,0.92))',
-                boxShadow: myDropGlow ? '0 0 16px rgba(74,222,128,0.6)' : 'inset 0 2px 12px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(240,180,41,0.05)',
-                transition: 'box-shadow 0.15s, border-color 0.15s',
-              }}>{slotTypeIcon('unit', Math.round(rowUnitW * 0.44), '✦', 'var(--gold)')}</div>
+                // Tuščia vieta – tik tylus kontūras, kad nedominuotų arenos (759); tempiant kortą – ryški kaip anksčiau.
+                border: myDropGlow ? '2px solid rgba(74,222,128,0.85)' : '1px solid rgba(240,180,41,0.13)',
+                background: myDropGlow ? 'rgba(74,222,128,0.12)' : 'linear-gradient(160deg, rgba(20,16,28,0.30), rgba(8,6,12,0.38))',
+                boxShadow: myDropGlow ? '0 0 16px rgba(74,222,128,0.6)' : 'inset 0 1px 8px rgba(0,0,0,0.35)',
+                transition: 'box-shadow 0.15s, border-color 0.15s, background 0.15s',
+              }}><span style={{ opacity: myDropGlow ? 1 : 0.45, display: 'inline-flex' }}>{slotTypeIcon('unit', Math.round(rowUnitW * 0.44), '✦', 'var(--gold)')}</span></div>
           ) })}
         </AnimatePresence>
       </div>
@@ -5544,9 +5561,10 @@ doAction({ t: 'endTurn', actor: 'you' })
       {/* ── klaidos toast ── */}
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="combat-plate combat-toast fixed top-14 left-0 right-0 mx-auto w-fit z-[130] px-4 py-2 text-xs font-semibold max-w-[90vw] text-center"
-            style={{ color: '#fca5a5' }}>
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="combat-plate combat-toast fixed left-0 right-0 mx-auto w-fit z-[130] px-4 py-2 text-xs font-semibold max-w-[90vw] text-center"
+            // Virš rankos (ten, kur žaidėjas ką tik veikė), o ne ant priešininko portreto ir rankos (759).
+            style={{ color: '#fca5a5', bottom: '27vh' }}>
             {toast}
           </motion.div>
         )}
