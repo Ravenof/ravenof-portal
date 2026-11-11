@@ -96,11 +96,13 @@ console.log('5-6. Draw efektas + onDraw curse trigger')
   const g2 = createGame(basicDeck(5), basicDeck(5), 'you', { curseCards: [curse] })
   beginTurn(g2)
   g2.you.deck.push(trigger) // kita trauks šitą
-  const cursesBefore = g2.you.curses.length
+  // Kanonas (curseEngine): prakeiksmas imamas iš KERĖTOJO side deck'o ir ĮMAIŠOMAS į aukos
+  // kaladę; efektas suveikia tik jį ištraukus. appliesTo 'caster' → auka = tu, tad imama iš AI pusės.
+  const cursesBefore = g2.ai.curses.length
   endTurn(g2); beginTurn(g2) // AI ėjimas
   endTurn(g2); beginTurn(g2) // vėl tu – trauki Užkeiktą kortą
-  check('onDraw aktyvavo curse iš side deck', g2.you.curses.length === cursesBefore - 1,
-    `curses ${cursesBefore} -> ${g2.you.curses.length}`)
+  check('onDraw įmaišė prakeiksmą iš priešininko side deck į tavo kaladę', g2.ai.curses.length === cursesBefore - 1 && g2.you.deck.some((c) => c.type === 'curse'),
+    `ai curses ${cursesBefore} -> ${g2.ai.curses.length}`)
   check('curse padarė žalą', g2.you.hp < 40 || g2.log.some(e => e.t === 'curse'))
 }
 
@@ -111,10 +113,10 @@ console.log('7. Curse side deck aktyvuojasi nuo spell efekto')
     mappings: [{ trigger: 'onCast', effect: 'triggerCurse', target: 'self', value: 1, triggersCurse: { count: 1, appliesTo: 'opponent' } }] })
   const g = createGame(basicDeck(), basicDeck(), 'you', { curseCards: [curse] })
   beginTurn(g); g.you.gold = 500; g.you.hand.push(spell)
-  const aiCursesBefore = g.ai.curses.length
+  const myCursesBefore = g.you.curses.length
   playCard(g, 'you', spell.uid)
-  check('priešininko curse deck sumažėjo', g.ai.curses.length === aiCursesBefore - 1)
-  check('curse efektas pritaikytas priešininkui', g.ai.hp < 40)
+  check('kerėtojo (tavo) curse side deck sumažėjo', g.you.curses.length === myCursesBefore - 1, `${myCursesBefore} -> ${g.you.curses.length}`)
+  check('prakeiksmas įmaišytas į priešininko kaladę, efektas dar NEsuveikė', g.ai.deck.some((c) => c.type === 'curse') && g.ai.hp === 40, `hp ${g.ai.hp}`)
   check('curse log įrašas yra', g.log.some(e => e.t === 'curse'))
 }
 

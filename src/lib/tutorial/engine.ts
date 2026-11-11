@@ -1030,7 +1030,11 @@ function dealToPlayer(g: GameState, target: Side, base: number, actor: Side, use
   if (useZmk) zmkGate(g, actor, { kind: 'player', side: target }, dmg)
   const fr = fieldEngine.applyFirstDamageReduction(g, target, dmg)
   if (fr.reduced) { dmg = fr.dmg; log(g, { t: 'field', side: target, key: 'battleLog.fieldReduceFirst', params: { dmg } }) }
-  if (dmg <= 0) return
+  if (dmg <= 0) {
+    // 0 žalos žaidėjui (ŽMK ×0 ar sumažinimai) – matomas įvykis, kaip ir padarams (758): be jo smūgis „dingdavo".
+    log(g, { t: 'damage', side: target, value: 0, key: `battleLog.noDamagePlayer.${SK(target)}`, tgt: { kind: 'player', side: target } })
+    return
+  }
   // Aura: žala žaidėjams ×2 (kol bet kurioje pusėje lauke yra nenutildyta korta su auraHeroDamageDouble)
   if (heroDamageDoubleActive(g)) {
     dmg *= 2

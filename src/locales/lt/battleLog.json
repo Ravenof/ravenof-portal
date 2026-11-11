@@ -256,6 +256,10 @@
   },
   "noAttacker": "„{{src}}\": nėra puolėjo (naudok onAttacked + „efektas į atakuotoją\").",
   "noDamage": "„{{card}}\" žalos negauna (0).",
+  "noDamagePlayer": {
+    "ai": "Priešininkas žalos negauna (0).",
+    "you": "Tu žalos negauni (0)."
+  },
   "noSpellToCounter": "„{{src}}\": nėra žaidžiamo burto, kurį būtų galima nutildyti.",
   "noSummonTarget": "Nėra tinkamo padaro iškvietimui.",
   "noSummonTargetZone": "Nėra tinkamo padaro {{zone}} – iškvietimas neįvyksta.",

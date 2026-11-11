@@ -18,7 +18,9 @@ const check = (name: string, cond: boolean, extra = '') => {
 
 const ZMK0 = [{ id: 'z', name: '+0', description: null, value: '+0' as const, count: 20, mode: 'auto' as const, image_url: null, active: true, sort_order: 1 }]
 const W_HARD = mergeWeights(DIFFICULTY_WEIGHTS.hard, { jitter: -1 })
-const W_NORM = mergeWeights(DIFFICULTY_WEIGHTS.normal, { jitter: -1 })
+// 2026-09-19 kopėčia: goodPlayer euristikos = normal + hard; BE jų liko tik easy.
+// „norm" šiame faile istoriškai reiškia „lygis be goodPlayer" → dabar tai easy svoriai.
+const W_NORM = mergeWeights(DIFFICULTY_WEIGHTS.easy, { jitter: -1 })
 
 function mkCard(over: Partial<TutCard> & { name: string }): TutCard {
   return {
@@ -43,8 +45,8 @@ console.log('◆ Svoriai: normal = senas hard')
 {
   const n = DIFFICULTY_WEIGHTS.normal
   check('normal faceBias -2 / tradeThreshold 0 / removalMinValue 5 / lookahead', n.faceBias === -2 && n.tradeThreshold === 0 && n.removalMinValue === 5 && n.lookahead === true)
-  check('normal BE goodPlayer, hard SU goodPlayer', !n.goodPlayer && DIFFICULTY_WEIGHTS.hard.goodPlayer === true)
-  check('easy nepakitęs (faceBias 6, be lookahead)', DIFFICULTY_WEIGHTS.easy.faceBias === 6 && !DIFFICULTY_WEIGHTS.easy.lookahead && !DIFFICULTY_WEIGHTS.easy.goodPlayer)
+  check('easy BE goodPlayer; normal ir hard SU goodPlayer', !DIFFICULTY_WEIGHTS.easy.goodPlayer && n.goodPlayer === true && DIFFICULTY_WEIGHTS.hard.goodPlayer === true)
+  check('easy = buvęs normal (faceBias -2, su lookahead, jitter 0.6)', DIFFICULTY_WEIGHTS.easy.faceBias === -2 && DIFFICULTY_WEIGHTS.easy.lookahead === true && DIFFICULTY_WEIGHTS.easy.jitter === 0.6)
 }
 
 console.log('◆ Buff PRIEŠ ataką (hard)')

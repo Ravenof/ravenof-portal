@@ -256,6 +256,10 @@
   },
   "noAttacker": "\"{{src}}\": there is no attacker (use onAttacked + \"effect on attacker\").",
   "noDamage": "\"{{card}}\" takes no damage (0).",
+  "noDamagePlayer": {
+    "ai": "The opponent takes no damage (0).",
+    "you": "You take no damage (0)."
+  },
   "noSpellToCounter": "\"{{src}}\": there is no spell being cast to counter.",
   "noSummonTarget": "No suitable creature to summon.",
   "noSummonTargetZone": "No suitable creature {{zone}} – the summon fails.",

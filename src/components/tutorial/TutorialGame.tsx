@@ -2681,7 +2681,12 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             const pp0 = P(game, e.side); const cn = e.cardName
             const u0 = pp0.units.find((x) => x?.card.name === cn)
             const at0 = u0 ? rectOf({ uid: u0.uid }) : null
-            if (at0) { const d0 = SETTLE + fxSeq; fxSeq += 90; window.setTimeout(() => { fxRef.current?.impactBurst(at0.x, at0.y, 'ZERO'); fxRef.current?.floatNumber(at0.x, at0.y - 12, '0', '#9a9aa8', 'small') }, d0) }
+            if (at0) { const d0 = SETTLE + fxSeq; fxSeq += 90; window.setTimeout(() => { fxRef.current?.impactBurst(at0.x, at0.y, 'ZERO'); fxRef.current?.floatNumber(at0.x, at0.y - 12, '0', '#9a9aa8', 'small'); playBattleSound('puff', 0.3) }, d0) }
+          }
+          // 0 žalos ŽAIDĖJUI iš burto/efekto (758): tas pats puff'as ant avataro.
+          if (val === 0 && !e.cardName && srcKind !== 'attack' && (e.key ?? '').startsWith('battleLog.noDamagePlayer')) {
+            const atP = rectFor({ side: e.side })
+            if (atP) { const dP = SETTLE + fxSeq; fxSeq += 90; window.setTimeout(() => { fxRef.current?.impactBurst(atP.x, atP.y, 'ZERO'); fxRef.current?.floatNumber(atP.x, atP.y - 12, '0', '#9a9aa8', 'small'); playBattleSound('puff', 0.3) }, dP) }
           }
           // Žaidėjo (avataro) žala: hit balsas + float skaičius + flash + lowHp
           if (!e.cardName && (val ?? 0) > 0 && (!tgt || tgt.kind === 'player')) {

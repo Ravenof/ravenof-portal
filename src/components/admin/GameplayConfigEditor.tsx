@@ -4,6 +4,7 @@
 // Dropdown'ais sudaromi EffectMapping'ai + field pasyvai + raw JSON režimas.
 // Rezultatas serializuojamas į hidden input name="gameplay" (saveCard parsina).
 
+import { lintCardGameplay } from '@/lib/cards/gameplayLint'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SummonBurst } from '@/components/tutorial/SummonBurst'
@@ -208,6 +209,13 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
     writeMappings(arr)
   }
 
+  // Gyva konfigūracijos patikra (tos pačios taisyklės kaip `npm run cards:lint`).
+  // Kortos tipą čia žinom tik iš požymių; teksto turinio – ne, tad „tekstas be konfigūracijos" tikrinamas tik CLI.
+  const lintIssues = useMemo(() => lintCardGameplay({
+    typeName: isField ? 'Laukas' : isChampion ? 'Čempionas' : isCurse ? 'Prakeiksmas' : isReaction ? 'Reakcija' : null,
+    gameplay: cfg,
+  }), [cfg, isField, isChampion, isCurse, isReaction])
+
   const serialized = useMemo(() => {
     const out: GameplayConfig = { ...cfg, needsEffectMapping: needsMapping }
     if (!out.effectMappings?.length) delete out.effectMappings
@@ -339,6 +347,18 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
           </div>
         </>,
         document.body,
+      )}
+      {lintIssues.length > 0 && (
+        <div className="rounded-lg px-3 py-2 text-[11px] leading-snug" style={{ background: lintIssues.some((i) => i.level === 'error') ? 'rgba(239,68,68,0.10)' : 'rgba(249,115,22,0.10)', border: `1px solid ${lintIssues.some((i) => i.level === 'error') ? 'rgba(239,68,68,0.45)' : 'rgba(249,115,22,0.4)'}` }}>
+          <div className="font-semibold mb-1" style={{ color: lintIssues.some((i) => i.level === 'error') ? '#f87171' : '#fb923c' }}>
+            Konfigūracijos patikra: {lintIssues.filter((i) => i.level === 'error').length} klaid., {lintIssues.filter((i) => i.level === 'warn').length} pastab.
+          </div>
+          <ul className="space-y-0.5">
+            {lintIssues.map((i, k) => (
+              <li key={k} style={{ color: i.level === 'error' ? '#fca5a5' : '#fdba74' }}>{i.level === 'error' ? '✗' : '•'} {i.msg}</li>
+            ))}
+          </ul>
+        </div>
       )}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p style={{ ...labelStyle, marginBottom: 0, fontSize: '0.7rem' }}>🎮 Virtualaus žaidimo efektai</p>

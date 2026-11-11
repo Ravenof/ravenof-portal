@@ -74,6 +74,7 @@
     "game:test:notarget": "npx tsx scripts/simulate-no-target-summon.ts",
     "game:test:combatrules": "npx tsx scripts/simulate-combat-rules.ts",
     "game:test:pvpguard": "npx tsx scripts/simulate-pvp-guard.ts",
+    "cards:lint": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/cards-lint.ts",
     "game:test:sounds": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-sound-manifest.ts"
   },
   "dependencies": {
