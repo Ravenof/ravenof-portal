@@ -1536,3 +1536,42 @@ export function playCurse(targetEl: HTMLElement, o: { hooks?: FxHooks; root?: HT
     flash('#3b0008', 0.45, 300); shake(10); hitstop(80); burst(c.x, c.y, 22, { v: [2, 8], life: [400, 800], size: [3, 6], colors: ['#ff5a4a', '#b91c1c', '#1a0206'] }); tint(c, '#7a0010', 0.95, 1200); knock(c, -6); cshake(c, 9); rise(c, 1000, ['#ff5a4a', '#b91c1c'], 0.6) })
   kick(); return END - 250
 }
+
+// ── v4 prijungimas prie žaidimo: nuolatiniai statusai ir reakcijos akcentai ──
+export function isFxStatusId(v: string): v is FxStatusId { return Object.prototype.hasOwnProperty.call(STATUS4, v) }
+/**
+ * Nuolatinis statuso vaizdas ant kortos, kol nesustabdytas (grąžinama stop funkcija).
+ * Kiekvieną kadrą seka kortos poziciją ir dydį; kortos DOM neliečia (virtuali scena), todėl nesikerta su smūgių scenomis.
+ */
+export function statusOn(id: FxStatusId, el: HTMLElement, o: { root?: HTMLElement | null } = {}): () => void {
+  if (!STATUS4[id] || !fxStage.available() || !ensureCanvas(o.root)) return () => { /* */ }
+  const host = cv!.parentElement ?? document, tm = measure(el)
+  const sc = makeScene({ x: tm.px, y: tm.py }, tm.w / CW, null, undefined, false, host)
+  enter(sc)
+  const c = sc.S; c.vw = CW; c.vh = tm.h / sc.k
+  const sd = [...Array(12)].map(() => Math.random()), t0 = time
+  let stopAt = -1
+  fx(1e12, () => {
+    if (!el.isConnected) { stop(); return }
+    const m = measure(el); if (m.w > 4) { sc.cx = m.px; sc.cy = m.py; sc.k = m.w / CW; c.vh = m.h / sc.k }
+    const a = Math.min(1, (time - t0) / 350, stopAt >= 0 ? 1 - (time - stopAt) / 350 : 1)
+    if (a > 0) STATUS4[id](c, a, sd)
+  }, id === 'shield' || id === 'immortal' || id === 'blessed' ? 0 : 1)
+  const it = FX[FX.length - 1]
+  function stop() { if (stopAt >= 0) return; stopAt = time; it.t0 = time; it.dur = 360; kick() }
+  kick(); return stop
+}
+/**
+ * Reakcijos akcentai prie esamos grandinės (ReactionChainLayer valdo eigą ir vartus):
+ * 'detect' – blyksnis ant reakcijos kortos, 'hit' – kontrsmūgis grandinei sutrūkus. Taškai – ekrano px.
+ */
+export function playReactionAccent(kind: 'detect' | 'hit', p: Pt, o: { hooks?: FxHooks; root?: HTMLElement | null } = {}): void {
+  if (!fxStage.available() || !ensureCanvas(o.root)) return
+  const host = cv!.parentElement ?? document
+  const sc = makeScene(p, defaultK(host), null, o.hooks, false, host); enter(sc)
+  if (kind === 'detect') { dim(0.45, 900); flash('#c4a5ff', 0.14, 180); dotRing(X, Y, 110, 360, '#a855f7', 22); dotRing(X, Y, 60, 280, '#ffffff', 14); pop(X, Y, 70, '#c4a5ff', 240)
+    burst(X, Y, 14, { v: [2, 8], life: [200, 450], size: [2, 4], colors: ['#ffffff', '#c4a5ff'], dr: 0.9 }) }
+  else { pop(X, Y, 135, '#c4a5ff', 280); dotRing(X, Y, 115, 360, '#a855f7'); flash('#c4a5ff', 0.18, 220); shake(8); hitstop(60)
+    burst(X, Y, 18, { v: [3, 9], life: [350, 700], size: [4, 8], colors: ['#b4bccd', '#7f889c', '#dfe6f0'], k: 1, g: 0.25, dr: 0.95 }); burst(X, Y, 16, { v: [2, 9], life: [200, 450], size: [2, 4.5], colors: ['#ffffff', '#c4a5ff'], dr: 0.9 }) }
+  kick()
+}

@@ -81,7 +81,7 @@ import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
 import { BattleFxLayer, type BattleFxHandle, type AoeVariant } from './BattleFxLayer'
 import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
-import { fxStage, playAoe, playCurse, type FxHooks, type StrikeKind, type FxAoeId } from '@/lib/game/fxStage'
+import { fxStage, playAoe, playCurse, playReactionAccent, type FxHooks, type StrikeKind, type FxAoeId } from '@/lib/game/fxStage'
 import { PROJECTILE_TO_FX, STATUS_TO_FX, LEGACY_SUMMON_MAP, factionSummonFx, isSummonFxId, isFxImpactId, summonLandMs, isSkillFxId, defaultSkillFx, championKey, type SummonFxId, type FxProjId, type FxImpactId, type SkillFxId } from '@/lib/game/fxCatalog'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
@@ -3246,6 +3246,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             from, targets: chainTargets, variant, reduced,
             compact: nextReactionIsCompact(),
             onShake: (k) => fxRef.current?.shakeBoard(k),
+            // v4 akcentai prie grandinės: blyksnis ant reakcijos kortos ir kontrsmūgis grandinei sutrūkus
+            onPhase: (ph) => { if (reduced) return; if (ph === 'detect') playReactionAccent('detect', from, { hooks: fxHooksRef.current }); else if (ph === 'effect') for (const tg of chainTargets) { const b = tg.track?.() ?? tg; playReactionAccent('hit', { x: b.x, y: b.y }, { hooks: fxHooksRef.current }) } },
           })
         } else {
           // Fallback: sluoksnio nėra (SSR/testai) – bazinė trukmė, elgesys kaip anksčiau.

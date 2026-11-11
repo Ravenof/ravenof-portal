@@ -12,6 +12,7 @@
 // z-tvarka: art(0) < vfx idle(5) < vfx one-shot(6) < stat juosta(10) < ikonos(30)
 // ══════════════════════════════════════════════════════════════════════════════
 import { memo, useEffect, useRef, useState } from 'react'
+import { fxStage, fxV4, statusOn, isFxStatusId, type FxStatusId } from '@/lib/game/fxStage'
 import {
   STATUS_VFX_REGISTRY, subscribeStatusVfx, getVfxQuality, prefersReducedMotion, isStatusIdleHeld, subscribeIdleHold,
   type VfxStatusId, type StatusAnimationEvent,
@@ -525,6 +526,16 @@ function OneShot({ s, onDone, q }: { s: Shot; onDone: () => void; q: 'low' | 'me
   )
 }
 
+/** v4: nuolatinį statuso vaizdą piešia fxStage (seka kortą kiekvieną kadrą); komponentas tik įjungia / išjungia. */
+function Idle4({ id, uid }: { id: FxStatusId; uid: string }) {
+  useEffect(() => {
+    const el = document.querySelector<HTMLElement>(`[data-unit-uid="${CSS.escape(uid)}"]`)
+    if (!el) return
+    return statusOn(id, el)
+  }, [id, uid])
+  return null
+}
+
 // ── Pagrindinis sluoksnis ────────────────────────────────────────────────────
 export const CardStatusVfxLayer = memo(function CardStatusVfxLayer({ uid, active }: {
   uid: string
@@ -551,12 +562,15 @@ export const CardStatusVfxLayer = memo(function CardStatusVfxLayer({ uid, active
     .sort((a, b) => STATUS_VFX_REGISTRY[b].priority - STATUS_VFX_REGISTRY[a].priority)
     .slice(0, IDLE_LIMIT)
 
+  // v4 nuolatiniai statusai (fxStage) – tik pilnos kokybės režime; kitaip lieka ankstesnis CSS/canvas vaizdas
+  const use4 = !rm.current && q.current !== 'low' && fxV4() && fxStage.available()
+
   return (
     <>
       <VfxCss />
-      {!rm.current && idle.map((s) => <Idle key={s} id={s} q={q.current} />)}
+      {!rm.current && idle.map((s) => use4 && isFxStatusId(s) ? <Idle4 key={s} id={s} uid={uid} /> : <Idle key={s} id={s} q={q.current} />)}
       {!rm.current && q.current !== 'low' && (() => {
-        const cvs = idle.filter((s) => CANVAS_STATUSES.includes(s))
+        const cvs = idle.filter((s) => CANVAS_STATUSES.includes(s) && !(use4 && isFxStatusId(s)))
         return cvs.length > 0 ? <IdleCanvas statuses={cvs} /> : null
       })()}
       {rm.current && idle.slice(0, 1).map((s) => (
