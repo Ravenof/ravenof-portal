@@ -1168,10 +1168,10 @@ export const fxStage = {
   ids(): { summons: string[]; projectiles: string[]; impacts: string[]; skills: string[]; strikes: string[]; skillStrikeRefs: string[]; evolves: string[] } { return { evolves: Object.keys(EVOLVE), summons: Object.keys(SUM), projectiles: Object.keys(PROJ), impacts: Object.keys(IMP), skills: Object.keys(SKILL), strikes: Object.keys(STRIKE), skillStrikeRefs: Object.values(SKILL).flatMap((d) => Object.values(d.strikes ?? {})) } },
   /**
    * Flipbook efektų pilotas: įjungia/išjungia naujas (tekstūrines) fireBurst, iceShatter ir holyDescent versijas
-   * ir pradeda krauti tekstūras. Kol neįkelta, groja senoji versija. Grąžina būseną.
+   * ir pradeda krauti tekstūras (bet kuris kvietimas su argumentu). Kol neįkelta, groja senoji versija. Grąžina būseną.
    */
   books(on?: boolean): { on: boolean; ready: boolean } {
-    if (on != null) { BOOKS_ON = on; if (on) for (const k in BK) bkLoad(k) }
+    if (on != null) { BOOKS_ON = on; for (const k in BK) bkLoad(k) }   // kraunam ir išjungus – kad įjungus grotų iškart
     return { on: BOOKS_ON, ready: Object.values(BK).every((b) => b.ok) }
   },
   /** Viską sustabdo ir išvalo (kovos ekrano uždarymas). */
