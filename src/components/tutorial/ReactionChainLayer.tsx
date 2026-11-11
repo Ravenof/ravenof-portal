@@ -20,6 +20,7 @@
 
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from 'react'
 import { playBattleSound } from '@/lib/game/soundManager'
+import { fxStage, fxV4, playReaction } from '@/lib/game/fxStage'
 import { duckMusic } from '@/lib/game/musicManager'
 import {
   REACTION_CHAIN_PHASES as PH,
@@ -87,6 +88,8 @@ type Run = {
   resolve: () => void
   phase: ReactionChainPhase | null
   strands: Strand[]
+  /** v4: grandinę piešia fxStage (playReaction); šis sluoksnis lieka laiko, vartų ir garsų šeimininkas. */
+  v4?: boolean
 }
 
 const VAR: Record<ReactionChainVariant, { metal: string; metalD: string; glow: string; glow2: string; ember: string; impact: string }> = {
@@ -227,7 +230,7 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
         const chainDur = reduced ? 0 : F.chain
 
         // P0 – rune flare nuo reakcijos kortos (bendras visoms grandinėms)
-        if (t < F.detect + 120) {
+        if (!run.v4 && t < F.detect + 120) {
           const k = clamp((t - 40) / 280, 0, 1)
           if (k > 0) {
             ctx.save(); ctx.globalAlpha = (1 - k) * 0.9
@@ -239,6 +242,7 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
 
         // Kiekvienas taikinys – SAVO grandinė (savo laikas su poslinkiu)
         for (const st of run.strands) {
+          if (run.v4) break
           const tl = t - st.stagger
           if (tl < 0) continue
           // Gyvas taikinio sekimas: korta gali dar judėti (entrance spring,
@@ -384,7 +388,12 @@ export const ReactionChainLayer = forwardRef<ReactionChainHandle>(function React
       const gateMs = (reduced ? REACTION_CHAIN_REDUCED_GATE_MS : fullGate) + maxStagger
       const totalMs = gateMs + (reduced ? 400 : F.effect)
       return new Promise<void>((resolve) => {
-        runRef.current = { opts: o, t0: performance.now(), gateMs, totalMs, resolved: false, resolve, phase: null, strands }
+        // v4: nauja grandinė (antgalis, apsivijimas, susiveržimas, sutrūkimas su kontrsmūgiu) – tomis pačiomis fazių trukmėmis
+        let v4 = false
+        if (!reduced && fxV4() && fxStage.available()) {
+          for (const st of strands) { if (playReaction(o.from, { x: st.to.x, y: st.to.y, w: st.size.w, h: st.size.h, track: st.track }, { phases: { detect: F.detect, chain: F.chain, wrap: F.wrap, hold: F.showcase }, delay: st.stagger, inGame: true }) > 0) v4 = true }
+        }
+        runRef.current = { opts: o, t0: performance.now(), gateMs, totalMs, resolved: false, resolve, phase: null, strands, v4 }
       })
     },
     cancel: () => { finishRun(runRef.current); runRef.current = null; partsRef.current = [] },

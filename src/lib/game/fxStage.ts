@@ -157,91 +157,6 @@ function motes(f: Pt, t: Pt, c: string, T: number): number {
   return T * 0.77
 }
 /** `go` grąžina, po kiek ms skrydis PASIEKIA taikinį (≤ T). */
-// ── flipbook'ai ir tekstūrų sprite'ai ────────────────────────────────────────
-// Ugnies/dūmų kadrų juostos vietoj vien procedūrinių dalelių. Simuliuoti šaltiniai perdaryti į pieštą stilių
-// (tonų pakopos, kietas siluetas, sava paletė – žr. fx-src/stylize.py projekto aplanke). Šaltiniai CC0:
-// Unity Labs „VFX Image Sequences" ir Kenney „Particle Pack" – žr. public/digital/fx/README.md.
-// PILOTAS: kol `BOOKS_ON` išjungtas (numatyta), žaidime groja senieji efektai. Įjungiama /dev/fx.
-type Book = { c: number; r: number; im: HTMLImageElement | null; ok: boolean }
-const bk = (c = 1, r = 1): Book => ({ c, r, im: null, ok: false })
-const BK: Record<string, Book> = {
-  explosion: bk(5, 5), mist: bk(5, 5), flame: bk(16, 4),
-  scorch: bk(), star: bk(), halo: bk(), ray: bk(), shock: bk(),
-}
-let BOOKS_ON = false
-const tintC = new Map<string, HTMLCanvasElement>()
-function bkLoad(k: string) {
-  const b = BK[k]; if (!b || b.im || typeof Image === 'undefined') return
-  const im = new Image(); im.decoding = 'async'; im.onload = () => { b.ok = true }; im.src = `/digital/fx/${k}.webp`; b.im = im
-}
-/** Paveikslas (arba nuspalvinta jo kopija). null – dar neįkeltas. */
-function bkSrc(k: string, col?: string): CanvasImageSource | null {
-  const b = BK[k]; if (!b) return null
-  if (!b.im) bkLoad(k)
-  if (!b.ok || !b.im) return null
-  if (!col) return b.im
-  const key = k + col; let c = tintC.get(key); if (c) return c
-  c = document.createElement('canvas'); c.width = b.im.naturalWidth; c.height = b.im.naturalHeight
-  const g = c.getContext('2d')!
-  g.drawImage(b.im, 0, 0); g.globalCompositeOperation = 'multiply'; g.fillStyle = col; g.fillRect(0, 0, c.width, c.height)
-  g.globalCompositeOperation = 'destination-in'; g.drawImage(b.im, 0, 0)
-  tintC.set(key, c); return c
-}
-type BkO = { tint?: string; add?: boolean; rot?: number; a?: number; h?: number; step?: number }
-/** `step` – rodyti tik kas N-tą kadrą („ant dvejetų“: judesys atrodo pieštas ranka, ne nufilmuotas). */
-/** Vienas kadras: `f` 0..1 per visą juostą, `w` – plotis scenos vienetais (aukštis pagal kadro proporcijas arba `h`). */
-function bkDraw(k: string, f: number, x: number, y: number, w: number, o: BkO = {}) {
-  const b = BK[k], src = bkSrc(k, o.tint), a = o.a ?? 1; if (!src || !b.im || a <= 0 || w <= 0) return
-  const n = b.c * b.r, st = o.step ?? 1, i = Math.min(n - 1, Math.max(0, (((f * n) / st) | 0) * st)), W = b.im.naturalWidth / b.c, H = b.im.naturalHeight / b.r, h = o.h ?? w * H / W
-  ctx.globalCompositeOperation = o.add ? 'lighter' : 'source-over'; ctx.globalAlpha = a > 1 ? 1 : a
-  if (o.rot) { ctx.save(); ctx.translate(x, y); ctx.rotate(o.rot); ctx.drawImage(src, (i % b.c) * W, ((i / b.c) | 0) * H, W, H, -w / 2, -h / 2, w, h); ctx.restore() }
-  else ctx.drawImage(src, (i % b.c) * W, ((i / b.c) | 0) * H, W, H, x - w / 2, y - h / 2, w, h)
-}
-type BookO = BkO & { grow?: number; fade?: number; loop?: number; layer?: 0 | 1; rise?: number }
-/** Nugroja visą juostą per `dur` ms. grow – kiek paauga, fade – nuo kurios dalies gęsta, loop – kiek kartų prasukti. */
-const book = (k: string, x: number, y: number, w: number, dur: number, o: BookO = {}) => fx(dur, (p) => {
-  const a = (o.a ?? 1) * (o.fade != null && p > o.fade ? (1 - p) / (1 - o.fade) : 1)
-  bkDraw(k, o.loop ? (p * o.loop) % 1 : p, x, y - (o.rise ?? 0) * p, w * (1 + (o.grow ?? 0) * eo(p)), { ...o, a, h: o.h != null ? o.h * (1 + (o.grow ?? 0) * eo(p)) : undefined })
-}, o.layer ?? 1)
-/** Trumpas tekstūros žybsnis (auga ir gęsta). */
-const stamp = (k: string, x: number, y: number, w0: number, w1: number, dur: number, tint: string, a = 1, rot = 0, layer: 0 | 1 = 1) => fx(dur, (p) => bkDraw(k, 0, x, y, lerp(w0, w1, eo(p)), { tint, add: true, a: (1 - p) * a, rot }), layer)
-const booksReady = (...ks: string[]) => BOOKS_ON && ks.every((k) => !!bkSrc(k))
-
-// Naujos (flipbook) trijų efektų versijos – pilotas.
-function fireBurstB(c: VCard, light: boolean) {
-  stamp('scorch', c.x, c.y, 90, 250, 190, '#ffd9a0', 1, rnd(0, TAU))
-  pop(c.x, c.y, 120, '#ffb060', 220)
-  book('explosion', c.x, c.y - 8, light ? 170 : 230, light ? 520 : 680, { grow: 0.22, fade: 0.8, step: 2 })
-  stamp('shock', c.x, c.y, 40, 260, 320, '#ffcf8a', 0.7)
-  burst(c.x, c.y, light ? 10 : 20, { v: [3, 9], life: [300, 650], size: [2, 4.5], colors: ['#ffe2a8', '#ffb347', '#ff7a1a'], g: 0.16, dr: 0.94 })
-  tint(c, '#ff8a2a', 0.75, 560); cshake(c, light ? 3 : 6)
-  if (!light) { const y = c.y + c.vh * 0.2, h = c.vh * 1.15
-    for (const dx of [-0.26, 0.04, 0.3]) at(120 + (dx + 0.3) * 200, () => book('flame', c.x + dx * c.vw, y, h * 0.5, 950, { loop: 1.6, fade: 0.6, a: 0.95, h, step: 5 })) }
-}
-function iceShatterB(c: VCard) {
-  stamp('star', c.x, c.y, 80, 300, 240, '#e8f8ff', 1, 0.4)
-  stamp('shock', c.x, c.y, 30, 230, 360, '#bfe9ff', 0.8)
-  book('mist', c.x, c.y, 190, 600, { tint: '#cfeeff', grow: 0.3, fade: 0.45, a: 0.95, step: 2 })
-  burst(c.x, c.y, 14, { v: [3, 8.5], life: [320, 640], size: [5, 10], colors: ['#e8f8ff', '#9fdcff'], k: 1, dr: 0.9, g: 0.1 })
-  burst(c.x, c.y, 14, { v: [1, 4.5], life: [350, 700], size: [1.5, 3.5], colors: ['#ffffff', '#dff4ff'] })
-  fx(900, (p) => glow(c.x, c.y, 80, '#9fdcff', 0.3 * (1 - p)), 0)
-  tint(c, '#bfe9ff', 0.65, 900); cshake(c, 4)
-}
-function holyDescentB() {
-  S.hidden = true
-  const RY = [-0.62, -0.3, 0, 0.27, 0.58].map((d, i) => ({ d, w: 120 + (i % 2) * 50, ph: i * 1.7 }))
-  fx(1900, (p) => { const a = p < 0.15 ? p / 0.15 : p > 0.7 ? (1 - p) / 0.3 : 1; ctx.globalCompositeOperation = 'lighter'; glow(X, Y, 170, '#ffe08a', 0.28 * a)
-    bkDraw('halo', 0, X, Y, 300 + 20 * Math.sin(time / 400), { tint: '#ffe9a8', add: true, a: 0.5 * a, rot: time / 2400 })
-    for (const r of RY) bkDraw('ray', 0, X + r.d * CW * 1.5, Y - 150, r.w, { tint: '#fff1c0', add: true, a: a * (0.5 + 0.25 * Math.sin(time / 260 + r.ph)), h: 560 })
-    if (live && Math.random() < 0.5) { const an = rnd(0, TAU), r = rnd(20, 130); pt(X + Math.cos(an) * r, Y + Math.sin(an) * r, 0, -rnd(0.3, 1), rnd(500, 900), rnd(2, 4), '#fff4c2') } })
-  at(200, () => { show({ alpha: 0, s: 1.7 }); S.tint = '#fff4c2'; S.tintA = 0.9; tw(S, { alpha: 1 }, 320); tw(S, { s: 1 }, 900, eo); tw(S, { tintA: 0 }, 1100, ei) })
-  at(1080, () => { try { cur.hooks?.land?.(3) } catch { /* */ }
-    stamp('star', X, Y, 120, 420, 380, '#fff4c2', 1); stamp('shock', X, Y, 60, 420, 620, '#ffe08a', 0.8); stamp('halo', X, Y, 160, 380, 900, '#ffe08a', 0.6)
-    book('mist', X, Y + CH * 0.2, 230, 1000, { tint: '#ffdf8a', add: true, grow: 0.5, fade: 0.4, a: 0.6, rise: 30, step: 2 })
-    burst(X, Y, 22, { v: [1, 4], life: [500, 900], size: [2.5, 5], colors: ['#fff4c2', '#ffe08a'], jx: 40, jy: 56 })
-    for (const c of cur.row) at(140, () => { tint(c, '#ffe08a', 0.35, 900); knock(c, -2) }) })
-}
-
 const PROJ: Record<FxProjId, ProjDef> = {
   fireball: { col: '#ff7a1a', base: 380, go(f, t, T) { fx(T, (p) => { const e = p * (0.45 + 0.55 * p), [x, y] = bez(f, t, -46, e)
     if (live) { pt(x, y, rnd(-0.6, 0.6), rnd(-0.6, 0.6), rnd(200, 420), rnd(5, 10), pick(FIRE)); pt(x, y, rnd(-0.4, 0.4), rnd(-0.4, 0.4), rnd(150, 300), rnd(3, 6), '#ffd27a'); if (Math.random() < 0.3) pt(x, y, rnd(-0.3, 0.3), -0.4, 500, 9, '#1c1410', 2) }
@@ -276,12 +191,10 @@ function domeFx(c: VCard, light: boolean, dc: string) { const T = light ? 700 : 
     ctx.globalAlpha = 0.9 * a; ctx.strokeStyle = dc; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.ellipse(c.x, y, Math.max(0, 56 * g), Math.max(0, 72 * g), 0, 0, TAU); ctx.stroke()
     const s = p * 9; ctx.globalAlpha = a; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 4; ctx.lineCap = 'round'; ctx.beginPath(); ctx.ellipse(c.x, y, Math.max(0, 56 * g), Math.max(0, 72 * g), 0, s, s + 0.7); ctx.stroke() }) }
 const IMP: Record<FxImpactId, (c: VCard, light: boolean, col: string) => void> = {
-  fireBurst(c, light) { if (booksReady('explosion', 'scorch', 'shock', 'flame')) { fireBurstB(c, light); return }
-    burst(c.x, c.y, 26, { v: [2, 7.5], life: [250, 600], size: [5, 12], colors: FIRE, dr: 0.92 }); burst(c.x, c.y, 6, { v: [0.5, 2], life: [500, 900], size: [12, 20], colors: ['#1c1410'], k: 2, up: -0.6 })
+  fireBurst(c, light) { burst(c.x, c.y, 26, { v: [2, 7.5], life: [250, 600], size: [5, 12], colors: FIRE, dr: 0.92 }); burst(c.x, c.y, 6, { v: [0.5, 2], life: [500, 900], size: [12, 20], colors: ['#1c1410'], k: 2, up: -0.6 })
     ring(c.x, c.y, 12, 86, 360, '#ff9a3a', 8); pop(c.x, c.y, 95, '#ffb060', 260); tint(c, '#ff8a2a', 0.7, 520)
     if (!light) fx(650, () => { if (live && Math.random() < 0.5) { const [x, y] = perim(c, -6); pt(x, y, rnd(-0.3, 0.3), -rnd(0.8, 2), rnd(300, 600), rnd(2, 4), '#ffb347') } }) },
-  iceShatter(c) { if (booksReady('mist', 'star', 'shock')) { iceShatterB(c); return }
-    burst(c.x, c.y, 16, { v: [3, 8.5], life: [300, 620], size: [6, 11], colors: ['#e8f8ff', '#9fdcff'], k: 1, dr: 0.9 }); burst(c.x, c.y, 12, { v: [1, 4], life: [300, 500], size: [2, 4], colors: ['#ffffff'] })
+  iceShatter(c) { burst(c.x, c.y, 16, { v: [3, 8.5], life: [300, 620], size: [6, 11], colors: ['#e8f8ff', '#9fdcff'], k: 1, dr: 0.9 }); burst(c.x, c.y, 12, { v: [1, 4], life: [300, 500], size: [2, 4], colors: ['#ffffff'] })
     ring(c.x, c.y, 10, 80, 380, '#cfeeff', 6); pop(c.x, c.y, 70, '#9fdcff', 240); tint(c, '#bfe9ff', 0.6, 900) },
   freeze(c, light) { burst(c.x, c.y, 10, { v: [2, 6], life: [300, 600], size: [5, 9], colors: ['#e8f8ff', '#9fdcff'], k: 1, dr: 0.9 }); ring(c.x, c.y, 10, 74, 380, '#cfeeff', 5); tint(c, '#8fd3ff', 0.7, light ? 520 : 1700)
     if (light) return
@@ -359,8 +272,7 @@ const SUM: Record<SummonFxId, () => void> = {
     at(360, () => { show({ alpha: 0, s: 0.9 }); S.tint = '#07030c'; S.tintA = 1; tw(S, { alpha: 1 }, 360); tw(S, { s: 1 }, 420, eo); tw(S, { tintA: 0 }, 820, ei) })
     at(800, () => { shake(4); neighbors(4); ring(X, Y, 40, 150, 520, '#a855f7', 5, 0.7); pop(X, Y, 120, '#7c3aed', 380, 0.5)
       for (let i = 0; i < 16; i++) { const [x, y, nx, ny] = perim(S, 0); pt(x, y, nx * rnd(1, 3), ny * rnd(1, 3), rnd(500, 900), rnd(12, 20), '#120818', 2, 0, 0.95) } }) },
-  holyDescent() { if (booksReady('mist', 'star', 'shock', 'halo', 'ray')) { holyDescentB(); return }
-    S.hidden = true
+  holyDescent() { S.hidden = true
     fx(1900, (p) => { const a = p < 0.15 ? p / 0.15 : p > 0.7 ? (1 - p) / 0.3 : 1; glow(X, Y, 170, '#ffe08a', 0.3 * a); ctx.fillStyle = '#fff4c2'; for (let i = 0; i < 10; i++) { const an = i / 10 * TAU + time / 2600, w = 0.07 + 0.03 * Math.sin(i * 2.1), L = 180 + 30 * Math.sin(time / 300 + i)
       ctx.globalAlpha = a * 0.13; ctx.beginPath(); ctx.moveTo(X, Y); ctx.lineTo(X + Math.cos(an - w) * L, Y + Math.sin(an - w) * L); ctx.lineTo(X + Math.cos(an + w) * L, Y + Math.sin(an + w) * L); ctx.fill() }
       if (live && Math.random() < 0.5) { const an = rnd(0, TAU), r = rnd(20, 130); pt(X + Math.cos(an) * r, Y + Math.sin(an) * r, 0, -rnd(0.3, 1), rnd(500, 900), rnd(2, 4), '#fff4c2') } })
@@ -1171,14 +1083,6 @@ export const fxStage = {
   projColor(proj: FxProjId): string { return PROJ[proj]?.col ?? '#d4af37' },
   /** Įgyvendintų efektų sąrašai (testams: katalogas ir variklis privalo sutapti). */
   ids(): { summons: string[]; projectiles: string[]; impacts: string[]; skills: string[]; strikes: string[]; skillStrikeRefs: string[]; evolves: string[] } { return { evolves: Object.keys(EVOLVE), summons: Object.keys(SUM), projectiles: Object.keys(PROJ), impacts: Object.keys(IMP), skills: Object.keys(SKILL), strikes: Object.keys(STRIKE), skillStrikeRefs: Object.values(SKILL).flatMap((d) => Object.values(d.strikes ?? {})) } },
-  /**
-   * Flipbook efektų pilotas: įjungia/išjungia naujas (tekstūrines) fireBurst, iceShatter ir holyDescent versijas
-   * ir pradeda krauti tekstūras (bet kuris kvietimas su argumentu). Kol neįkelta, groja senoji versija. Grąžina būseną.
-   */
-  books(on?: boolean): { on: boolean; ready: boolean } {
-    if (on != null) { BOOKS_ON = on; for (const k in BK) bkLoad(k) }   // kraunam ir išjungus – kad įjungus grotų iškart
-    return { on: BOOKS_ON, ready: Object.values(BK).every((b) => b.ok) }
-  },
   /** Viską sustabdo ir išvalo (kovos ekrano uždarymas). */
   stop(): void { hardReset() },
   /** Testams / HUD. */
@@ -1485,34 +1389,45 @@ function link4(x: number, y: number, an: number, i: number, a: number, hot = 0) 
   if (hot > 0) { ctx.globalCompositeOperation = 'lighter'; glow(x, y, 8, '#c4a5ff', hot * a) }
 }
 /** Reakcija: grandinė su antgaliu išlekia iš reakcijos kortos, apsiveja taikinį, susiveržia ir sutrūksta. */
-export function playReaction(from: Pt, targetEl: HTMLElement, o: { sourceEl?: HTMLElement | null; hooks?: FxHooks; root?: HTMLElement | null } = {}): number {
-  const sc = sceneOn(targetEl, o); if (!sc) return 0
+export type ReactionTarget = { x: number; y: number; w?: number; h?: number; track?: () => { x: number; y: number; w?: number; h?: number } | null }
+export function playReaction(from: Pt, targetEl: HTMLElement | ReactionTarget, o: { sourceEl?: HTMLElement | null; hooks?: FxHooks; root?: HTMLElement | null
+  /** Žaidime: fazių trukmės iš ReactionChainLayer (jis valdo vartus ir garsus) – grandinė sutrūksta po `hold` (kortos parodymo). */
+  phases?: { detect: number; chain: number; wrap: number; hold: number }; delay?: number; inGame?: boolean } = {}): number {
+  const isEl = typeof HTMLElement !== 'undefined' && targetEl instanceof HTMLElement
+  const vt = isEl ? null : targetEl as ReactionTarget
+  let sc: Scene | null
+  if (isEl) sc = sceneOn(targetEl as HTMLElement, o)
+  else if (!vt || !fxStage.available() || !ensureCanvas(o.root)) sc = null
+  else { const host = cv!.parentElement ?? document, w = Math.max(44, Math.min(170, vt.w ?? 70)); sc = makeScene({ x: vt.x, y: vt.y }, w / CW, null, o.hooks, false, host); enter(sc); sc.S.vw = CW; sc.S.vh = Math.max(58, Math.min(230, vt.h ?? 96)) / sc.k }
+  if (!sc) return 0
   const c = sc.S, f = { x: X + (from.x - sc.cx) / sc.k, y: Y + (from.y - sc.cy) / sc.k }
   let src: VCard | null = null; if (o.sourceEl && o.sourceEl !== targetEl) { src = mkCard(o.sourceEl, sc, false); sc.cards.push(src) }
-  const T0 = 200, T1 = 520, T2 = 480, HOLD = 260, H = T0 + T1 + T2 + HOLD
+  const PHS = o.phases ?? { detect: 200, chain: 520, wrap: 480, hold: 260 }
+  const T0 = PHS.detect + (o.delay ?? 0), T1 = PHS.chain, T2 = PHS.wrap, HOLD = PHS.hold, H = T0 + T1 + T2 + HOLD, SW = T2 * 0.62
   const len = Math.hypot(c.x - f.x, c.y - f.y) || 1, N = Math.max(8, Math.round(len / 12)), ARC = -Math.min(70, len * 0.22)
   const pathPt = (q: number, arc: number, sway: number, i: number): [number, number] => { const [x, y] = bez(f, c, arc, q), w = Math.sin(time / 120 + i * 0.6) * 4 * sway * Math.sin(q * Math.PI); return [x - (c.y - f.y) / len * w, y + (c.x - f.x) / len * w] }
   // P0 – aptikimas
-  dim(0.55, H + 500); hitstop(90); flash('#c4a5ff', 0.14, 180)
+  dim(0.55, H + 500); if (!o.inGame) hitstop(90); flash('#c4a5ff', 0.14, 180)
   if (src) { const s = src; tw(s, { s: 1.16 }, 100); at(150, () => tw(s, { s: 1 }, 260, eob)); tint(s, '#c4a5ff', 0.85, 450) }
   dotRing(f.x, f.y, 110, 360, '#a855f7', 22); dotRing(f.x, f.y, 60, 280, '#ffffff', 14); burst(f.x, f.y, 14, { v: [2, 8], life: [200, 450], size: [2, 4], colors: ['#ffffff', '#c4a5ff'], dr: 0.9 })
   // P1–P3 – grandinė (skrydis → įtempta → sutrūksta)
-  fx(H - T0, (p) => { const t = p * (H - T0), head = t < T1 ? eo(t / T1) : 1, tight = eo(cl((t - T1 - 300) / 180)), arc = ARC * (1 - tight), sway = 1 - tight
+  fx(H - T0, (p) => { if (vt?.track) { const b = vt.track(); if (b) { sc.cx = b.x; sc.cy = b.y; f.x = X + (from.x - sc.cx) / sc.k; f.y = Y + (from.y - sc.cy) / sc.k } }
+    const t = p * (H - T0), head = t < T1 ? eo(t / T1) : 1, tight = eo(cl((t - T1 - SW) / (T2 - SW))), arc = ARC * (1 - tight), sway = 1 - tight
     for (let i = N; i >= 0; i--) { const q = head - i / N; if (q < 0) continue; const [x, y] = pathPt(q, arc, sway, i), [x2, y2] = pathPt(Math.min(1, q + 0.02), arc, sway, i); link4(x, y, Math.atan2(y2 - y, x2 - x), i, 1, t < T1 && i < 3 ? 0.9 : 0.15) }
     if (t < T1) { const [x, y] = pathPt(head, arc, sway, 0), [xb, yb] = pathPt(Math.max(0, head - 0.03), arc, sway, 0), an = Math.atan2(y - yb, x - xb), cs = Math.cos(an), sn = Math.sin(an)
       ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = '#dfe6f0'; ctx.strokeStyle = '#07050c'; ctx.lineWidth = 1.6; ctx.beginPath(); ctx.moveTo(x + cs * 16, y + sn * 16); ctx.lineTo(x - cs * 6 - sn * 8, y - sn * 6 + cs * 8); ctx.lineTo(x - cs * 2, y - sn * 2); ctx.lineTo(x - cs * 6 + sn * 8, y - sn * 6 - cs * 8); ctx.closePath(); ctx.fill(); ctx.stroke()
       ctx.globalCompositeOperation = 'lighter'; glow(x + cs * 8, y + sn * 8, 14, '#c4a5ff', 0.9); glow(x + cs * 12, y + sn * 12, 5, '#ffffff', 1); if (live) pt(x, y, rnd(-0.6, 0.6), rnd(-0.6, 0.6), rnd(200, 400), rnd(2, 4), pick(['#c4a5ff', '#ffffff'])) }
     // apsivijimas: dvi kilpos aplink kortą
-    const g = eo(cl((t - T1) / 300)); if (g > 0) { const shr = 1 - 0.2 * tight
+    const g = eo(cl((t - T1) / SW)); if (g > 0) { const shr = 1 - 0.2 * tight
       for (const L of [-1, 1]) for (let i = 0; i < 20; i++) { const u = i / 20; if (u > g) break; const an = -Math.PI / 2 + L * u * TAU, rx = (c.vw * 0.5 + 12) * shr, ex = Math.cos(an) * rx, ey = Math.sin(an) * 11, tl = L * 0.2
         link4(c.x + ex * Math.cos(tl) - ey * Math.sin(tl), c.y + L * c.vh * 0.17 + ex * Math.sin(tl) + ey * Math.cos(tl), an + Math.PI / 2 + tl, i, Math.sin(an) > 0 ? 1 : 0.4, 0.2 + 0.5 * tight) } } })
   at(T0 + T1, () => { pop(c.x, c.y, 80, '#c4a5ff', 200); cshake(c, 4); knock(c, 3) })
-  at(T0 + T1 + 300, () => { tw(c, { sx: 0.93, sy: 0.97 }, 180, eob); cshake(c, 6); shake(5); tint(c, '#3b0764', 0.5, 600) })
+  at(T0 + T1 + SW, () => { tw(c, { sx: 0.93, sy: 0.97 }, 180, eob); cshake(c, 6); shake(5); tint(c, '#3b0764', 0.5, 600) })
   // P4 – sutrūksta + kontrsmūgis
   at(H, () => { tw(c, { sx: 1, sy: 1 }, 220, eob)
     for (let i = 0; i <= N; i += 1) { const [x, y] = pathPt(i / N, 0, 0, i); pt(x, y, rnd(-3, 3), rnd(-4, 1), rnd(350, 700), rnd(4, 7), pick(['#b4bccd', '#7f889c']), 1, 0.25, 0.96); if (i % 2) pt(x, y, rnd(-2, 2), rnd(-2, 2), rnd(200, 400), rnd(2, 4), '#c4a5ff') }
     burst(c.x, c.y, 18, { v: [3, 9], life: [350, 700], size: [4, 8], colors: ['#b4bccd', '#7f889c', '#dfe6f0'], k: 1, g: 0.25, dr: 0.95 }); burst(c.x, c.y, 16, { v: [2, 9], life: [200, 450], size: [2, 4.5], colors: ['#ffffff', '#c4a5ff'], dr: 0.9 })
-    pop(c.x, c.y, 135, '#c4a5ff', 280); dotRing(c.x, c.y, 115, 360, '#a855f7'); flash('#c4a5ff', 0.2, 220); tint(c, '#ffffff', 0.85, 300); knock(c, 7); cshake(c, 9); shake(9); hitstop(65) })
+    pop(c.x, c.y, 135, '#c4a5ff', 280); dotRing(c.x, c.y, 115, 360, '#a855f7'); flash('#c4a5ff', 0.2, 220); tint(c, '#ffffff', 0.85, 300); knock(c, 7); cshake(c, 9); shake(9); if (!o.inGame) hitstop(65) })
   kick(); return H
 }
 /** Prakeiksmas: plyšys ir nagai → iš dūmų išnyra besijuokiantis demonas → įspaudas. */
