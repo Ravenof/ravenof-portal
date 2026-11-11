@@ -262,6 +262,10 @@ export type BattleSoundType =
   | 'reactionLaunch' | 'reactionImpact' | 'reactionTighten' | 'reactionShatter'
   // ŽMK prezentacija (game-feel fazė 7)
   | 'zmkCrit' | 'zmkFizzle'
+  // 757: įvykiai, kurie anksčiau buvo tylūs arba skolinosi svetimą garsą (žr. soundManager.ts)
+  | 'puff' | 'buff' | 'debuff' | 'gold' | 'turnStart' | 'turnStartEnemy' | 'turnEnd' | 'returnHand'
+  | 'shieldUp' | 'shieldBreak' | 'statusBurn' | 'statusPoison' | 'statusStun' | 'statusSilence'
+  | 'reactionSet' | 'battlecrySting' | 'lastwishSting' | 'triggerSting' | 'fatigue'
 
 // ── Curse trigger konfigūracija ───────────────────────────────────────────────
 export type CurseAppliesTo = 'caster' | 'opponent' | 'targetOwner' | 'chosenTarget' | 'random'
@@ -388,6 +392,7 @@ export type EffectMapping = {
   useTriggerSource?: boolean        // reakcijos: taikinys = reakciją suaktyvinusi korta
   resurrectHp1?: boolean            // resurrectSelf: prisikelia su 1 HP (vietoj pilno)
   oncePerGame?: boolean             // resurrectSelf: suveikia tik kartą per žaidimą
+  oncePerTurn?: boolean             // globalūs trigeriai (onAny*): suveikia ne dažniau kaip kartą per ėjimą
   /**
    * resurrectSelf: KADA prisikelia.
    *   'immediate'        – iškart vietoje mirties (numatytoji, senas elgesys)
@@ -406,7 +411,7 @@ export type EffectMapping = {
   coinGreen?: EffectMapping[]       // coinFlip: efektai, kai iškrinta ŽALIA pusė
   coinRed?: EffectMapping[]         // coinFlip: efektai, kai iškrinta RAUDONA pusė
   triggerSpellType?: SpellType      // globalus trigger (onAnyCast): tik šio tipo burtas aktyvuoja
-  triggerOnSelfTarget?: boolean     // globalus trigger (onAnyCast): aktyvuojasi TIK kai burtas taiko į ŠIĄ kortą (rankinis taikinys arba auto/AoE aibė ją apima)
+  triggerOnSelfTarget?: boolean     // onAnyCast: TIK kai burtas taiko į ŠIĄ kortą; onAnyDamage / onAnyHeal: TIK kai žalą / gydymą gauna ŠI korta
   tutorZone?: 'deck' | 'discard' | 'both'  // tutorToHand: iš kur ieškoti (default both)
   tutorSpellType?: SpellType        // tutorToHand: tik šio burto tipo kortos (kitaip – bet kuri korta)
   tutorCardType?: 'unit' | 'spell' | 'champion' | 'artifact' | 'field'  // tutorToHand: tik šio kortos tipo (padaras/burtas/čempionas/artefaktas/laukas)

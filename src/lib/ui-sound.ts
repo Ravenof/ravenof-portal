@@ -1,4 +1,4 @@
-import { getSfxVolume } from '@/lib/settings'
+import { getSharedAudioCtx, isSfxDead, playSfxUrl, sfxExists } from '@/lib/sfxPlayer'
 // ── Globalus portalo UI garso variklis ────────────────────────────────────────
 // FILE-FIRST: kiekvienas garsas pirmiausia bando paleisti mp3 iš /public/sounds/ui/
 // (su atsitiktiniais variantais, pvz. card-place-1.mp3 / -2 / -3). Jei failo nėra –
@@ -53,14 +53,12 @@ export function subscribeUiSound(cb: (enabled: boolean) => void): () => void {
 // Failo nesant – iškart pereinama prie synth fallback (ir tas URL pažymimas „dead",
 // kad nebebandytume). Vienas HTMLAudio elementas per URL (pakartotinis naudojimas).
 
-const sfxDead = new Set<string>()
-const sfxPool = new Map<string, HTMLAudioElement>()
 const sfxLast = new Map<string, string>()
 
-/** Bando groti random mp3 variantą; jei nepavyksta/nėra – sintezuotas fallback. */
+/** Bando groti random mp3 variantą (tik iš manifeste esančių); jei nėra – sintezuotas fallback. */
 function sfx(candidates: string[], volume: number, synth: () => void): void {
   if (typeof window === 'undefined' || !isUiSoundEnabled()) return
-  const live = candidates.filter((u) => !sfxDead.has(u))
+  const live = candidates.filter((u) => sfxExists(u) && !isSfxDead(u))
   if (live.length === 0) { synth(); return }
 
   const setKey = candidates[0]
@@ -70,23 +68,7 @@ function sfx(candidates: string[], volume: number, synth: () => void): void {
     for (let i = 0; i < 3 && url === last; i++) url = live[Math.floor(Math.random() * live.length)]
   }
   sfxLast.set(setKey, url)
-
-  try {
-    let a = sfxPool.get(url)
-    if (!a) {
-      a = new Audio(url)
-      a.preload = 'auto'
-      a.addEventListener('error', () => { sfxDead.add(url); sfxPool.delete(url) })
-      sfxPool.set(url, a)
-    }
-    a.volume = Math.max(0, Math.min(1, volume * getSfxVolume()))
-    a.currentTime = 0
-    const p = a.play()
-    if (p) p.catch(() => { if (!sfxDead.has(url)) { sfxDead.add(url); synth() } })
-  } catch {
-    sfxDead.add(url)
-    synth()
-  }
+  playSfxUrl(url, volume, { onFail: synth })
 }
 
 // Variantų manifestas — įkelk atitinkamus failus į public/sounds/ui/ (žr. README).
@@ -118,24 +100,10 @@ const SFX = {
 }
 
 // ── Audio kontekstas (synth fallback) ─────────────────────────────────────────
-let _ctx: AudioContext | null = null
 let _noiseBuffer: AudioBuffer | null = null
 
-function getCtx(): AudioContext | null {
-  if (typeof window === 'undefined') return null
-  try {
-    if (!_ctx) {
-      const Ctor =
-        window.AudioContext ||
-        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-      if (!Ctor) return null
-      _ctx = new Ctor()
-    }
-    return _ctx
-  } catch {
-    return null
-  }
-}
+// Vienas AudioContext visam portalui (sintezė + failų buferiai) – žr. sfxPlayer.ts
+function getCtx(): AudioContext | null { return getSharedAudioCtx() }
 
 function withCtx(fn: (ctx: AudioContext) => void): void {
   if (!isUiSoundEnabled()) return
@@ -323,3 +291,21 @@ export function playReactionTighten(): void { sfx(SFX.reactionTighten, 0.4, _syn
 export function playReactionShatter(): void { sfx(SFX.reactionShatter, 0.55, _synthReactionShatter) }
 export function playZmkCrit(): void { sfx(SFX.zmkCrit, 0.6, _synthZmkCrit) }
 export function playZmkFizzle(): void { sfx(SFX.zmkFizzle, 0.45, _synthZmkFizzle) }
+
+// ── Kovos įvykių sintezės atsargos (756+: garsų auditas 2026-09 / 2026-11) ────
+// Tylūs, trumpi – skamba tik kol public/sounds/battle/ nėra atitinkamo mp3.
+export function synthBuff(): void { tone(520, 780, 'sine', 0.16, 0.07); tone(780, 1040, 'sine', 0.18, 0.05, 0.07) }
+export function synthDebuff(): void { tone(420, 210, 'triangle', 0.22, 0.07); swish(0.16, 1400, 300, 0.05) }
+export function synthGold(): void { tone(1568, 1568, 'triangle', 0.06, 0.06); tone(2093, 2093, 'triangle', 0.09, 0.05, 0.05) }
+export function synthPuff(): void { swish(0.2, 900, 180, 0.12); tone(120, 70, 'sine', 0.12, 0.1) }
+export function synthTurnStart(): void { tone(196, 196, 'sine', 0.5, 0.12); tone(392, 392, 'sine', 0.42, 0.06, 0.02); tone(588, 588, 'sine', 0.3, 0.03, 0.03) }
+export function synthTurnStartEnemy(): void { tone(147, 139, 'sine', 0.45, 0.09); tone(294, 277, 'sine', 0.36, 0.04, 0.02) }
+export function synthTurnEnd(): void { swish(0.2, 1800, 500, 0.08) }
+export function synthReturnHand(): void { swish(0.24, 500, 2800, 0.14) }
+export function synthShieldUp(): void { tone(330, 660, 'sine', 0.3, 0.08); tone(660, 990, 'sine', 0.3, 0.04, 0.05) }
+export function synthShieldBreak(): void { swish(0.14, 5200, 1400, 0.16); tone(1800, 600, 'triangle', 0.12, 0.06) }
+export function synthStatusBurn(): void { swish(0.3, 700, 3200, 0.12) }
+export function synthStatusPoison(): void { swish(0.34, 2600, 900, 0.09); tone(260, 180, 'sine', 0.2, 0.04, 0.05) }
+export function synthStatusStun(): void { tone(900, 300, 'square', 0.12, 0.05); tone(1300, 1300, 'triangle', 0.18, 0.04, 0.1) }
+export function synthStatusSilence(): void { swish(0.26, 3000, 250, 0.1) }
+export function synthFatigue(): void { tone(110, 60, 'sine', 0.22, 0.2); swish(0.1, 600, 200, 0.08) }

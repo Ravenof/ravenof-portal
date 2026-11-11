@@ -12,7 +12,7 @@ import type { GameState, Side } from '@/lib/tutorial/engine'
  * padarai (Nutildyti praleidžiami) → artefaktai → lauko korta.
  */
 export function fireTrigger(api: GameApi, g: GameState, side: Side, trigger: string, depth = 0): void {
-  const p = side === 'you' ? g.you : g.ai
+  const p = g.extraSeats?.[side] ?? (side === 'you' ? g.you : g.ai)   // 2v2: tikrasis seat'as (754)
   for (const u of [...p.units]) {
     if (g.winner) return
     if (!u || u.statuses.silenced) continue

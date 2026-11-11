@@ -7,6 +7,7 @@
 
 import { StatGem, gemSize } from './StatGem'
 import { createServerChannel, isServerChannel, pvpServerUrl } from '@/lib/pvp/serverChannel'
+import { netActionNotAllowed } from '@/lib/pvp/guard'
 import DesktopBattleLayout from './DesktopBattleLayout'
 import { useDesktopLayout } from './useDesktopLayout'
 import './desktop-battle.css'
@@ -2189,13 +2190,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
                 // nusileidimas: žiedas + dulkės
                 const ring = document.createElement('div'); ring.className = 'rvn-react-ring'; ring.style.cssText = `left:${to.x}px;top:${to.y}px;width:${Math.round(to.w * 1.6)}px;height:${Math.round(to.w * 1.6)}px`; document.body.appendChild(ring); window.setTimeout(() => ring.remove(), 650)
                 for (let k = 0; k < 9; k++) { const d = document.createElement('div'); d.className = 'rvn-react-dust'; const a = Math.random() * Math.PI * 2, dist = 18 + Math.random() * 24; d.style.cssText = `left:${to.x}px;top:${to.y + to.h * 0.3}px;--dx:${Math.cos(a) * dist}px;--dy:${Math.sin(a) * dist - 10}px`; document.body.appendChild(d); window.setTimeout(() => d.remove(), 600) }
-                playBattleSound('impact', 0.18)
+                playBattleSound('reactionSet', 0.18)
               }, 560)
             }
           }
           break
         }
         case 'returnHand': {
+          { const dRh = SETTLE + fxSeq; window.setTimeout(() => playBattleSound('returnHand', 0.4), dRh) }
           // Korta grąžinama nuo lauko į ranką: lėtai pakyla, tada greit nuskrenda į ranką.
           const uid = e.src?.uid
           const rc = e.cardName ? cardByName[e.cardName] : null
@@ -2667,7 +2669,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
                 fxRef.current?.spawn({ kind: 'shield', to: at, color: '#6ec3ff', duration: 0.9 })
                 fxRef.current?.floatNumber(at.x, at.y - 20, t('battle.game.blocked'), '#6ec3ff', 'big')
                 if (su2) fxRef.current?.shakeUnit(su2, 'soft')
-                playBattleSound('freeze', 0.45)
+                playBattleSound('shieldBreak', 0.45)
               }
             }, d)
             break
@@ -2823,6 +2825,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           if (e.statusEvt === 'apply' && e.statusId && e.src?.uid && !e.tgt && flyStatus(e, e.src.uid, e.statusId)) break
           const tgt = e.tgt, val = e.value ?? 0
           const base = SETTLE + fxSeq; fxSeq += 120
+          // Garsas: +stat – kylantis, −stat – krentantis; laikino buff'o pabaiga – tyli (757)
+          { const bk = e.key ?? ''; if (!/tempBuffEnd/.test(bk)) { const bs = /\.lose(Atk|Hp)$/.test(bk) ? 'debuff' as const : 'buff' as const; window.setTimeout(() => playBattleSound(bs, 0.38), base + 260) } }
           const sref = srcRef
           window.setTimeout(() => {
             const to = tgt ? rectOf(tgt) : null; if (!to) return
@@ -2853,9 +2857,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         }
         case 'gold': {
           const gv = e.value
+          // Auksas iš efekto (ne ėjimo pradžios ritualas – jis turi savo garsą) (757)
+          if (gv && gv > 0 && /goldGain|goldBonusNext/.test(e.key ?? '')) { const dG = SETTLE + fxSeq; window.setTimeout(() => playBattleSound('gold', 0.4), dG) }
+          else if (gv && gv < 0) { const dG = SETTLE + fxSeq; window.setTimeout(() => playBattleSound('debuff', 0.3), dG) }
           if (gv && gv < 0) { const sd = e.side; const d = SETTLE + fxSeq; fxSeq += 80; window.setTimeout(() => { const at = rectFor({ side: sd }); if (at) fxRef.current?.floatNumber(at.x, at.y - 14, String(gv), '#ffd24a') }, d) }
           break
         }
+        case 'fatigue': { const dF = SETTLE + fxSeq; window.setTimeout(() => playBattleSound('fatigue', 0.5), dF); break }
         default: break
       }
       if (e.t === 'champion') queueTip('champion')
@@ -3462,22 +3470,22 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     if (isHost) {
       ch.on('broadcast', { event: 'action' }, ({ payload }) => {
         const a = payload as NetAction
-        // Svečias gali spręsti TIK savo ('ai' pusės) pasirinkimus – ne host'o (751/752).
-        const guestOwns = (p: GameState): boolean => {
-          switch (a.t) {
-            case 'resolveSummon': return p.pendingSummon?.caster === 'ai'
-            case 'resolvePeek': return p.pendingPeek?.caster === 'ai'
-            case 'resolveArrange': return p.pendingArrange?.caster === 'ai'
-            case 'resolveChoice': return !!p.pendingChoice && (p.pendingChoice.chooser ?? p.pendingChoice.caster) === 'ai'
-            case 'resolveCopy': return p.pendingCopy?.caster === 'ai'
-            case 'resolveReturn': return p.pendingReturn?.side === 'ai'
-            case 'resolveBattlecry': return p.pendingBattlecry?.side === 'ai'
-            case 'resolveLastwish': return p.pendingLastwish?.side === 'ai'
-            case 'clearReveal': return p.pendingReveal?.caster === 'ai'
-            default: return true
-          }
-        }
-        setGame((prev) => { if (!prev) return prev; if (!guestOwns(prev)) return prev; const g = cloneState(prev); applyNetAction(g, a); return gateCommit(g, prev) })
+        // Svečio veiksmas ateina tinklu – host'as tikrina, kad jis atliekamas SAVO ('ai')
+        // pusės vardu ir savo ėjime / savo pasirinkime (751/752, sugriežtinta 756:
+        // anksčiau play/attack/champ/endTurn buvo priimami su bet kokiu `actor`).
+        // Atmestas ar nepavykęs veiksmas grąžinamas svečiui kaip `reject` – kad matytų priežastį.
+        const reject = (reason?: string, params?: Record<string, string | number>) => { try { ch.send({ type: 'broadcast', event: 'reject', payload: { reason: reason ?? 'battleLog.err.notYourTurn', params } }) } catch { /* */ } }
+        // Pasirinkimų (resolve*) ir UI tick'ų atmetimas – tylus, kaip iki šiol; priežastį rodom tik tikriems ėjimo veiksmams.
+        const loud = 'actor' in a
+        setGame((prev) => {
+          if (!prev) return prev
+          const why = netActionNotAllowed(prev, 'ai', a)
+          if (why) { if (loud) reject(why); return prev }
+          const g = cloneState(prev)
+          const r = applyNetAction(g, a) as { ok: boolean; reason?: string; reasonParams?: Record<string, string | number> } | undefined
+          if (r && !r.ok && loud) reject(r.reason, r.reasonParams)
+          return gateCommit(g, prev)
+        })
       })
       ch.on('broadcast', { event: 'hello' }, () => {
         setGame((prev) => { if (prev) ch.send({ type: 'broadcast', event: 'state', payload: prev }); return prev })
@@ -3499,8 +3507,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       })
       // Serveris atmetė veiksmą (server-authoritative): parodom priežastį (i18n raktas).
       ch.on('broadcast', { event: 'reject' }, ({ payload }) => {
-        const reason = (payload as { reason?: string }).reason
-        pushToast(reason ? t(reason) : 'Veiksmas negalimas')
+        const { reason, params } = payload as { reason?: string; params?: Record<string, string | number> }
+        pushToast(reason ? t(reason, params) : 'Veiksmas negalimas')
       })
       // Host prašo svečio kaladės – atsiunčiam pasirinktą kaladę
       ch.on('broadcast', { event: 'reqdeck' }, () => {
@@ -3824,6 +3832,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     const you = game.active === 'you'
     const name = you ? (myName || t('battle.game.you')) : (oppProfile?.display_name || oppProfile?.username || opponentName || t('battle.game.opponent'))
     setTurnBanner({ name, you })
+    playBattleSound(you ? 'turnStart' : 'turnStartEnemy', you ? 0.45 : 0.3)   // „tavo eilė" girdima net žiūrint kitur (757)
     // ── Fazė 10: ėjimo pradžios ritualas ────────────────────────────────────
     // Baneris → aukso skaitiklio fill (+ monetos garsas) → lentos „ready" pulsas.
     // Įvestis NEUŽRAKINAMA: ritualas tik lydi, o ne stabdo.
@@ -4072,7 +4081,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const onEndTurn = () => {
     if (!myTurn || actionsLocked) return
     if (step && step.require && step.require !== 'end-turn') { pushToast(t('battle.game.toastDoTaskFirst')); return }
-    playUiClick()
+    playBattleSound('turnEnd', 0.35)
     setSelect(null)
 doAction({ t: 'endTurn', actor: 'you' })
   }

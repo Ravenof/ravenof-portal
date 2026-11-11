@@ -50,7 +50,7 @@ export type StatusVfxDefinition = {
 export const STATUS_VFX_REGISTRY: Record<VfxStatusId, StatusVfxDefinition> = {
   shield: {
     statusId: 'shield', negative: false, priority: 100, tint: '#6ec3ff',
-    soundApply: 'spellCast', soundTrigger: 'impact', soundDestroy: 'freeze',
+    soundApply: 'shieldUp', soundTrigger: 'impact', soundDestroy: 'shieldBreak',
   },
   frozen: {
     statusId: 'frozen', negative: true, priority: 90, tint: '#7dd3fc',
@@ -58,19 +58,19 @@ export const STATUS_VFX_REGISTRY: Record<VfxStatusId, StatusVfxDefinition> = {
   },
   stunned: {
     statusId: 'stunned', negative: true, priority: 88, tint: '#f0b429',
-    soundApply: 'impact', soundTrigger: 'impact',
+    soundApply: 'statusStun', soundTrigger: 'impact',
   },
   burning: {
     statusId: 'burning', negative: true, priority: 85, tint: '#fb923c',
-    soundApply: 'impact', soundTrigger: 'impact',
+    soundApply: 'statusBurn', soundTrigger: 'impact',
   },
   poisoned: {
     statusId: 'poisoned', negative: true, priority: 84, tint: '#4ade80',
-    soundApply: 'curse', soundTrigger: 'curse',
+    soundApply: 'statusPoison', soundTrigger: 'curse',
   },
   silenced: {
     statusId: 'silenced', negative: true, priority: 80, tint: '#a78bfa',
-    soundApply: 'curse',
+    soundApply: 'statusSilence',
   },
   blessed: {
     statusId: 'blessed', negative: false, priority: 75, tint: '#fde68a',

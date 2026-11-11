@@ -1002,6 +1002,20 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                           <label htmlFor={`selfTarget-${i}`} style={{ ...labelStyle, marginBottom: 0, cursor: 'pointer' }}>Tik kai burtas taiko į ŠIĄ kortą (rankinis taikinys arba AoE aibė ją apima)</label>
                         </div>
                       )}
+                      {(m.trigger === 'onAnyDamage' || m.trigger === 'onAnyHeal') && (
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" id={`selfHit-${i}`} checked={m.triggerOnSelfTarget === true}
+                            onChange={(e) => setMapping(i, { triggerOnSelfTarget: e.target.checked ? true : undefined })} />
+                          <label htmlFor={`selfHit-${i}`} style={{ ...labelStyle, marginBottom: 0, cursor: 'pointer' }}>{m.trigger === 'onAnyDamage' ? 'Tik kai žalą gauna ŠI korta' : 'Tik kai pagydoma ŠI korta'}</label>
+                        </div>
+                      )}
+                      {typeof m.trigger === 'string' && m.trigger.startsWith('onAny') && (
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" id={`oncePerTurn-${i}`} checked={m.oncePerTurn === true}
+                            onChange={(e) => setMapping(i, { oncePerTurn: e.target.checked ? true : undefined })} />
+                          <label htmlFor={`oncePerTurn-${i}`} style={{ ...labelStyle, marginBottom: 0, cursor: 'pointer' }}>Galioja tik kartą per ėjimą</label>
+                        </div>
+                      )}
                       {m.trigger === 'onAnySummon' && (
                         <div className="col-span-2">
                           <label style={labelStyle}>Iškvietimo šaltinis</label>

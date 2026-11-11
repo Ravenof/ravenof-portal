@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "sounds:manifest": "node tools/gen-sound-manifest.mjs",
+    "predev": "node tools/gen-sound-manifest.mjs",
+    "prebuild": "node tools/gen-sound-manifest.mjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -54,6 +57,7 @@
     "fixtures:record": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/fixtures/record-fixtures.ts",
     "fixtures:export-cards": "node scripts/fixtures/export-cards.mjs",
     "app:dev": "vite --config apps/digital/vite.config.ts",
+    "preapp:build": "node tools/gen-sound-manifest.mjs",
     "app:build": "vite build --config apps/digital/vite.config.ts",
     "app:preview": "vite preview --config apps/digital/vite.config.ts",
     "content:export": "node tools/export-content.mjs",
@@ -67,7 +71,10 @@
     "release:baseline:android": "node tools/publish-bundle.mjs --skip-build --mark-baseline android",
     "release:baseline:desktop": "node tools/publish-bundle.mjs --skip-build --mark-baseline desktop",
     "tourney:test": "npx tsx scripts/simulate-tournament-bracket.ts",
-    "game:test:notarget": "npx tsx scripts/simulate-no-target-summon.ts"
+    "game:test:notarget": "npx tsx scripts/simulate-no-target-summon.ts",
+    "game:test:combatrules": "npx tsx scripts/simulate-combat-rules.ts",
+    "game:test:pvpguard": "npx tsx scripts/simulate-pvp-guard.ts",
+    "game:test:sounds": "node --experimental-strip-types --no-warnings --import ./scripts/alias-loader.mjs scripts/simulate-sound-manifest.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.3.4",

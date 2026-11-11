@@ -52,8 +52,8 @@ export const IMPACT_PROFILES: Record<ImpactSeverity, ImpactProfile> = {
     hitStopMs: 0,
     targetReaction: 'soft',
     screenShake: 'none',
-    impactSound: 'impact',
-    impactVolume: 0.14,
+    impactSound: 'puff',     // duslus „bumbt" į dulkes, ne smūgis (757)
+    impactVolume: 0.32,
     audioDuckDb: 0,
     flash: false,
     damageNumberStyle: 'small',

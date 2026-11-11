@@ -119,6 +119,8 @@ export type BoardUnit = {
   control?: { from: Side; kind: 'endOfTurn' | 'untilNextTurn'; turn: number }  // laikinai perimta kontrolė (takeControl); from = kam grąžinti, turn = valdytojo turnNumber
   /** secondAttackVsShield: kurį SAVO ėjimo numerį jau buvo grąžinta ataka (1×/ėjimą). */
   extraShieldAttackTurn?: number
+  /** oncePerTurn mapping'ai: raktas (trigeris:indeksas) → globalTurn, kada paskutinį kartą suveikė. */
+  onceFired?: Record<string, number>
 }
 
 export type BoardArtifact = { uid: string; card: TutCard; hp: number; maxHp: number }
@@ -1097,7 +1099,7 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
     if (excess > 0) { log(g, { t: 'damage', side: owner, key: `battleLog.overkill.${SK(owner)}`, params: { excess } }); dealToPlayer(g, owner, excess, actor, false) }
   }
   applySpellLifesteal(g, dmg)
-  fireGlobalListeners(g, 'onAnyDamage', { side: owner, srcRef: { kind: 'unit', side: owner, uid: target.uid }, srcName: target.card.name })
+  fireGlobalListeners(g, 'onAnyDamage', { side: owner, srcRef: { kind: 'unit', side: owner, uid: target.uid }, srcName: target.card.name, hitUid: target.uid })
   if (target.hp <= 0) { killUnit(g, owner, target); return }
   // Pasyvas „pasitraukia su X HP": likus tiek arba mažiau gyvybės (bet dar gyvas)
   // padaras grįžta į savininko ranką. Tikrinama TIK po žalos, kad nesuveiktų
@@ -1113,6 +1115,23 @@ function dealToUnit(g: GameState, target: BoardUnit, owner: Side, base: number, 
   }
   if ((target.card.gameplay?.passiveAura?.enrageAttack ?? 0) > 0) recomputeAuras(g) // Įsiūtis įsijungia sužeidus
   fireHpOneTrigger(g, owner, target) // onHpOne — po žalos liko lygiai 1 HP
+}
+
+/**
+ * Kovos (atakos) žalos mažinimai — tie patys kaip `dealToUnit` (754): lauko „pirma
+ * žala sumažinta" ir žalos mažinimo aura. Anksčiau atakos žala juos apeidavo.
+ */
+function mitigateCombatDamage(g: GameState, owner: Side, target: BoardUnit, dmg0: number): number {
+  let dmg = dmg0
+  const fr = fieldEngine.applyFirstDamageReduction(g, owner, dmg)
+  if (fr.reduced) { dmg = fr.dmg; log(g, { t: 'field', side: owner, key: 'battleLog.fieldReduceFirst', params: { dmg } }) }
+  const redPct = auraDamageReductionPctFor(g, owner, target.uid)
+  if (redPct > 0 && dmg > 0) {
+    const before = dmg
+    dmg = Math.max(0, Math.round(dmg * (1 - redPct / 100)))
+    if (dmg < before) log(g, { t: 'damage', side: owner, cardName: target.card.name, value: dmg, key: 'battleLog.auraReduceDmg', params: { pct: redPct, card: target.card.name, before, dmg } })
+  }
+  return dmg
 }
 
 // Statų auros perskaičiavimas. Idempotentinis: pirma nuima ankstesnį auros priedą,
@@ -1396,17 +1415,21 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
       applyAutoEffect(g, owner, u.card.effect, u.card.name)
     }
   }
+  // Ar padaras dar stovi savo vietoje? Paskutinio noro iškvietimas pilnoje lentoje galėjo ją perimti (755).
+  const inSlot = (): boolean => p.units[idx]?.uid === u.uid
   // Paskutinis noras: PRISIKĖLIMAS vietoje mirties (resurrectSelf; ne čempionams)
   if (!u.statuses.silenced && !u.isChampion) {
     for (const m of (u.card.mappings ?? [])) {
       if (m.trigger !== 'onDeath' || m.effect !== 'resurrectSelf') continue
+      // Vieta perimta ir laisvos nėra → iškart prisikelti nėra kur (atidėtas prisikėlimas vietos dabar nereikalauja)
+      if ((m.resurrectTiming ?? 'immediate') === 'immediate' && !inSlot() && freeUnitSlot(g, p) === -1) continue
       if (m.oncePerGame && u.card._resurrectUsed) continue
       if (m.oncePerGame) u.card._resurrectUsed = true
 
       // ATIDĖTAS prisikėlimas: padaras keliauja į kapinyną ir grįžta nurodytu momentu.
       const timing = m.resurrectTiming ?? 'immediate'
       if (timing !== 'immediate') {
-        p.units[idx] = null
+        if (inSlot()) p.units[idx] = null
         p.discard.push(u.card)
         g.pendingResurrect = [...(g.pendingResurrect ?? []), {
           side: owner, card: u.card, hp1: !!m.resurrectHp1, when: timing, diedOnTurn: p.turnNumber,
@@ -1418,6 +1441,7 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
           params: { card: u.card.name }, sound: 'death', src: { side: owner, uid: u.uid },
         })
         fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId, srcRef: killerRef(g), srcName: unitNameOf(g, killerRef(g)) })
+        recomputeAuras(g)   // auros šaltinis paliko lauką iki prisikėlimo (754)
         fireOnDestroyCredit(g, u.card.name)
         return
       }
@@ -1435,7 +1459,7 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
         statuses: {}, summonedOnTurn: g.globalTurn, attacksUsed: 0,
         isChampion: false, phase: 0, abilityUsed: false, summonedFrom: 'graveyard',
       }
-      p.units[idx] = nu
+      p.units[inSlot() ? idx : freeUnitSlot(g, p)] = nu
       for (const st of ((m.resurrectStatuses ?? []) as TutStatus[])) applyStatus(g, owner, nu, st)
       log(g, { t: 'lastwish', side: owner, cardName: u.card.name, key: `battleLog.lastWishResurrect${m.resurrectHp1 ? 'Hp1' : ''}${m.oncePerGame ? 'Once' : ''}`, params: { card: u.card.name }, sound: 'summon', src: { side: owner, uid: nu.uid } })
       fireGlobalListeners(g, 'onAnyDeath', { side: owner, subtype: u.card.subtype, faction: u.card.factionId, srcRef: killerRef(g), srcName: unitNameOf(g, killerRef(g)) })
@@ -1455,7 +1479,7 @@ function killUnitInner(g: GameState, owner: Side, u: BoardUnit) {
       else if (m.effect === 'selfToOwnDeck') toDeck = true
     }
   }
-  p.units[idx] = null
+  if (inSlot()) p.units[idx] = null
   let exiledOrRerouted = !!reroute || toDeck
   if (toDeck && !reroute) {
     // Laikinai perimtas padaras grįžta į TIKROJO šeimininko kaladę
@@ -1637,7 +1661,7 @@ function healUnitPrim(g: GameState, owner: Side, u: BoardUnit, n: number) {
   u.hp = Math.min(u.maxHp, u.hp + n)
   if (u.hp > b) {
     log(g, { t: 'heal', side: owner, cardName: u.card.name, value: u.hp - b, key: 'battleLog.unitHealed', params: { card: u.card.name, hp: u.hp - b }, sound: 'heal' })
-    fireGlobalListeners(g, 'onAnyHeal', { side: owner, srcRef: { kind: 'unit', side: owner, uid: u.uid }, srcName: u.card.name })
+    fireGlobalListeners(g, 'onAnyHeal', { side: owner, srcRef: { kind: 'unit', side: owner, uid: u.uid }, srcName: u.card.name, hitUid: u.uid })
     if ((u.card.gameplay?.passiveAura?.enrageAttack ?? 0) > 0) recomputeAuras(g) // pagijus iki pilno – Įsiūtis dingsta
   }
 }
@@ -1676,7 +1700,12 @@ function expireTempBuffs(g: GameState, s: Side, phase: 'beginTurn' | 'endTurn') 
       const expire = phase === 'endTurn' ? (b.kind === 'endOfTurn' && b.turn >= p.turnNumber) : (b.kind === 'untilNextTurn' && b.turn < p.turnNumber)
       if (!expire) { keep.push(b); continue }
       if (b.atk) u.atk = Math.max(0, u.atk - b.atk)
-      if (b.hp) { u.maxHp = Math.max(1, u.maxHp - b.hp); u.hp = Math.max(1, u.hp - b.hp) }
+      if (b.hp) {
+        u.maxHp = Math.max(1, u.maxHp - b.hp)
+        // Laikinas +HP baigdamasis gyvybės NEATIMA: HP tik apkarpomas iki naujo maksimumo (755).
+        // Laikinas −HP (debuff) baigdamasis grąžina atimtą gyvybę kaip anksčiau.
+        u.hp = b.hp > 0 ? Math.min(u.hp, u.maxHp) : Math.max(1, u.hp - b.hp)
+      }
       log(g, { t: 'buff', side: s, cardName: u.card.name, key: 'battleLog.tempBuffEnd', params: { card: u.card.name } })
     }
     u.tempBuffs = keep
@@ -1690,7 +1719,12 @@ function expireThisAttackBuffs(g: GameState, s: Side, u: BoardUnit) {
   for (const b of u.tempBuffs) {
     if (b.kind !== 'thisAttack') { keep.push(b); continue }
     if (b.atk) u.atk = Math.max(0, u.atk - b.atk)
-    if (b.hp) { u.maxHp = Math.max(1, u.maxHp - b.hp); u.hp = Math.max(1, u.hp - b.hp) }
+    if (b.hp) {
+        u.maxHp = Math.max(1, u.maxHp - b.hp)
+        // Laikinas +HP baigdamasis gyvybės NEATIMA: HP tik apkarpomas iki naujo maksimumo (755).
+        // Laikinas −HP (debuff) baigdamasis grąžina atimtą gyvybę kaip anksčiau.
+        u.hp = b.hp > 0 ? Math.min(u.hp, u.maxHp) : Math.max(1, u.hp - b.hp)
+      }
     log(g, { t: 'buff', side: s, cardName: u.card.name, key: 'battleLog.tempBuffEnd', params: { card: u.card.name } })
   }
   u.tempBuffs = keep
@@ -2021,10 +2055,16 @@ function unitCount(p: PlayerState): number { return p.units.filter((u) => u != n
 /** Laisva padaro vieta atsižvelgiant į lauko limitą (Platusis laukas: iki 10). Auga masyvas iki cap. */
 function freeUnitSlot(g: GameState, p: PlayerState): number {
   const cap = fieldEngine.creatureCap(g, p.side)
-  if (unitCount(p) >= cap) return -1
+  // Mirštantis padaras (vykdomas jo Paskutinis noras, korta dar stovi vietoje) vietos
+  // NEužima: jei lenta pilna tik dėl jo – iškviečiamas padaras gauna jo vietą (755).
+  const dying = (g as unknown as { __dyingUids?: string[] }).__dyingUids ?? []
+  const isDying = (u: BoardUnit | null): boolean => !!u && dying.includes(u.uid)
+  if (p.units.filter((u) => u != null && !isDying(u)).length >= cap) return -1
   const idx = p.units.findIndex((u) => u === null)
   if (idx !== -1) return idx
   if (p.units.length < cap) { p.units.push(null); return p.units.length - 1 }
+  const di = p.units.findIndex((u) => isDying(u))
+  if (di !== -1) { p.units[di] = null; return di }   // killUnitInner pats pastebi, kad vieta perimta
   return -1
 }
 /** Padarų zonos limitas pusei (UI). */
@@ -2461,7 +2501,7 @@ function autoTriggerSource(g: GameState, trigger: string): TargetRef | undefined
   return undefined
 }
 
-function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse' | 'onOpponentGoldEmpty', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null; status?: StatusOrKeyword; srcRef?: TargetRef; srcName?: string; spellTargets?: { kind: string; uid?: string }[] }) {
+function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack' | 'onAnySummon' | 'onAnyPlay' | 'onAnyDamage' | 'onAnyHeal' | 'onAnyDraw' | 'onAnyDiscard' | 'onAnyStatus' | 'onAnyGold' | 'onAnyTurnStart' | 'onAnyTurnEnd' | 'onAnyCast' | 'onAnyArtifact' | 'onAnyChampion' | 'onAnyCurse' | 'onOpponentGoldEmpty', ctx?: { side?: Side; subtype?: string | null; source?: SummonSource; spellType?: SpellType; faction?: number | null; status?: StatusOrKeyword; srcRef?: TargetRef; srcName?: string; spellTargets?: { kind: string; uid?: string }[]; hitUid?: string }) {
   if (firingGlobal || g.winner) return
   firingGlobal = true
   // Reakcijų kontekstas: TIKSLI korta (runtime uid), kurios veiksmas suaktyvino
@@ -2487,6 +2527,10 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
       if (m.triggerOnSelfTarget && trigger === 'onAnyCast') {
         if (!selfUid || !ctx?.spellTargets?.some((t) => t.kind === 'unit' && t.uid === selfUid)) return false
       }
+      // „Tik kai žalą / gydymą gauna ŠI korta" (755): onAnyDamage / onAnyHeal su triggerOnSelfTarget.
+      if (m.triggerOnSelfTarget && (trigger === 'onAnyDamage' || trigger === 'onAnyHeal')) {
+        if (!selfUid || ctx?.hitUid !== selfUid) return false
+      }
       if (m.triggerFaction && ctx?.faction !== m.triggerFaction) return false
       if (m.triggerSummonSource && m.triggerSummonSource !== 'any' && ctx?.source && ctx.source !== m.triggerSummonSource) return false
       return true
@@ -2501,6 +2545,13 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
         const ms = (c.card.mappings ?? []).filter((m) => m.trigger === trigger)
         for (const m of ms) {
           if (!passes(m, sd, c.uid)) continue
+          // „Galioja kartą per ėjimą" (755): žyma ant lentos kortos, raktas = trigeris + mapping'o indeksas.
+          if (m.oncePerTurn) {
+            const fired = ((c as { onceFired?: Record<string, number> }).onceFired ??= {})
+            const k = `${trigger}:${(c.card.mappings ?? []).indexOf(m)}`
+            if (fired[k] === g.globalTurn) continue
+            fired[k] = g.globalTurn
+          }
           applyMapping(gameApi, g, sd, m, { sourceName: c.card.name, sourceUid: c.uid, depth: 2 })
           if (g.winner) return
         }
@@ -3356,6 +3407,8 @@ function seatBeginTurn(g: GameState, s: Side): GameState {
   // 1. Ėjimo pradžios efektai: Degantis / Apnuodytas (1 bazinė žala + ŽMK)
   for (const u of [...p.units]) {
     if (!u) continue
+    // Padaras galėjo žūti anksčiau šiame cikle (kito padaro Paskutinis noras) — tada tiko nebėra (754)
+    if (!p.units.some((x) => x?.uid === u.uid)) continue
     if (u.statuses.burning) {
       log(g, { t: 'status', side: s, cardName: u.card.name, status: 'burning', statusEvt: 'trigger', statusId: 'burning', src: { side: s, uid: u.uid }, key: 'battleLog.burningTick', params: { card: u.card.name } })
       dealToUnit(g, u, s, 1, s)
@@ -3898,7 +3951,7 @@ export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?:
 
 export function effectiveAtk(g: GameState, u: BoardUnit): number {
   // lauko pasyvas (admin config arba legacy parsed buffAtk)
-  const owner: Side = g.you.units.some((x) => x?.uid === u.uid) ? 'you' : 'ai'
+  const owner: Side = allSeats(g).find((sd) => P(g, sd).units.some((x) => x?.uid === u.uid)) ?? 'ai'
   return Math.max(0, u.atk + fieldEngine.fieldAtkDelta(g, owner))
 }
 
@@ -4044,11 +4097,10 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
   if (u.statuses.blessed) { delete u.statuses.blessed; log(g, { t: 'status', side: s, cardName: u.card.name, statusEvt: 'destroy', statusId: 'blessed', src: { side: s, uid: u.uid }, key: 'battleLog.blessedUsed', params: { card: u.card.name } }) }
   if (u.stealth) { u.stealth = false; log(g, { t: 'status', side: s, cardName: u.card.name, statusEvt: 'remove', statusId: 'stealth', src: { side: s, uid: u.uid }, key: 'battleLog.stealthEnd', params: { card: u.card.name } }) }
   const foe: Side = ('side' in target) ? target.side : other(s)  // 2v2: gynėjas pagal taikinio seat'ą
-  const unfav = !!u.statuses.poisoned // Apnuodytas puola nepalankiai
   // onAttack mapping'ai (puolančiojo). useAttackTarget → efektas taikomas į atakuotą taikinį.
   // VYKDOMI PRIEŠ apskaičiuojant ATK, kad boost'ai (pvz. buffAttack su 'thisAttack') galiotų šiai atakai.
   for (const m of (u.card.mappings ?? [])) {
-    if (m.trigger !== 'onAttack') continue
+    if (m.trigger !== 'onAttack' || u.statuses.silenced) continue   // Nutildytas puolėjas savo onAttack efektų nevykdo (754)
     const ct = m.useAttackTarget ? toResolved(target) : undefined
     applyMapping(gameApi, g, s, m, { sourceName: u.card.name, sourceUid: u.uid, chosenTarget: ct, combatTarget: toResolved(target), depth: 1, allMappings: u.card.mappings ?? [] })
     if (g.winner) break
@@ -4088,12 +4140,16 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     // eina per tą patį statusEvt srautą, tad PvP svečias atkuria identiškai.
     const frozenBlockedRetaliation = !!def.statuses.frozen && defAtk > 0
     // abu žalą daro vienu metu: puolančiojo žala gynėjui
+    let dmgToDef = 0
+    let dmgToAtk = 0
     if (def.shield) {
       def.shield = false
       log(g, { t: 'damage', side: foe, cardName: def.card.name, value: 0, statusEvt: 'destroy', statusId: 'shield', src: { side: foe, uid: def.uid }, key: 'battleLog.shieldNullify', params: { card: def.card.name } })
     } else {
-      const dmg = rollDamage(g, s, atk, ctxBias(g, s))
-      zmkGate(g, s, { kind: 'unit', side: foe, uid: def.uid }, dmg)
+      const rolled = rollDamage(g, s, atk, ctxBias(g, s))
+      zmkGate(g, s, { kind: 'unit', side: foe, uid: def.uid }, rolled)
+      const dmg = mitigateCombatDamage(g, foe, def, rolled)
+      dmgToDef = dmg
       def.hp -= dmg
       log(g, { t: 'damage', side: foe, cardName: def.card.name, value: dmg, severity: resolveSeverity(dmg, def.maxHp, def.hp <= 0), viaScene: vs(), key: 'battleLog.unitDamage', params: { card: def.card.name, dmg, hp: Math.max(0, def.hp), maxHp: def.maxHp } })
     }
@@ -4111,13 +4167,23 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
         u.shield = false
         log(g, { t: 'damage', side: s, cardName: u.card.name, value: 0, statusEvt: 'destroy', statusId: 'shield', src: { side: s, uid: u.uid }, key: 'battleLog.shieldNullifyBack', params: { card: u.card.name } })
       } else {
-        const back = rollDamage(g, foe, defAtk, ctxBias(g, foe))
-        zmkGate(g, foe, { kind: 'unit', side: s, uid: u.uid }, back)
+        const backRolled = rollDamage(g, foe, defAtk, ctxBias(g, foe))
+        zmkGate(g, foe, { kind: 'unit', side: s, uid: u.uid }, backRolled)
+        const back = mitigateCombatDamage(g, s, u, backRolled)
+        dmgToAtk = back
         u.hp -= back
-        log(g, { t: 'damage', side: s, cardName: u.card.name, value: back, viaScene: vs(), key: 'battleLog.counterDamage', params: { card: u.card.name, dmg: back, hp: Math.max(0, u.hp), maxHp: u.maxHp } })
+        log(g, { t: 'damage', side: s, cardName: u.card.name, value: back, severity: resolveSeverity(back, u.maxHp, u.hp <= 0), viaScene: vs(), key: 'battleLog.counterDamage', params: { card: u.card.name, dmg: back, hp: Math.max(0, u.hp), maxHp: u.maxHp } })
       }
-    } else if (def.statuses.frozen) {
-      log(g, { t: 'status', side: foe, cardName: def.card.name, status: 'frozen', key: 'battleLog.frozenNoCounter', params: { card: def.card.name } })
+    }
+    // Po kovos žalos — tie patys „gavo žalos" padariniai kaip dealToUnit (754):
+    // priešo žalos vampyrizmas ir onAnyDamage klausytojai (reakcijos / trigeriai).
+    if (dmgToDef > 0) {
+      applyEnemyDamageLeech(g, foe, dmgToDef)
+      fireGlobalListeners(g, 'onAnyDamage', { side: foe, srcRef: { kind: 'unit', side: foe, uid: def.uid }, srcName: def.card.name, hitUid: def.uid })
+    }
+    if (dmgToAtk > 0 && !g.winner) {
+      applyEnemyDamageLeech(g, s, dmgToAtk)
+      fireGlobalListeners(g, 'onAnyDamage', { side: s, srcRef: { kind: 'unit', side: s, uid: u.uid }, srcName: u.card.name, hitUid: u.uid })
     }
     const defKilled = def.hp <= 0
     const gkc = g as unknown as { __killCredit?: KillCreditT }
@@ -4130,6 +4196,20 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
       // Skydas sugėrė smūgį – „gali pulti MAGSHIELD turinčius 2 kartus" pasyvas
       grantSecondAttackVsShield(g, s, u)
     }
+    // „Pasitraukia su X HP" ir Įsiūtis — ir po kovos žalos (anksčiau tik po burtų/efektų žalos).
+    for (const [sd, x, d] of [[foe, def, dmgToDef], [s, u, dmgToAtk]] as [Side, BoardUnit, number][]) {
+      if (d <= 0 || g.winner) continue
+      const alive = P(g, sd).units.find((y) => y?.uid === x.uid)
+      if (!alive || alive.hp <= 0) continue
+      const retreat = alive.card.gameplay?.retreatAtHp ?? 0
+      if (retreat > 0 && alive.hp <= retreat) {
+        log(g, { t: 'returnHand', side: sd, cardName: alive.card.name, value: alive.hp,
+          key: `battleLog.retreatToHand.${SK(sd)}`, params: { card: alive.card.name, hp: alive.hp },
+          src: { side: sd, uid: alive.uid } })
+        returnUnitToHandPrim(g, sd, alive)
+        recomputeAuras(g)
+      } else if ((alive.card.gameplay?.passiveAura?.enrageAttack ?? 0) > 0) recomputeAuras(g)
+    }
     // onHpOne — kovos žala paliko lygiai 1 HP (gynėjui ir/ar puolėjui)
     if (!defKilled) { const dAlive = P(g, foe).units.find((x) => x?.uid === def.uid); if (dAlive) fireHpOneTrigger(g, foe, dAlive) }
     { const uAlive = p.units.find((x) => x?.uid === u.uid); if (uAlive) fireHpOneTrigger(g, s, uAlive) }
@@ -4140,8 +4220,8 @@ export function attack(g: GameState, s: Side, attackerUid: string, target: Targe
     dealToArtifact(g, a, foe, atk, s)
   } else {
     log(g, { t: 'attack', side: s, cardName: u.card.name, key: `battleLog.attackPlayer.${SK(foe)}`, params: { card: u.card.name }, src: { side: s, uid: u.uid }, tgt: { kind: 'player', side: foe }, sound: 'attack' })
-    if (unfav) { const dmg = rollDamage(g, s, atk, ctxBias(g, s)); zmkGate(g, s, { kind: 'player', side: foe }, dmg); if (dmg > 0) { const left = applyPlayerDamage(g, foe, dmg); log(g, { t: 'damage', side: foe, value: dmg, viaScene: vs(), key: `battleLog.playerDamage.${SK(foe)}`, params: { dmg, left } }); checkWin(g) } }
-    else dealToPlayer(g, foe, atk, s)
+    // Apnuodytas puolėjas: nepalankumą duoda ctxBias (rollContext.poisonedSides) — bendras kelias (754)
+    dealToPlayer(g, foe, atk, s)
   }
   clearThisAttack()
   // onAfterAttack mapping'ai (puolančiojo) — PO visos atakos raidos (kovos žala,
@@ -4264,7 +4344,11 @@ export function applyNetAction(g: GameState, a: NetAction): { ok: boolean; reaso
     case 'discardForGold': return discardForGold(g, a.actor, a.uid)
     case 'mulligan': return resolveMulligan(g, a.actor, a.uids)
     case 'champ': return useChampionAbility(g, a.actor, a.skillIndex, { target: a.target, targets: a.targets })
-    case 'endTurn': { endTurn(g); if (!g.winner) beginTurn(g); return { ok: true } }
+    case 'endTurn': {
+      // Ėjimą baigti gali tik AKTYVI pusė (756) – anksčiau `actor` nebuvo tikrinamas.
+      if (a.actor !== g.active) return { ok: false, reason: 'battleLog.err.notYourTurn' }
+      endTurn(g); if (!g.winner) beginTurn(g); return { ok: true }
+    }
     case 'resolveSummon': return resolveSummonChoice(g, a.uids)
     case 'resolvePeek': return resolvePeekDiscard(g, a.uids)
     case 'resolveArrange': return resolvePendingArrange(g, a.uids)

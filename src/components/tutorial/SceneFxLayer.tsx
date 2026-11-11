@@ -221,9 +221,9 @@ export const SceneFxLayer = forwardRef<SceneFxHandle>(function SceneFxLayer(_pro
       const ta = ann, tt = ann + trav, ts = tt + seal
       const sealed = new Set<number>()
       let announced = false
-      if (o.kind === 'battlecry') playBattleSound('summon', 0.25)
-      else if (o.kind === 'lastwish') playBattleSound('curse', 0.25)
-      else playBattleSound('spellCast', 0.3)
+      if (o.kind === 'battlecry') playBattleSound('battlecrySting', 0.25)
+      else if (o.kind === 'lastwish') playBattleSound('lastwishSting', 0.25)
+      else playBattleSound('triggerSting', 0.3)
       addJob({
         t0: now0, resolveAt: now0 + ts, endAt: now0 + ts + linger, resolve,
         draw: (t, now) => {

@@ -76,6 +76,8 @@ export function resolveTargets(g: GameState, casterSide: Side, target: TargetTyp
     case 'allEnemyTargets': return [...enemyU({ includeStealth: true, includeChampion: true }, false), ...enemyArt(), { kind: 'player', side: enemyRep }]
     case 'allOwnTargets':  return [...ownU({ includeStealth: true, includeChampion: true }), ...ownArt(), { kind: 'player', side: casterSide }]
     case 'castSpell':      return []  // specialiai apdorojama effectEngine (burto atšaukimas)
+    // Nežinomas / sugadintas target (admin klaida DB) — be taikinių, o ne kritimas (754)
+    default:               return []
   }
 }
 
