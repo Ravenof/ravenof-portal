@@ -415,7 +415,7 @@ const L4_STEPS: LessonStep[] = [
 
 const level4: LessonSeed = {
   seedKey: 'tut-v3-l4', slug: 'pamoka-4-cempionas', sortOrder: 3,
-  title: '4. Čempionas', subtitle: 'Tribute, fazės, gebėjimai',
+  title: '4. Čempionas', subtitle: 'Auka, fazės, gebėjimai',
   description: 'Čempiono iškvietimas per Tribute, fazės 300/600/900, gebėjimų atrakinimas ir taikiniai.',
   icon: '👑', estMinutes: 7, status: 'active',
   reward: { exp: 120, gold: 350, cardMin: 'unique', badge: 'tutorial-4' },
@@ -551,7 +551,7 @@ const L6_STEPS: LessonStep[] = [
     arrowFrom: { kind: 'handCard', cardName: 'Matriarchė Gorta' }, arrowTo: { kind: 'unit', side: 'ai', cardName: 'Hikage' }, arrowStyle: 'drag-path',
     allow: [{ kind: 'play-unit', cardName: 'Matriarchė Gorta' }],
     complete: { on: 'event', eventType: 'play', side: 'you', cardName: 'Matriarchė Gorta' } },
-  { id: 'burn', objective: 'Padek',
+  { id: 'burn', objective: 'Padegk',
     dialogue: [say('sys-good-2', 'O dabar — ugnis.', 'Būtent taip.')],
     highlight: [{ kind: 'handCard', cardName: 'Liepsnos antspaudas' }],
     arrowFrom: { kind: 'handCard', cardName: 'Liepsnos antspaudas' }, arrowTo: { kind: 'unit', side: 'ai', cardName: 'Wrosxa' }, arrowStyle: 'drag-path',

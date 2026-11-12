@@ -4956,7 +4956,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             const afford = game.you.gold >= effectiveCost(game, 'you', c) && !champPhaseBlocked(c)
             const isDragging = drag?.uid === c.uid && dragMovedRef.current
             return (
-              <div key={c.uid} data-hand-card={c.name}
+              <div key={c.uid} data-hand-card={c.name} data-hand-uid={c.uid}
                 onPointerDown={(e) => beginHandPointer(c, e)}
                 onContextMenu={(e) => { e.preventDefault(); setInspect(c) }}
                 className="shrink-0 cursor-grab active:cursor-grabbing"
@@ -4979,7 +4979,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             const rot = off * Math.min(4.5, 24 / Math.max(1, n))
             const ty = Math.round(Math.pow(Math.abs(off), 1.6) * 4)
             return (
-              <motion.div key={c.uid} data-hand-card={c.name} layout
+              <motion.div key={c.uid} data-hand-card={c.name} data-hand-uid={c.uid} layout
                 initial={{ y: 70, opacity: 0 }}
                 animate={{ y: ty, rotate: rot, opacity: isDragging ? 0.25 : 1 }}
                 whileHover={{ y: ty - 36, rotate: 0, scale: 1.14, zIndex: 60 }}
@@ -5031,7 +5031,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           const hovered = hoverCard?.card.uid === c.uid && !drag
           const selectedForSale = select?.kind === 'discard'
           return (
-            <div key={c.uid} data-hand-card={c.name} className="rvn-desk-hand-card shrink-0"
+            <div key={c.uid} data-hand-card={c.name} data-hand-uid={c.uid} className="rvn-desk-hand-card shrink-0"
               style={{
                 width: w, height: h, marginLeft: i === 0 ? 0 : step - w, zIndex: isDragging ? 60 : hovered ? 80 : i,
                 transform: hovered ? `translateY(${-Math.round(h * 0.28)}px) scale(1.08)` : `translateY(${ty}px) rotate(${rot}deg)`,
@@ -5465,7 +5465,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                   const step = Math.min(handW * 0.96, (vw - handW - 10) / Math.max(1, n - 1))  // tarpas tarp kortų – kad ~10 tilptų ekrane
                   const ml = i === 0 ? 0 : step - handW
                   return (
-                    <motion.div key={c.uid} data-hand-card={c.name} layout
+                    <motion.div key={c.uid} data-hand-card={c.name} data-hand-uid={c.uid} layout
                       initial={{ y: 55, opacity: 0, scale: 0.85 }}
                       animate={{ y: 0, opacity: isDragging ? 0.25 : 1, rotate: Math.max(-12, Math.min(12, off * (n > 8 ? 2 : 3.5))) }}
                       exit={{ y: -40, opacity: 0, scale: 0.8 }}
@@ -5570,7 +5570,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                     const rot = off * Math.min(4.5, 24 / Math.max(1, n))
                     const ty = Math.round(Math.pow(Math.abs(off), 1.6) * 4)
                     return (
-                      <motion.div key={c.uid} data-hand-card={c.name} layout
+                      <motion.div key={c.uid} data-hand-card={c.name} data-hand-uid={c.uid} layout
                         initial={{ y: 70, opacity: 0 }}
                         animate={{ y: ty, rotate: rot, opacity: isDragging ? 0.25 : 1 }}
                         whileHover={{ y: ty - 36, rotate: 0, scale: 1.14, zIndex: 60 }}

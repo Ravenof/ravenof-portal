@@ -18,7 +18,7 @@ import { RavenofBannerButton, ravenofRarityColor, ravenofRarityGem } from '@/com
 import type { GrantedReward } from '@/lib/progression/types'
 
 export type CelebrationItem =
-  | { kind: 'reward'; reward: GrantedReward }
+  | { kind: 'reward'; reward: GrantedReward; label?: string }
   | { kind: 'card'; name: string; imageUrl: string | null; rarity: string; sub?: string }
   | { kind: 'booster'; count: number; label: string }
   | { kind: 'pack'; name: string; imageUrl: string | null; label: string }
@@ -242,10 +242,10 @@ function Tile({ item, delay }: { item: CelebrationItem; delay: number }) {
   }
   if (item.kind === 'booster') {
     const v = resolveRewardVisualV2({ type: 'faction_booster_choice', quantity: item.count })
-    asset = v.asset; label = item.label
+    asset = v.asset; label = item.label; amount = item.count
   } else {
     const v = resolveRewardVisualV2(item.reward)
-    asset = v.asset; label = v.name
+    asset = v.asset; label = item.label ?? v.name
     if ('amount' in item.reward) amount = item.reward.amount
   }
   return (
@@ -257,7 +257,7 @@ function Tile({ item, delay }: { item: CelebrationItem; delay: number }) {
         <img src={asset} alt="" aria-hidden />
       </div>
       {amount != null ? <CountUp n={amount} startMs={delay * 1000 + 250} /> : <div className="rvn-cele-amt" style={{ fontSize: 22 }}>{label}</div>}
-      <div className="rvn-cele-lbl">{label}</div>
+      {amount != null && <div className="rvn-cele-lbl">{label}</div>}
       <div className="rvn-cele-shine" />
     </div>
   )

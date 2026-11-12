@@ -224,7 +224,7 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
       const el = wrapFor(zoomEl)
       if (el) {
         const scene = el.hasAttribute('data-tut-zoomroot')
-        const maxZoom = scene ? 1.55 : 2.6      // scenose kortos jau didelės
+        const maxZoom = scene ? 1 : 2.6      // scenose (mulliganas, pasirinkimai) NEartinam: kortos jau didelės, o priartinus kraštinės išlįsdavo už ekrano
         if (!zoomEl || reduced) {
           if (camEl.current) { resetEl(camEl.current); camEl.current = null }
           cam.current = { s: 1, tx: 0, ty: 0 }

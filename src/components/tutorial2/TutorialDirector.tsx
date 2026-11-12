@@ -130,7 +130,8 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
     setPhase('reward')
     analytics.current?.lessonComplete()
     const res = await completeLesson(lesson.id, Date.now() - startedAt.current)
-    setReward(res.reward ?? lesson.reward_payload ?? {})
+    // Kartojant pamoką atlygis nebeduodamas – nerodom jo plytelių (rodomas „atlygis jau gautas")
+    setReward(res.ok && !res.firstTime ? {} : (res.reward ?? lesson.reward_payload ?? {}))
   }, [phase, lesson.id, lesson.reward_payload])
 
   const advanceStep = useCallback(() => {
@@ -383,6 +384,9 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
 
   // ── scripted setup (mutate fresh game) ──
   const applySetup = useCallback((g: GameState) => {
+    // Būsena reikalinga paryškinimams jau PIRMAME veiksmo žingsnyje (anksčiau gameRef atsirasdavo tik
+    // po pirmo įvykio – 2 pamokos pirma ataka likdavo be rodyklės ir žiedų).
+    gameRef.current = g
     if (!pool) return
     const setup = cfg.setup ?? {}
     const fill = (side: Side, sc?: typeof setup.player) => {
@@ -479,7 +483,17 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
       return `[data-tut="${ANCHOR_TUT[tg.anchor] ?? tg.anchor}"]`
     }
     if (tg.kind === 'button') return `[data-tut="${tg.id}"]`
-    if (tg.kind === 'handCard') return tg.cardName ? `[data-hand-card="${tg.cardName}"], [data-pick-card="${tg.cardName}"]` : '[data-tut="hand"]'
+    if (tg.kind === 'handCard') {
+      if (!tg.cardName) return '[data-tut="hand"]'
+      // Čempiono fazės turi TĄ PATĮ vardą: jei rankoje kelios – rodom ŽEMIAUSIĄ (ją ir reikia žaisti),
+      // kitaip paryškinimas nukrisdavo ant aukštesnės fazės kortos, kurios dar negalima sužaisti.
+      const hand = gameRef.current ? P(gameRef.current, 'you').hand.filter((c) => c.name === tg.cardName) : []
+      if (hand.length > 1 && hand.some((c) => c.championPhase != null)) {
+        const low = [...hand].sort((a, b) => (a.championPhase ?? 99) - (b.championPhase ?? 99))[0]
+        return `[data-hand-uid="${low.uid}"]`
+      }
+      return `[data-hand-card="${tg.cardName}"], [data-pick-card="${tg.cardName}"]`
+    }
     if (tg.kind === 'unit') {
       const g = gameRef.current; if (!g) return null
       const u = P(g, tg.side).units.find((x) => (tg.cardName ? x?.card.name === tg.cardName : !!x))
@@ -560,8 +574,8 @@ function RewardScreen({ title, subtitle, reward, onDone }: { title: string; subt
   if (reward.gold) items.push({ kind: 'reward', reward: { type: 'silver', amount: reward.gold } as GrantedReward })
   if (reward.exp) items.push({ kind: 'reward', reward: { type: 'account_xp', amount: reward.exp } as unknown as GrantedReward })
   if (reward.boosters) items.push({ kind: 'booster', count: reward.boosters, label: t('onboarding.tutorial.rewardBooster') })
-  if (reward.cardMin) items.push({ kind: 'reward', reward: { type: 'item', item_type: 'card', item_id: t('onboarding.tutorial.rewardCard') } as unknown as GrantedReward })
-  if (reward.badge) items.push({ kind: 'reward', reward: { type: 'item', item_type: 'badge' } as unknown as GrantedReward })
+  if (reward.cardMin) items.push({ kind: 'reward', reward: { type: 'item', item_type: 'card', item_id: t('onboarding.tutorial.rewardCard') } as unknown as GrantedReward, label: t('rewards.label.card') })
+  if (reward.badge) items.push({ kind: 'reward', reward: { type: 'item', item_type: 'badge' } as unknown as GrantedReward, label: t('rewards.label.badge') })
   const cta = celebrationCtaDelay(items.length)
   const short = typeof window !== 'undefined' && window.innerHeight < 640
   if (typeof document === 'undefined') return null
