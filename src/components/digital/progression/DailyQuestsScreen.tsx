@@ -228,7 +228,7 @@ export function DailyQuestsScreen() {
         <div className="rvn-prog-scroll" style={D ? {
           // Desktop: 3 sutartys + skrynia vienoje eilutėje, natūralaus aukščio (ne ištemptos iki apačios)
           flex: 1, minHeight: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', alignItems: 'stretch', alignContent: 'start',
-          gap: DT.sp.lg, padding: '20px 20px', overflowY: 'auto', overflowX: 'hidden', width: '100%', maxWidth: 1360, margin: '0 auto',
+          gap: DT.sp.lg, padding: '20px 20px', overflowY: 'auto', overflowX: 'hidden', width: '100%',
         } : {
           flex: 1, minHeight: 0, display: 'flex', gap: 12, padding: compact ? '10px 12px' : '14px 16px',
           overflowX: 'auto', scrollSnapType: compact ? 'x mandatory' : undefined,

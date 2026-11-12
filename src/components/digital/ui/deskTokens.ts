@@ -26,7 +26,7 @@ export const DT = {
   /** Karkasas. */
   railW: 112,      // kairysis nav rail (desktop)
   headerH: 72,
-  contentMax: 1440,
+  contentMax: 1760,
   wideMax: 1760,   // katalogai / builderis
   pagePadX: 32,
   /** Kortelių pločio orientyrai (min/max) – stulpelių skaičius iš konteinerio pločio. */

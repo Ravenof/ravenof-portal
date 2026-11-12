@@ -244,7 +244,7 @@ export function DigitalPvE() {
   const inputStyle: React.CSSProperties = { minHeight: desktop ? 42 : 34, background: 'var(--ravenof-bg-elevated)', border: '1px solid var(--ravenof-border-strong)', color: 'var(--ravenof-text-primary)', padding: desktop ? '0 14px' : '0 10px', font: `400 ${desktop ? 14 : 12}px var(--ravenof-font-body)`, outline: 'none' }
 
   return (
-    <div data-pve-v="447" className={'ravenof-body ravenof-in h-full flex flex-col min-h-0' + (desktop ? ' overflow-y-auto ravenof-scroll' : '')} style={{ padding: desktop ? '24px 32px 28px' : '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
+    <div data-pve-v="447" className={'ravenof-body ravenof-in h-full flex flex-col min-h-0' + (desktop ? ' overflow-y-auto ravenof-scroll' : '')} style={{ padding: desktop ? '8px 0 12px' : '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
       <div className={desktop ? 'w-full flex flex-col' : 'contents'} style={desktop ? { maxWidth: 'var(--rvn-content-max, 1440px)', margin: '0 auto' } : undefined}>
       {/* Antraštė: atgal + pavadinimas */}
       <div className="flex items-center shrink-0" style={{ gap: desktop ? 14 : 10, paddingBottom: desktop ? 22 : 10 }}>
@@ -324,7 +324,7 @@ export function DigitalPvE() {
 
         {/* ── CENTRAS: varžovo tipas 2×2 ── */}
         <div className="flex flex-col min-w-0" style={desktop ? { flex: `0 0 ${centerW}px`, gap: 12 } : { flex: 1.15, gap: 8 }}>
-          {label(t('battle.pve.opponentLabel'))}
+          {label(t('battle.pve.typeLabel'))}
           <div className={desktop ? 'grid grid-cols-2 place-items-center' : 'flex-1 min-h-0 grid grid-cols-2 grid-rows-2 place-items-center'} style={{ gap: desktop ? 18 : 10 }}>
             {tile({ mode: 'random-faction', label: t('battle.pve.types.random'), selected: mode === 'random', onClick: () => setMode('random'), testId: 'random' })}
             {tile({ mode: 'selected-faction', label: t('battle.pve.types.faction'), selected: mode === 'faction', onClick: () => setMode('faction'), testId: 'faction' })}

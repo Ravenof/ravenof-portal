@@ -229,7 +229,7 @@ export function RankedClient() {
     return (
       <div className="h-full min-h-0 overflow-y-auto ravenof-scroll">
         {rv && profile && (
-          <div className="ravenof-body ravenof-in flex flex-col" style={{ minHeight: '100%', maxWidth: DT.contentMax, margin: '0 auto', padding: `${DT.sp.xl}px ${DT.pagePadX}px`, gap: DT.sp.xl }}>
+          <div className="ravenof-body ravenof-in flex flex-col" style={{ minHeight: '100%', padding: `${DT.sp.md}px 0`, gap: DT.sp.xl }}>
             <div className="flex items-center flex-wrap" style={{ gap: DT.sp.lg }}>
               <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('ranked.backHome')} className="rvn-dlg-close ravenof-press" style={{ width: DT.ctl, height: DT.ctl, fontSize: 22 }}>‹</button>
               <div className="min-w-0">
@@ -248,7 +248,7 @@ export function RankedClient() {
               </nav>
             </div>
 
-            <div className="grid" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr)', gap: DT.sp.xl - 4, alignItems: 'stretch', margin: 'auto 0' }}>
+            <div className="grid" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr)', gap: DT.sp.xl - 4, alignItems: 'stretch' }}>
               {/* Rango herbas */}
               <div className="relative flex flex-col justify-center text-center overflow-hidden" style={{ border: '1px solid var(--ravenof-border-hairline)', background: 'linear-gradient(180deg,var(--ravenof-bg-surface),var(--ravenof-bg-surface-2))', padding: DT.sp.xl }}>
                 <div className="absolute inset-0" style={{ background: `url('${RAVENOF_ASSET}/backgrounds/background-cathedral-ruins.webp') no-repeat center / cover`, opacity: .3 }} />
@@ -339,7 +339,7 @@ export function RankedClient() {
   }
 
   return (
-    <div className={view === 'home' ? 'h-full min-h-0' : D ? 'space-y-5 pb-6' : 'space-y-5 pb-4'} style={D && view !== 'home' ? { maxWidth: DT.contentMax, margin: '0 auto', padding: `${DT.sp.xl}px ${DT.pagePadX}px` } : undefined}>
+    <div className={view === 'home' ? 'h-full min-h-0' : D ? 'space-y-5 pb-6' : 'space-y-5 pb-4'} style={D && view !== 'home' ? { padding: `${DT.sp.md}px 0` } : undefined}>
       {view !== 'home' && <Back />}
 
       {view === 'home' && rv && profile && (

@@ -521,6 +521,7 @@
     "noDecksFound": "No decks found.",
     "opponent": "Opponent:",
     "opponentLabel": "Opponent",
+    "typeLabel": "Battle type",
     "opponentType": "Opponent type",
     "pickDeck": "PICK A DECK",
     "pickFaction": "PICK A FACTION",

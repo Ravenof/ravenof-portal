@@ -108,8 +108,8 @@ export function TournamentScreen({ id, userId, desktop: D, onExit }: { id: strin
 
   const fs = (d: number, m: number) => (D ? d : m)
   const wrap = (children: React.ReactNode) => (
-    <div className={'ravenof-body ravenof-in h-full flex flex-col min-h-0 overflow-y-auto ravenof-scroll'} style={{ padding: D ? '28px 40px' : '12px 16px 14px max(16px, env(safe-area-inset-left, 0px))' }} data-testid="tourney-screen">
-      <div className="w-full flex flex-col" style={{ maxWidth: 1280, margin: '0 auto', gap: fs(20, 10) }}>{children}</div>
+    <div className={'ravenof-body ravenof-in h-full flex flex-col min-h-0 overflow-y-auto ravenof-scroll'} style={{ padding: D ? '8px 0 12px' : '12px 16px 14px max(16px, env(safe-area-inset-left, 0px))' }} data-testid="tourney-screen">
+      <div className="w-full flex flex-col" style={{ maxWidth: D ? undefined : 1280, margin: '0 auto', gap: fs(20, 10) }}>{children}</div>
       {toast && <div className="ravenof-toast" style={{ position: 'fixed', left: '50%', transform: 'translateX(-50%)', bottom: 'calc(18px + env(safe-area-inset-bottom,0px))', zIndex: 200 }}>{toast}</div>}
     </div>
   )

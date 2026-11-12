@@ -116,7 +116,7 @@ export function MoreScreen() {
     )
     const [first, ...rest] = allSections
     return (
-      <div className="ravenof-body ravenof-in" style={{ maxWidth: 1100, margin: '0 auto', paddingBottom: DT.sp.xl }}>
+      <div className="ravenof-body ravenof-in" style={{ paddingBottom: DT.sp.xl }}>
         <div className="flex items-end" style={{ gap: DT.sp.lg, marginBottom: DT.sp.xl }}>
           <div className="flex-1 min-w-0">
             <h1 className="rvn-d-h1" style={{ textTransform: 'uppercase' }}>{t('more.title')}</h1>

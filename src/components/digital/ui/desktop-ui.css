@@ -14,7 +14,7 @@
 html[data-rvn-desk="1"] {
   --rvn-rail-w: 112px;
   --rvn-header-h: 72px;
-  --rvn-content-max: 1440px;
+  --rvn-content-max: 1760px;   /* 774: vienas turinio plotis visiems ekranams (buvo 1440 / 1760 – skiltys šokinėjo) */
   --rvn-wide-max: 1760px;
   --rvn-page-px: 32px;
   --d-fs-h1: 26px;

@@ -56,6 +56,7 @@ const NO_HEADER_ROUTES = ['/digital/collection', '/digital/friends']
 const MIGRATED_ROUTES = ['/digital', '/digital/collection', '/digital/decks', '/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign', '/digital/friends', '/digital/more', '/digital/tutorial', '/digital/rewards', '/digital/season', '/digital/quests', '/digital/profile']
 // Pilno ekrano režimų ekranai (prototipas: be rail ir be header; atgal — ekrano ‹ mygtukas)
 const FULL_BLEED_ROUTES = ['/digital/ranked', '/digital/pve', '/digital/pvp', '/digital/campaign']
+const DESK_FRAMED_ROUTES = ['/digital/ranked', '/digital/pve', '/digital/pvp']
 // Desktop: katalogai/builderis naudoja platesnį turinio biudžetą (--rvn-wide-max), kiti – --rvn-content-max
 const WIDE_ROUTES = ['/digital/collection', '/digital/decks']
 
@@ -77,8 +78,11 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   const locale = useLocale()
   const router = useRouter()
   const bare = BARE_ROUTES.includes(pathname)
-  const fullBleed = FULL_BLEED_ROUTES.includes(pathname)
-  const showHeader = !NO_HEADER_ROUTES.includes(pathname) && !fullBleed
+  // 774: kompiuteryje Kova su DI, Reitingas ir PvP turi tą patį rėmą kaip visi ekranai (šoninis meniu + viršutinė juosta);
+  // telefone jie lieka pilno ekrano – ten vietos meniu ir juostai nėra.
+  const fullBleed = FULL_BLEED_ROUTES.includes(pathname) && !(deskUi && DESK_FRAMED_ROUTES.includes(pathname))
+  // 774: desktop'e viršutinė juosta (valiutos, pranešimai) rodoma visuose ekranuose su šoniniu meniu; telefone Kolekcija ir Draugai lieka be jos (vieta)
+  const showHeader = !(NO_HEADER_ROUTES.includes(pathname) && !deskUi) && !fullBleed
   const wide = WIDE_ROUTES.some((r) => pathname.startsWith(r))
   // Desktop režimo žymė ant <html> — kad desktop-ui.css tokenai veiktų ir portaluose (document.body)
   useEffect(() => {
@@ -169,7 +173,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
   const isActive = (it: NavItem) => {
     if (storeOpen) return it.action === 'store'   // atidarius parduotuvę paryškinta tik ji (ne ir „Pradžia“)
-    if (it.href === '/digital') return pathname === '/digital'
+    if (it.href === '/digital') return pathname === '/digital' || DESK_FRAMED_ROUTES.includes(pathname)   // kovų režimai priklauso „Pradžiai“
     return !!it.href && pathname.startsWith(it.href)
   }
 

@@ -346,7 +346,7 @@ export function DigitalPvP() {
   })
 
   return (
-    <div className={'ravenof-body ravenof-in h-full flex flex-col min-h-0' + (D ? ' overflow-y-auto ravenof-scroll' : '')} style={{ padding: D ? `${DT.sp.xl}px ${DT.pagePadX}px` : '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
+    <div className={'ravenof-body ravenof-in h-full flex flex-col min-h-0' + (D ? ' overflow-y-auto ravenof-scroll' : '')} style={{ padding: D ? `${DT.sp.md}px 0` : '12px 20px 14px max(20px, env(safe-area-inset-left, 0px))' }}>
       <div className={D ? 'w-full flex flex-col' : 'contents'} style={D ? { maxWidth: 1280, margin: '0 auto', gap: DT.sp.xl } : undefined}>
       {/* Antraštė: atgal + pavadinimas */}
       <div className="flex items-center shrink-0" style={{ gap: D ? DT.sp.lg : 10, paddingBottom: D ? 0 : 10 }}>
