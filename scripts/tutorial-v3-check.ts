@@ -17,8 +17,9 @@ import { tutorialLessonSeeds, CORE_LESSON_KEYS } from '@/data/tutorialLessons/le
 import type { LessonSeed, LessonStep, HighlightTarget } from '@/lib/tutorial2/lessonTypes'
 
 const ROOT = process.cwd()
-const MIGR = ['20260717_tutorial_cards.sql', '20260871_tutorial_v3.sql', '20260872_tutorial_enemy_cards_fix.sql', '20260873_tutorial_lastwish_card.sql']
-  .map((f) => fs.readFileSync(path.join(ROOT, 'supabase', 'migrations', f), 'utf8')).join('\n')
+// Nuo 2026-09-19 pamokos naudoja TIKRAS kolekcijos kortas (TUT kortu nebera), todel vardai
+// tikrinami pries patikrinta aktyviu kortu sarasa scripts/tutorial-card-names.json.
+const SNAP = JSON.parse(fs.readFileSync(path.join(ROOT, 'scripts', 'tutorial-card-names.json'), 'utf8')) as { verifiedAt: string; names: string[]; championPhases: Record<string, number[]> }
 
 let errors = 0
 let warnings = 0
@@ -27,9 +28,9 @@ const warn = (m: string) => { warnings++; console.log('  !', m) }
 const ok = (m: string) => console.log('  ✓', m)
 
 // ── 1) kortų vardai iš migracijų ──
-const cardNames = new Set<string>()
-for (const m of MIGR.matchAll(/\('TUT-[0-9A-Z]+','([^']+)'/g)) cardNames.add(m[1])
-console.log(`\nTUT kortos migracijose: ${cardNames.size}`)
+const cardNames = new Set<string>(SNAP.names)
+for (const [n, phases] of Object.entries(SNAP.championPhases ?? {})) for (const ph of phases) cardNames.add(`${n}|${ph}`)
+console.log(`\nPatikrintos kolekcijos kortos (${SNAP.verifiedAt}): ${SNAP.names.length}`)
 
 const usedCards = new Set<string>()
 const collectTargetCard = (t: HighlightTarget | null | undefined) => {
@@ -112,8 +113,8 @@ for (const lesson of tutorialLessonSeeds as LessonSeed[]) {
 
 // ── kortų egzistavimas ──
 const missing = [...usedCards].filter((n) => !cardNames.has(n)).sort()
-if (missing.length) err(`pamokose naudojamos NEEGZISTUOJANČIOS kortos: ${missing.join(', ')}`)
-else ok(`visos ${usedCards.size} pamokose naudojamos kortos yra migracijose`)
+if (missing.length) err(`pamokose naudojamos kortos, kuriu nera patikrintame sarase (scripts/tutorial-card-names.json): ${missing.join(', ')}`)
+else ok(`visos ${usedCards.size} pamokose naudojamos kortos yra patikrintame sarase`)
 
 // ── pamokų sandara ──
 const keys = tutorialLessonSeeds.map((l) => l.seedKey)

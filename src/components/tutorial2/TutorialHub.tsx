@@ -118,20 +118,26 @@ export function TutorialHub() {
 
   const lessonRow = (l: LessonRow, unlocked: boolean) => {
     const done = !!progress[l.id]?.completed
+    const mNum = /^(\d+)\.\s*(.+)$/.exec(l.title ?? '')
+    const num = mNum ? mNum[1] : null
+    const titleText = mNum ? mNum[2] : l.title
     return (
       <button key={l.id} disabled={!unlocked} onClick={() => { if (!unlocked) return; playUiClick(); setLesson(l) }}
         className="ravenof-press text-left flex items-center disabled:opacity-45"
         style={{ gap: desktop ? 18 : 12, padding: desktop ? '18px 20px' : '12px 14px', minHeight: desktop ? 88 : undefined, width: '100%', cursor: unlocked ? 'pointer' : 'default',
           background: 'var(--ravenof-bg-surface)', border: '1px solid ' + (done ? 'var(--ravenof-gold)' : 'var(--ravenof-border-strong)') }}>
-        <span aria-hidden style={{ fontSize: desktop ? 32 : 22, width: desktop ? 44 : 30, textAlign: 'center', filter: unlocked ? undefined : 'grayscale(1)' }}>{l.icon ?? '📜'}</span>
+        {/* Numerio ženklas vietoj emoji (žaidimo stilius); pavadinime numeris nebekartojamas */}
+        <span aria-hidden className="shrink-0 flex items-center justify-center" style={{ width: desktop ? 48 : 32, height: desktop ? 48 : 32, transform: 'rotate(45deg)', border: '1px solid ' + (done ? 'var(--ravenof-gold)' : 'var(--ravenof-border-strong)'), background: 'rgba(0,0,0,0.35)', margin: desktop ? '0 8px' : '0 5px' }}>
+          <span style={{ transform: 'rotate(-45deg)', font: `700 ${desktop ? 20 : 14}px var(--ravenof-font-display)`, color: done ? 'var(--ravenof-gold)' : unlocked ? 'var(--ravenof-text-primary)' : 'var(--ravenof-text-secondary)' }}>{num ?? '•'}</span>
+        </span>
         <span className="flex-1 min-w-0 flex flex-col" style={{ gap: desktop ? 4 : 2 }}>
-          <span style={{ font: `700 ${desktop ? 17 : 13.5}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)', lineHeight: desktop ? 1.25 : undefined }}>{l.title}</span>
+          <span style={{ font: `700 ${desktop ? 17 : 13.5}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)', lineHeight: desktop ? 1.25 : undefined }}>{titleText}</span>
           <span style={{ font: `400 ${desktop ? 14.5 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', lineHeight: 1.35 }}>{l.subtitle ?? l.description}</span>
         </span>
         <span className="shrink-0 flex flex-col items-end" style={{ gap: desktop ? 5 : 3 }}>
           <span style={{ font: `400 ${desktop ? 13 : 10}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('onboarding.tutorial.minutesShort', { n: l.est_minutes ?? 5 })}</span>
           <span style={{ font: `700 ${desktop ? 13.5 : 10.5}px var(--ravenof-font-display)`, letterSpacing: 1, textTransform: 'uppercase', color: done ? 'var(--ravenof-gold)' : unlocked ? 'var(--ravenof-text-primary)' : 'var(--ravenof-text-secondary)' }}>
-            {done ? '✓ ' + t('onboarding.tutorial.lessonReplay') : unlocked ? t('onboarding.tutorial.lessonStart') : '🔒 ' + t('onboarding.tutorial.lessonLocked')}
+            {done ? '✓ ' + t('onboarding.tutorial.lessonReplay') : unlocked ? t('onboarding.tutorial.lessonStart') : t('onboarding.tutorial.lessonLocked')}
           </span>
         </span>
       </button>
@@ -139,7 +145,7 @@ export function TutorialHub() {
   }
 
   return (
-    <div className="ravenof-body ravenof-in h-full flex flex-col min-h-0" style={{ padding: desktop ? '12px 0 20px' : '4px 2px 12px', ...(desktop ? { maxWidth: 1300, margin: '0 auto', width: '100%' } : {}) }}>
+    <div className="ravenof-body ravenof-in h-full flex flex-col min-h-0" style={{ padding: desktop ? '12px 0 20px' : '4px 2px 12px' }}>
       {/* Antraštė: atgal + pavadinimas */}
       <div className="flex items-center shrink-0" style={{ gap: desktop ? 14 : 10, paddingBottom: desktop ? 22 : 10 }}>
         <button onClick={() => { playUiClick(); router.push('/digital') }} aria-label={t('common.back')} className="ravenof-iconbtn" style={{ fontSize: desktop ? 22 : 16, ...(desktop ? { width: 42, height: 42 } : {}) }}>‹</button>
@@ -207,7 +213,7 @@ export function TutorialHub() {
             )}
 
             {allDone && (
-              <p className="text-center" style={{ font: `700 ${desktop ? 15 : 12}px var(--ravenof-font-display)`, color: 'var(--ravenof-gold)', margin: 0 }}>🏆 {t('onboarding.tutorial.allLessonsDone')}</p>
+              <p className="text-center" style={{ font: `700 ${desktop ? 15 : 12}px var(--ravenof-font-display)`, color: 'var(--ravenof-gold)', margin: 0 }}>◆ {t('onboarding.tutorial.allLessonsDone')}</p>
             )}
 
             {/* ── Kaladė dar nepasiimta → starter pasirinkimas ── */}

@@ -1,0 +1,49 @@
+{
+ "verifiedAt": "2026-11-12",
+ "note": "Aktyvios kolekcijos kortos, kurias naudoja mokymai; patikrinta pries prod DB. Pridejus nauja korta i pamoka - patikrink, kad ji aktyvi, ir papildyk sarasa. Cempionu fazes: Vardas|N.",
+ "championPhases": {
+  "Archimagas Lisarijus": [
+   1,
+   2,
+   3
+  ]
+ },
+ "names": [
+  "Archimagas Lisarijus",
+  "Aukso kasykla",
+  "Digolan’as",
+  "Gisela",
+  "Gniuždantis žvilgsnis",
+  "Goblinas žvalgas",
+  "Gorgonės golemas",
+  "Hikage",
+  "Hokieg’as",
+  "Ida",
+  "Impas",
+  "Klausas",
+  "Kraujo duoklė",
+  "Ledo spindulys",
+  "Liepsnos antspaudas",
+  "Magmos širdis",
+  "Matriarchė Gorta",
+  "Nakties tarnas",
+  "Naotsuo",
+  "Ordino pėstininkas",
+  "Paslėpta galia",
+  "Piratas žvalgas",
+  "Pragaro sutartis",
+  "Riteris",
+  "Stingdantis kristalas",
+  "Takumi",
+  "Toguchi",
+  "Tornadas",
+  "Tsurano",
+  "Užnugario ataka",
+  "Volkano papėdė",
+  "Wrosxa",
+  "Zombis klajoklis",
+  "Šerkšnadūmis",
+  "Šnabždėjimas po oda",
+  "Šviesos palaiminimas"
+ ]
+}

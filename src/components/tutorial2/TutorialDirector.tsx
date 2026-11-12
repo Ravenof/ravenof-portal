@@ -18,6 +18,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { deskText, isPointerFine } from '@/lib/tutorial2/deskText'
 import { createPortal } from 'react-dom'
 import { TutorialGame, DEMO_DECK_ID, type TutorialHooks, type TutorialGameApi } from '@/components/tutorial/TutorialGame'
 import { applyNetAction, beginTurn, endTurn, recomputeAuras, P, PERMANENT, type GameState, type GameEvent, type NetAction, type TargetRef, type Side, type BoardArtifact, type TutCard, type TutStatus } from '@/lib/tutorial/engine'
@@ -436,7 +437,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
         wrongVoiceAt.current = now
         void playTutorialVoice(WRONG_VOICES[Math.floor(Math.random() * WRONG_VOICES.length)])
       }
-      return { ok: false, hint: s?.wrongHint ?? t('onboarding.tutorial.wrongAction') }
+      return { ok: false, hint: deskText(s?.wrongHint, isPointerFine()) ?? t('onboarding.tutorial.wrongAction') }
     },
     enemyTurn: (g) => {
       const s = steps[stepIdxRef.current]
@@ -454,14 +455,17 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
   }), [applySetup, steps, matchAction, runScripted, checkComplete, onInspect, onInspectEnd, cfg.matchStartFlow, cfg.enemyAi, t])
 
   // ── overlay data ──
+  const pointerFine = useMemo(() => isPointerFine(), [])
   const objective = useMemo(() => {
-    for (let i = stepIdx; i >= 0; i--) if (steps[i]?.objective) return steps[i].objective!
+    // Paskutinis (atsisveikinimo) žingsnis be savo tikslo – seno tikslo neberodom
+    if (stepIdx === steps.length - 1 && !steps[stepIdx]?.objective) return null
+    for (let i = stepIdx; i >= 0; i--) if (steps[i]?.objective) return deskText(steps[i].objective!, pointerFine)
     return null
-  }, [stepIdx, steps])
+  }, [stepIdx, steps, pointerFine])
 
   const curLine = step?.dialogue?.[dialogueIdx]
   const curDialogue: OverlayDialogue | null = curLine
-    ? { name: curLine.name ?? cfg.guideName, text: curLine.text, speaker: curLine.speaker, subtitle: curLine.voiceText && curLine.voiceText !== curLine.text ? curLine.voiceText : null }
+    ? { name: curLine.name ?? cfg.guideName, text: deskText(curLine.text, pointerFine), speaker: curLine.speaker, subtitle: null }
     : null
 
   const resolveSel = useCallback((tg: HighlightTarget): string | null => {

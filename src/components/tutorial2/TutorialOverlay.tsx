@@ -331,23 +331,17 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
         <div className="rvn-tut-arrow" style={{ left: arrow.x + arrow.w / 2 - 16, top: arrow.y - 42 }}>▼</div>
       )}
 
-      {/* Objective banner (permanent) */}
-      {p.objective && (
-        <div className="rvn-tut-obj">
-          <span style={{ opacity: 0.7, fontSize: 10, letterSpacing: '0.18em' }}>{p.labels.objective}</span>
-          <span style={{ fontWeight: 800 }}>{p.objective}</span>
-        </div>
-      )}
-
-      {/* Progress */}
-      <div style={{ position: 'fixed', top: 'calc(10px + env(safe-area-inset-top, 0px))', right: 12, fontSize: 11, color: 'rgba(243,234,211,0.7)', background: 'rgba(6,4,11,0.7)', padding: '3px 9px', borderRadius: 9 }}>
-        {p.step}/{p.total}
+      {/* Viršutinė juosta: žingsnis · tikslas · praleisti pamoką (viena vieta, neužstoja kovos kampų) */}
+      <div className="rvn-tut-obj">
+        <span className="rvn-tut-obj-step">{p.step}/{p.total}</span>
+        {p.objective && (
+          <span className="rvn-tut-obj-main">
+            <span style={{ opacity: 0.7, fontSize: 10, letterSpacing: '0.18em' }}>{p.labels.objective}</span>
+            <span style={{ fontWeight: 800 }}>{p.objective}</span>
+          </span>
+        )}
+        <button type="button" onClick={() => setConfirmSkip(true)} className="rvn-tut-obj-skip">{p.labels.skipLesson}</button>
       </div>
-
-      {/* Skip lesson — asset CTA (kanonas commit630) */}
-      <button onClick={() => setConfirmSkip(true)} className="ravenof-press" style={{ ...ASSET_CTA(0.72), position: 'fixed', top: 'calc(8px + env(safe-area-inset-top, 0px))', left: 12, pointerEvents: 'auto' }}>
-        {p.labels.skipLesson}
-      </button>
 
       {/* Dialogue bubble (+ titrai) */}
       {p.dialogue && (
@@ -365,7 +359,7 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
           </div>
           {p.showNext && (
             <button onClick={(e) => { e.stopPropagation(); p.onNext() }} className="ravenof-press rvn-tut-next" style={ASSET_CTA(0.86)}>
-              {p.voicePlaying ? p.labels.skipVoice : p.labels.next}
+              {p.labels.next}
             </button>
           )}
         </div>
@@ -428,7 +422,11 @@ const CSS = `
 .rvn-tut-ghost { fill: rgba(240,180,41,0.35); stroke: rgba(255,225,150,0.95); stroke-width: 2; filter: drop-shadow(0 0 10px rgba(240,180,41,0.8)); }
 .rvn-tut-arrow { position: fixed; font-size: 30px; color: #f0b429; text-shadow: 0 0 12px rgba(240,180,41,0.9), 0 2px 4px #000; pointer-events: none; animation: rvnTutBounce 0.9s ease-in-out infinite; }
 @keyframes rvnTutBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
-.rvn-tut-obj { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 18px; border-radius: 12px; background: rgba(6,4,11,0.9); border: 1px solid rgba(240,180,41,0.5); color: #f3ead3; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+.rvn-tut-obj { position: fixed; top: calc(8px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); display: flex; flex-direction: row; align-items: center; gap: 14px; max-width: min(92vw, 760px); padding: 5px 14px; border-radius: 12px; background: rgba(6,4,11,0.9); border: 1px solid rgba(240,180,41,0.5); color: #f3ead3; pointer-events: none; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+.rvn-tut-obj-main { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; text-align: center; }
+.rvn-tut-obj-step { font-size: 11px; color: rgba(243,234,211,0.7); white-space: nowrap; }
+.rvn-tut-obj-skip { pointer-events: auto; cursor: pointer; background: none; border: 0; border-left: 1px solid rgba(240,180,41,0.3); padding: 4px 0 4px 12px; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(243,234,211,0.62); white-space: nowrap; }
+.rvn-tut-obj-skip:hover { color: #f3ead3; }
 .rvn-tut-bubble { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: min(720px, 94vw); display: flex; align-items: center; gap: 12px; overflow: hidden; padding: 12px 14px; border-radius: 16px; background: linear-gradient(160deg, rgba(18,14,26,0.97), rgba(8,6,14,0.97)); border: 1.5px solid; pointer-events: auto; box-shadow: 0 10px 34px rgba(0,0,0,0.6); animation: rvnTutRise 0.28s ease-out; cursor: pointer; }
 @keyframes rvnTutRise { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .rvn-tut-bubble-top { bottom: auto !important; top: calc(78px + env(safe-area-inset-top, 0px)); }
