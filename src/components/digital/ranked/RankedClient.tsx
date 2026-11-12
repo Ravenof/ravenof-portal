@@ -2,6 +2,7 @@
 
 // ── Reitingo kova — pagrindinis orkestratorius (Ranked Home + srautas + panelės) ─
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { NoviceRankedNotice } from '@/components/digital/NoviceRankedNotice'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -228,6 +229,7 @@ export function RankedClient() {
   if (D && view === 'home') {
     return (
       <div className="h-full min-h-0 overflow-y-auto ravenof-scroll">
+        <NoviceRankedNotice />
         {rv && profile && (
           <div className="ravenof-body ravenof-in flex flex-col" style={{ minHeight: '100%', padding: `${DT.sp.md}px 0`, gap: DT.sp.xl }}>
             <div className="flex items-center flex-wrap" style={{ gap: DT.sp.lg }}>
@@ -340,6 +342,7 @@ export function RankedClient() {
 
   return (
     <div className={view === 'home' ? 'h-full min-h-0' : D ? 'space-y-5 pb-6' : 'space-y-5 pb-4'} style={D && view !== 'home' ? { padding: `${DT.sp.md}px 0` } : undefined}>
+      {view === 'home' && <NoviceRankedNotice />}
       {view !== 'home' && <Back />}
 
       {view === 'home' && rv && profile && (

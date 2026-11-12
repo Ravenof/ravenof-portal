@@ -35,6 +35,7 @@
   "nextRankPts": "Next rank: {{rank}} · {{pts}} wins to go",
   "nextTier": "Next tier:",
   "nextUp": "NEXT UP",
+  "novice": {"lessonKicker": "Basics {{done}}/{{total}}", "lessonSub": "Tutorial · continue here", "examTitle": "Tutorial battle", "examSub": "Basics done – try your own deck", "firstPveTitle": "First battle vs AI", "firstPveSub": "An easy opponent – warm up before ranked", "rankedHint": "You haven't finished the basics yet. We recommend doing them first – ranked opponents won't wait.", "toLessons": "To tutorial"},
   "noQuestsToday": "No quests today",
   "online": "{{count}} online",
   "pickDeck": "Pick a deck",

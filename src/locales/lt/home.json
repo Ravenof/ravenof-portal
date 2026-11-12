@@ -36,6 +36,7 @@
   "nextRankPts": "Kitas rangas: {{rank}} · dar {{pts}} perg.",
   "nextTier": "Kita pakopa:",
   "nextUp": "KAS TOLIAU",
+  "novice": {"lessonKicker": "Pagrindai {{done}}/{{total}}", "lessonSub": "Mokymai · tęsk nuo čia", "examTitle": "Mokymų kova", "examSub": "Pagrindai įveikti – išbandyk savo kaladę", "firstPveTitle": "Pirma kova su DI", "firstPveSub": "Lengvas varžovas – apšilk prieš reitingą", "rankedHint": "Dar neįveikei pagrindų pamokų. Rekomenduojame pirma jas – reitinge varžovai nelauks.", "toLessons": "Į mokymus"},
   "noQuestsToday": "Šiandien užduočių nėra",
   "online": "{{count}} online",
   "pickDeck": "Pasirink kaladę",

@@ -18,6 +18,7 @@ import {
   getSeasonPathV2,
 } from '@/lib/progression'
 import { getStarterDecks } from '@/lib/starterDecks'
+import { getNoviceState, type NoviceState } from '@/lib/digital/novice'
 import { getActiveSeason, ensureProfile } from '@/lib/ranked/client'
 import { rankDisplay } from '@/lib/ranked/rank'
 import { RAVENOF_ASSET, RavenofToast } from './ui/RavenofKit'
@@ -69,6 +70,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
   const [claimable, setClaimable] = useState(false)
   const [season, setSeason] = useState<{ cur: number; total: number; pct: number }>({ cur: 0, total: 50, pct: 0 })
   const [newPlayer, setNewPlayer] = useState<boolean | null>(null)
+  // Naujoko kelias: null = dar nežinom (tada dovanos/nukreipimo nerodom per anksti)
+  const [novice, setNovice] = useState<NoviceState | null | undefined>(undefined)
   const [questsPending, setQuestsPending] = useState(0)
   const [quests, setQuests] = useState<DailyQuestsState | null>(null)
   const [questsLoaded, setQuestsLoaded] = useState(false)
@@ -108,12 +111,16 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     // Home ir /digital/rewards rodo TĄ PATĮ serverio streak — jokio atskiro
     // perskaičiavimo (senasis rvn_login_checkin nebekviečiamas: jis vedė atskirą
     // streak'ą ir tyliai dalino auksą kiekvieną Home atidarymą).
-    getLoginRewards().then((ml) => {
+    // Naujokui, kol neįveikta 1 pamoka, į kasdienius atlygius automatiškai nenukreipiam –
+    // pirma mokymai, kad pirmas apsilankymas neužverstų trimis dalykais iškart.
+    const noviceP = getNoviceState().then((n) => { setNovice(n); return n })
+    Promise.all([getLoginRewards(), noviceP]).then(([ml, nv]) => {
       if (!ml || isProgressionError(ml)) return
       setStreak(ml.streak ?? 0)
       const cl = ml.claimableDay != null
       setLoginClaimable(cl); setClaimable(cl)
-      if (cl) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); router.push('/digital/rewards') } }
+      const holdForLessons = !!nv && nv.novice && !nv.lesson1Done
+      if (cl && !holdForLessons) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); router.push('/digital/rewards') } }
     })
     // Sezono kelias — v2 (tas pats šaltinis kaip /digital/season, ne senasis v1)
     getSeasonPathV2().then((sp) => {
@@ -161,6 +168,18 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
   // KANONINIS rango atvaizdavimas — bendras helperis (žr. lib/ranked/rank.ts)
   const rd = rankInfo ? rankDisplay(rankInfo.step) : null
+  // „Kas toliau": naujokui – kita pagrindų pamoka → mokymų kova → pirma kova su DI → tik tada Reitingas
+  let nextHref = '/digital/ranked'; let nextTitle: string | null = null; let nextSub: string | null = null
+  if (novice) {
+    if (novice.novice && novice.nextLesson) {
+      nextHref = '/digital/tutorial?auto=1'; nextTitle = novice.nextLesson.title
+      nextSub = `${t('home.novice.lessonKicker', { done: novice.coreCompleted, total: novice.coreTotal })} · ${t('home.novice.lessonSub')}`
+    } else if (novice.coreDone && novice.matches === 0) {
+      nextHref = '/digital/tutorial'; nextTitle = t('home.novice.examTitle'); nextSub = t('home.novice.examSub')
+    } else if (novice.coreDone && novice.matches < 3) {
+      nextHref = '/digital/pve'; nextTitle = t('home.novice.firstPveTitle'); nextSub = t('home.novice.firstPveSub')
+    }
+  }
   /** Questo atlygis. Jei serveris paprašo pasirinkimo — atidarom pilną ekraną. */
   const claimQuest = async (questId: number) => {
     playUiClick()
@@ -233,7 +252,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
       {/* ── DEŠINĖ: Kas toliau · serija/sezonas · dienos užduotys ── */}
       <div className="flex flex-col min-w-0" style={{ flex: 1.1, gap: desktop ? 14 : 8 }}>
         {/* Kas toliau */}
-        <button onClick={() => { playUiClick(); router.push('/digital/ranked') }}
+        <button onClick={() => { playUiClick(); router.push(nextHref) }}
           className="ravenof-press relative overflow-hidden flex items-center text-left shrink-0"
           style={{ gap: px(10), background: 'linear-gradient(100deg,#1B1522,#241a2e)', border: '1px solid rgba(212,163,59,.5)', borderLeft: '2px solid #F2C45A', padding: `${px(8)}px ${px(11)}px`, cursor: 'pointer' }}>
           <span className="flex items-center justify-center shrink-0" style={{ width: px(34), height: px(34), background: 'rgba(242,196,90,.1)', border: '1px solid rgba(212,163,59,.4)' }}>
@@ -242,9 +261,9 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           </span>
           <span className="flex-1 min-w-0">
             <span className="block" style={{ font: `500 ${fs(8)}px var(--ravenof-font-body)`, letterSpacing: 2, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>{t('home.nextUp')}</span>
-            <span className="block truncate" style={{ font: `700 ${desktop ? 17 : 12}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{t('home.rankedTitle')}</span>
+            <span className="block truncate" style={{ font: `700 ${desktop ? 17 : 12}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{nextTitle ?? t('home.rankedTitle')}</span>
             <span className="block truncate" style={{ font: `400 ${fs(9.5)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>
-              {rd && !rd.isMax ? t('home.nextRankPts', { rank: rd.nextLabel ?? '', pts: rd.stepsToNextNumber }) : t('home.pickModeStart')}
+              {nextSub ?? (rd && !rd.isMax ? t('home.nextRankPts', { rank: rd.nextLabel ?? '', pts: rd.stepsToNextNumber }) : t('home.pickModeStart'))}
             </span>
           </span>
           <span className="shrink-0" style={{ font: `700 ${fs(17)}px var(--ravenof-font-display)`, color: 'var(--ravenof-gold-bright)' }}>›</span>
@@ -330,7 +349,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
 
       {/* ── Modalai (visi išsaugoti) ── */}
 
-      <WelcomeReward onClaimed={() => { refreshWallet(); void getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setNewPlayer(c === 0) }) }} />
+      {/* Pasveikinimo dovana naujokui – tik po 1 pamokos (ne ant pirmo ekrano) */}
+      {novice !== undefined && !(novice && novice.novice && !novice.lesson1Done) && <WelcomeReward onClaimed={() => { refreshWallet(); void getStarterDecks().then((d) => { const c = (d ?? []).filter((x) => x.claimed).length; setNewPlayer(c === 0) }) }} />}
 
       {toast && (
         <RavenofToast style={{ top: 'auto', bottom: 'calc(24px + env(safe-area-inset-bottom, 0px))' }}>{toast}</RavenofToast>

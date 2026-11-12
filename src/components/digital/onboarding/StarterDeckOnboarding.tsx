@@ -414,7 +414,7 @@ export function StarterDeckOnboarding() {
     if (chosen) await equipCosmetic('avatar', chosen.id)
     playSuccess()
     setBusy(false)
-    router.replace('/digital/tutorial')
+    router.replace('/digital/tutorial?auto=1')
     router.refresh()
   }
 

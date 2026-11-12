@@ -26,6 +26,7 @@ import { CardPool } from '@/lib/tutorial2/cardPool'
 import { aiNextAction } from '@/lib/tutorial/ai'
 import { TutorialAnalytics } from '@/lib/tutorial2/analytics'
 import { completeLesson } from '@/lib/tutorial2/lessonLoader'
+import { invalidateNovice } from '@/lib/digital/novice'
 import { playTutorialVoice, prefetchLessonVoices, stopTutorialVoice, estimateReadMs } from '@/lib/tutorial2/tutorialVoice'
 import { setAvatarVoiceMuted } from '@/lib/game/avatarAudio'
 import { setMusicScale } from '@/lib/game/musicManager'
@@ -131,6 +132,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
     setPhase('reward')
     analytics.current?.lessonComplete()
     const res = await completeLesson(lesson.id, Date.now() - startedAt.current)
+    invalidateNovice()
     // Kartojant pamoką atlygis nebeduodamas – nerodom jo plytelių (rodomas „atlygis jau gautas")
     setReward(res.ok && !res.firstTime ? {} : (res.reward ?? lesson.reward_payload ?? {}))
   }, [phase, lesson.id, lesson.reward_payload])
