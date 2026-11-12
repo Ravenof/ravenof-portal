@@ -200,9 +200,13 @@ export function TutorialOverlay(p: TutorialOverlayProps) {
       const insp = !!document.querySelector('[data-inspect-overlay="full"]')
       if (insp !== prevInsp.current) { prevInsp.current = insp; setInspecting(insp) }
 
-      const hs = readRects(p.highlightSelectors)
-      const ar = rectOf(p.arrowSelector)
-      const af = rectOf(p.arrowFromSelector)
+      // Atidarytas čempiono gebėjimų langas: lentos paryškinimai jį tik uždengtų –
+      // vietoj jų rodom į pirmą galimą gebėjimą lange.
+      const modalOpen = !!document.querySelector('[data-tut-modal]')
+      const skillSel = '[data-tut-modal] [data-tut-skill="on"]'
+      const hs = modalOpen ? readRects([skillSel]) : readRects(p.highlightSelectors)
+      const ar = modalOpen ? rectOf(skillSel) : rectOf(p.arrowSelector)
+      const af = modalOpen ? null : rectOf(p.arrowFromSelector)
       // Perpiešiam TIK pasikeitus (kas kadrą keičiamas state = nereikalingas
       // React darbas ir papildomas mikro-trūkčiojimas silpnesniuose įrenginiuose).
       if (!sameRects(hs, prevHs.current)) { prevHs.current = hs; setRects(hs) }

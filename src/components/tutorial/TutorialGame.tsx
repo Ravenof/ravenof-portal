@@ -5614,7 +5614,7 @@ doAction({ t: 'endTurn', actor: 'you' })
             className="combat-hint-pill fixed bottom-28 sm:bottom-32 left-0 right-0 mx-auto w-fit z-[125] px-2 text-[10px] sm:text-[11px] font-semibold pointer-events-none max-w-[94vw] text-center"
             style={{ color: '#f6e8c6', textShadow: '0 1px 3px rgba(0,0,0,0.8)' }}>
             {select.kind === 'attacker' && t('battle.game.hintAttacker')}
-            {select.kind === 'spell' && t('battle.game.hintSpell')}
+            {select.kind === 'spell' && t(game?.you.hand.find((c) => c.uid === select.uid)?.type === 'spell' ? 'battle.game.hintSpell' : 'battle.game.hintTarget')}
             {select.kind === 'sacrifice' && t('battle.game.hintSacrifice', { picked: select.picked.length })}
             {select.kind === 'champ' && (select.need ?? 1) > 1 && t('battle.game.hintChampMulti', { need: select.need, picked: select.picked?.length ?? 0 })}
           </motion.div>
@@ -5905,7 +5905,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               className="fixed inset-0 z-[134] flex items-center justify-center p-4"
               style={{ background: 'rgba(0,0,0,0.68)' }} onClick={() => setChampPopup(null)}>
               <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} onClick={(e) => e.stopPropagation()}
-                className="combat-plate p-4 w-[min(380px,92vw)]">
+                data-tut-modal="champ" className="combat-plate p-4 w-[min(380px,92vw)]">
                 <p className="text-sm font-bold mb-1" style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)' }}>
                   {t('battle.game.championPhase', { card: ch.card.name, phase: ch.phase })}
                 </p>
@@ -5920,7 +5920,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                     const cantAfford = sk.goldCost > 0 && game.you.gold < sk.goldCost
                     const disabled = !sk.unlocked || ch.abilityUsed || cantAfford
                     return (
-                      <button key={i} disabled={disabled}
+                      <button key={i} disabled={disabled} data-tut-skill={!disabled && skills.findIndex((x) => x.unlocked) === i ? 'on' : undefined}
                         onClick={() => {
                           setChampPopup(null)
                           // Skill'ui su rankiniu taikiniu (requiresSelection) — įjungiam taikinio

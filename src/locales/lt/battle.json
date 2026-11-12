@@ -93,6 +93,7 @@
     "hintDiscard": "🗑 Pasirink kortą rankoje, kurią išmesi už +100 aukso",
     "hintSacrifice": "⚜ Tribute: padaras lauke (1 tšk) ARBA 2 kortos rankoje ({{picked}}/2)",
     "hintSpell": "✨ Pasirink burto taikinį arba spausk Esc",
+    "hintTarget": "✨ Pasirink taikinį arba spausk Esc",
     "inspectTip": "{{card}} (spausk/laikyk – apžiūrėti)",
     "lastwishTargets": "„{{card}}\" Paskutinis noras: {{picked}}/{{need}}",
     "levelN": "Lygis {{level}}",

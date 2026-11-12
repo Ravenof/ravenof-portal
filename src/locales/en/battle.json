@@ -93,6 +93,7 @@
     "hintDiscard": "🗑 Choose a card in hand to discard for +100 gold",
     "hintSacrifice": "⚜ Tribute: a creature on the board (1 pt) OR 2 cards in hand ({{picked}}/2)",
     "hintSpell": "✨ Choose a spell target or press Esc",
+    "hintTarget": "✨ Choose a target or press Esc",
     "inspectTip": "{{card}} (tap/hold to inspect)",
     "lastwishTargets": "\"{{card}}\" Last Wish: {{picked}}/{{need}}",
     "levelN": "Level {{level}}",

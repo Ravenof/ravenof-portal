@@ -223,7 +223,7 @@ const L2_STEPS: LessonStep[] = [
 
   // ── Ataka į veidą ──
   { id: 'go-face', objective: 'Kirsk tiesiai priešui',
-    dialogue: [say('l2-s10', 'Kai kelias laisvas — tempk padarą ant priešo herbo.',
+    dialogue: [say('l2-s10', 'Kirsti galima ir tiesiai priešui — tempk padarą ant jo herbo.',
       'Kai priešo lenta tuščia — kirsk tiesiai į veidą. Tempk padarą ant priešo herbo. Tai kelias į pergalę.')],
     highlight: [{ kind: 'unit', side: 'you', cardName: 'Hokieg’as' }, { kind: 'anchor', anchor: 'hp-ai' }],
     arrowFrom: { kind: 'unit', side: 'you', cardName: 'Hokieg’as' }, arrowTo: { kind: 'anchor', anchor: 'hp-ai' }, arrowStyle: 'drag-path',
@@ -631,7 +631,7 @@ const L6_STEPS: LessonStep[] = [
     highlight: [{ kind: 'unit', side: 'you', cardName: 'Impas' }],
     arrowFrom: { kind: 'unit', side: 'you', cardName: 'Impas' }, arrowTo: { kind: 'unit', side: 'ai', cardName: 'Wrosxa' }, arrowStyle: 'drag-path',
     allow: [{ kind: 'attack-any' }],
-    wrongHint: 'Pulk paryškintu skydnešiu — jis turi žūti, kad pamatytum Paskutinį norą.',
+    wrongHint: 'Pulk paryškintu padaru stipresnį priešą — jis turi žūti, kad pamatytum Paskutinį norą.',
     complete: { on: 'event', eventType: 'lastwish', side: 'you' } },
 
   { id: 'outro',
@@ -785,7 +785,8 @@ const level8: LessonSeed = {
     setup: {
       disableZmk: true,
       player: { hand: ['Piratas žvalgas', 'Tornadas', 'Ida', 'Užnugario ataka', 'Hokieg’as'],
-                deck: ['Gisela', 'Piratas žvalgas', 'Ida'] },
+                // Kaladė didesnė, kad iškeista brangi korta iškart negrįžtų į ranką
+                deck: ['Gisela', 'Piratas žvalgas', 'Ida', 'Gisela', 'Piratas žvalgas', 'Ida', 'Hokieg’as', 'Gisela', 'Piratas žvalgas', 'Ida'] },
       enemy: { hp: 30, board: ['Hikage'], deck: ['Goblinas žvalgas', 'Hikage', 'Zombis klajoklis'] },
     },
     steps: L8_STEPS,

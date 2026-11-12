@@ -67,6 +67,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
   const [reward, setReward] = useState<LessonRow['reward_payload']>({})
   const [voicePlaying, setVoicePlaying] = useState(false)
   const [stuck, setStuck] = useState(false)
+  const [selTick, setSelTick] = useState(0)
 
   const stepIdxRef = useRef(0)
   const dialogueActiveRef = useRef(true)
@@ -228,7 +229,12 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
       if (typeof m.deckCountYou === 'number') g.you.deck = g.you.deck.slice(0, m.deckCountYou)
       if (typeof m.deckCountAi === 'number') g.ai.deck = g.ai.deck.slice(0, m.deckCountAi)
       recomputeAuras(g)
+      gameRef.current = g
     })
+    // Žingsnio pridėti padarai (addBoard…) turi gauti SAVO paryškinimą – perskaičiuojam selektorius,
+    // kai DOM jau atnaujintas (kitaip paryškinimas nukrisdavo ant visos eilės).
+    window.setTimeout(() => setSelTick((x) => x + 1), 120)
+    window.setTimeout(() => setSelTick((x) => x + 1), 600)
   }, [pool])
 
   useEffect(() => {
@@ -328,7 +334,8 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
     const on = step.complete.on
     if (on === 'next' || on === 'voiceDone' || on === 'auto') return
     const iv = window.setInterval(() => { const g = gameRef.current; if (g) checkComplete([], g) }, RECHECK_MS)
-    const st = window.setTimeout(() => setStuck(true), STUCK_MS)
+    // Laisvuose „užbaik kovą" žingsniuose žaidėjas tiesiog žaidžia – „Įstrigo?" ten nerodom
+    const st = on === 'win' ? 0 : window.setTimeout(() => setStuck(true), STUCK_MS)
     return () => { window.clearInterval(iv); window.clearTimeout(st) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, stepIdx, dialogueDone])
@@ -504,16 +511,16 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
 
   const highlightSelectors = useMemo(() => (step?.highlight ?? []).map(resolveSel).filter((x): x is string => !!x),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [step, resolveSel, stepIdx, dialogueIdx])
+    [step, resolveSel, stepIdx, dialogueIdx, selTick])
   const arrowSelector = useMemo(() => (step?.arrowTo ? resolveSel(step.arrowTo) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [step, resolveSel, stepIdx, dialogueIdx])
+    [step, resolveSel, stepIdx, dialogueIdx, selTick])
   const arrowFromSelector = useMemo(() => (step?.arrowFrom ? resolveSel(step.arrowFrom) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [step, resolveSel, stepIdx, dialogueIdx])
+    [step, resolveSel, stepIdx, dialogueIdx, selTick])
   const zoomSelector = useMemo(() => (step?.zoom ? resolveSel(step.zoom) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [step, resolveSel, stepIdx, dialogueIdx])
+    [step, resolveSel, stepIdx, dialogueIdx, selTick])
 
   if (phase === 'loading') {
     return <div style={{ position: 'fixed', inset: 0, zIndex: 200, display: 'grid', placeItems: 'center', background: '#06040b', color: 'var(--gold)' }}>{t('onboarding.tutorial.loadingLesson')}</div>
