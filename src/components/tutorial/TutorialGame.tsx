@@ -1178,6 +1178,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   useEffect(() => {
     const prev = prevInspect.current
     prevInspect.current = inspect
+    // Peržiūra atidaryta BET KURIUO būdu (ir dešiniu pelės klavišu, ne tik palaikius) – mokymų
+    // „pažink kortą" žingsnis turi tai užskaityti; kitaip kompiuteryje jis stringa iki „Įstrigo?".
+    if (!prev && inspect) { try { tutorialRef.current?.onInspect?.(inspect) } catch { /* mokymai niekada nelaužia kovos */ } }
     if (prev && !inspect) { try { tutorialRef.current?.onInspectEnd?.(prev) } catch { /* mokymai niekada nelaužia kovos */ } }
   }, [inspect])
   useEffect(() => {
