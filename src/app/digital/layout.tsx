@@ -15,6 +15,7 @@ import { NotificationsModal } from '@/components/digital/NotificationsModal'
 import { ContentDownloadGate } from '@/components/digital/ContentDownloadGate'
 import { RewardCelebrationHost } from '@/components/digital/progression/RewardCelebration'
 import { GlobalChatLayer } from '@/components/digital/GlobalChatLayer'
+import { GamepadLayer } from '@/components/digital/gamepad/GamepadLayer'
 import { BugReportLayer, requestOpenBugReport } from '@/components/digital/BugReportModal'
 import { installBugConsoleCapture } from '@/lib/digital/bugReport'
 import { isTesterRole } from '@/lib/digital/accountStore'
@@ -241,8 +242,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
           )
           const style = { borderRight: `2px solid ${active ? '#F2C45A' : 'transparent'}` } as React.CSSProperties
           return it.action === 'store'
-            ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className="w-full ravenof-press" style={style} aria-current={active ? 'page' : undefined}>{inner}</button>
-            : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className="w-full ravenof-press" style={style} aria-current={active ? 'page' : undefined}>{inner}</Link>
+            ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className="w-full ravenof-press" data-gp-nav style={style} aria-current={active ? 'page' : undefined}>{inner}</button>
+            : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className="w-full ravenof-press" data-gp-nav style={style} aria-current={active ? 'page' : undefined}>{inner}</Link>
         })}
         {/* Testeriams/adminams: nuolat matoma „Klaida" ikona (bet kuriame ekrane, vienu paspaudimu) */}
         {isTesterRole(profile?.role) && (
@@ -325,6 +326,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <ContentDownloadGate />
       <RewardCelebrationHost />
       <GlobalChatLayer />
+      <GamepadLayer />
       <BugReportLayer />
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}

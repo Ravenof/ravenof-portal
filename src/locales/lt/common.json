@@ -4,6 +4,7 @@
   "close": "Uždaryti",
   "confirm": "Patvirtinti",
   "continue": "Tęsti",
+  "gp": {"select": "Pasirinkti", "tabs": "Skiltys", "take": "Imti", "drop": "Padėti / pulti", "pick": "Taikinys", "inspect": "Apžiūrėti", "endTurn": "Baigti ėjimą", "hand": "Ranka", "board": "Lenta"},
   "cosmetics": {
     "avatars": "Žaidėjo avatarai",
     "boards": "Lentos",
