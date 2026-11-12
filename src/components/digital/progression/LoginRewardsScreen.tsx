@@ -7,7 +7,7 @@ import { useT } from '@/lib/i18n/react'
 import { playUiClick } from '@/lib/ui-sound'
 import {
   claimLoginReward, getLoginRewards, isProgressionError,
-  type LoginRewardDay, type LoginRewardState, type RewardDefinition,
+  type LoginRewardDay, type LoginRewardState,
 } from '@/lib/progression'
 import { celebrateRewards, rewardItems } from './RewardCelebration'
 import {
@@ -18,6 +18,7 @@ import {
 import { ChoiceQueue } from './ChoiceModals'
 import { rewardRequiresChoice } from '@/lib/rewards/rewardVisuals'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
+import { computeLoginStats } from '@/lib/progression/loginStats'
 
 const WEEKS = [
   { roman: 'I', key: 'w1', from: 1, to: 7 },
@@ -79,8 +80,11 @@ export function LoginRewardsScreen() {
 
   const pending = state?.pendingChoices ?? []
   const byDay = useMemo(() => new Map((state?.rewards ?? []).map((d) => [d.day, d])), [state?.rewards])
-  const focus = state?.claimableDay ? byDay.get(state.claimableDay) : null
-  const tomorrow = state?.claimableDay ? byDay.get(state.claimableDay + 1) : null
+  // Fokusas: šiandien atsiimama diena; jei jau atsiimta – šiandien gauta dovana (ne tuščia kortelė)
+  const focusDay = state?.claimableDay ?? (state?.claimedToday ? state.cyclePosition : null)
+  const focus = focusDay ? byDay.get(focusDay) : null
+  const tomorrow = focusDay ? byDay.get(focusDay + 1) : null
+  const stats = useMemo(() => (state ? computeLoginStats(state) : null), [state])
 
   if (loading && !state) return <LoadingState label={t('progression.login.loading')} />
   if (failed) return (
@@ -96,6 +100,9 @@ export function LoginRewardsScreen() {
     : state.cycleCompleted ? t('progression.login.statusCycleDone')
     : t('progression.login.statusReady')
   const statusColor = state.claimedToday ? C.greenFg : state.cycleCompleted ? C.muted : C.goldHi
+  // Ciklas nusinulina kas mėnesį: jei iki finalo šį mėnesį nebespėsi – pasakom atvirai
+  const reachNote = stats && !state.cycleCompleted && stats.reachableDay < state.cycleLength
+    ? t('progression.login.reachable', { day: stats.reachableDay }) : null
 
   // Bakstelejus dienos plytele: jei tai SIANDIENOS atsiimama diena — atsiimam iskart
   // (intuityvu: spaudi prizo plytele, o ne atskira mygtuka). Kitos dienos — detales.
@@ -126,7 +133,7 @@ export function LoginRewardsScreen() {
           {d.claimed && <span aria-hidden style={{ font: `400 ${dk ? 15 : 10}px ${BODY}`, color: C.greenFg }}>✓</span>}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          {first && <RewardIcon reward={first} size={dk ? (d.milestone ? 44 : 34) : (d.milestone ? 21 : 15)} />}
+          {first && <RewardIcon reward={first} size={dk ? (d.milestone ? 56 : 46) : (d.milestone ? 21 : 15)} />}
         </div>
         <div style={{ font: `700 ${dk ? 16 : 11}px ${BODY}`, color: st === 'future' ? C.muted : C.bone, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {first ? rewardLabel(first) : '—'}
@@ -141,7 +148,7 @@ export function LoginRewardsScreen() {
           {d.claimed ? t('progression.login.stClaimed')
             : st === 'today' ? t('progression.login.stReady')
             : d.rewards.some((r) => rewardRequiresChoice(r)) ? t('progression.login.stChoice')
-            : t('progression.login.stLocked')}
+            : '\u00a0'}
         </div>
       </button>
     )
@@ -151,6 +158,9 @@ export function LoginRewardsScreen() {
   const lastDay = state.cycleLength
   const finalDay = byDay.get(lastDay)
   const finalSt = finalDay ? dayState(finalDay, state.claimableDay) : 'future'
+  // Finalo eilė: paprastos dienos tokio pat pločio kaip savaičių eilėse (6×1 + 1.65), finalas – likutis
+  const finalRowDays = [29, 30].filter((n) => n < lastDay && byDay.has(n)).length
+  const finalGrow = 7.65 - finalRowDays
 
   return (
     <div className="rvn-prog-in" style={{ height: '100%', display: 'flex', gap: dk ? 20 : 14, padding: compact ? '10px 12px' : dk ? '18px 24px' : '14px 16px', minHeight: 0 }}>
@@ -167,6 +177,7 @@ export function LoginRewardsScreen() {
             <div style={{ marginTop: 14 }}><ProgressBar pct={monthPct} /></div>
             <div style={{ font: `600 ${dk ? 15 : 12}px ${DISPLAY}`, letterSpacing: 0.6, color: statusColor, marginTop: 14 }}>{statusLine}</div>
             <div style={{ marginTop: 10 }}><ResetChip at={state.nextClaimAt ?? state.resetAt} /></div>
+            {reachNote && <div style={{ font: `400 ${dk ? 13.5 : 10}px ${BODY}`, color: C.label, lineHeight: 1.45, marginTop: 10 }}>{reachNote}</div>}
             <Divider margin={16} />
             <div style={{ display: 'flex', gap: 10 }}>
               <div style={{ flex: 1 }}>
@@ -244,8 +255,9 @@ export function LoginRewardsScreen() {
               {finalDay && (
                 <button type="button" onClick={() => tapDay(finalDay)} disabled={busy && finalSt === 'today'}
                   className="rvn-prog-clip"
+                  aria-label={`${lastDay} ${t('progression.login.dayShort')} · ${t('progression.login.finalTitle')}`}
                   style={{
-                    flex: 2.4, minWidth: 0, minHeight: dk ? 118 : 44, cursor: 'pointer', textAlign: 'left',
+                    flex: finalGrow, minWidth: 0, minHeight: dk ? 118 : 44, cursor: 'pointer', textAlign: 'left',
                     border: `1px solid ${TONE[finalSt].border}`, background: TONE[finalSt].bg,
                     padding: dk ? '12px 18px' : '9px 12px', display: 'flex', alignItems: 'center', gap: dk ? 18 : 12,
                   }}>
@@ -269,19 +281,19 @@ export function LoginRewardsScreen() {
       <aside style={{ width: compact ? 210 : dk ? 'clamp(280px, 24vw, 340px)' : 274, flex: 'none', border: `1px solid ${C.line}`, background: `linear-gradient(180deg, ${C.surface}, #0c0a11)`, padding: compact ? 12 : 16, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
         <Kicker color={C.gold}>{t('progression.login.todayKicker')}</Kicker>
         <div style={{ font: `700 ${dk ? 28 : 21}px ${DISPLAY}`, color: C.bone, marginTop: 2 }}>
-          {state.claimableDay ? `${state.claimableDay} ${t('progression.login.dayShort')}` : t('progression.login.noRewardToday')}
+          {focusDay ? `${focusDay} ${t('progression.login.dayShort')}` : t('progression.login.noRewardToday')}
         </div>
 
         <div className="rvn-prog-clip" style={{
-          marginTop: 12, border: `1px solid ${state.claimableDay ? C.goldHi : C.lineIn}`,
-          background: state.claimableDay ? 'linear-gradient(180deg, rgba(226,185,88,.16), rgba(21,17,28,.9))' : C.raised,
+          marginTop: 12, border: `1px solid ${state.claimableDay ? C.goldHi : focus ? 'rgba(62,139,109,.45)' : C.lineIn}`,
+          background: state.claimableDay ? 'linear-gradient(180deg, rgba(226,185,88,.16), rgba(21,17,28,.9))' : focus ? 'linear-gradient(180deg, rgba(62,139,109,.14), rgba(21,17,28,.9))' : C.raised,
           padding: compact ? '14px 12px' : '22px 16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
         }}>
           {focus?.rewards[0]
             ? <RewardIcon reward={focus.rewards[0]} size={compact ? 52 : dk ? 110 : 74} />
-            : <RewardIcon reward={{ type: 'silver', amount: 0 } as RewardDefinition} size={compact ? 52 : dk ? 110 : 74} />}
+            : <img src={ART.chest} alt="" aria-hidden style={{ width: compact ? 52 : dk ? 110 : 74, height: compact ? 52 : dk ? 110 : 74, objectFit: 'contain', opacity: 0.55 }} />}
           <div style={{ font: `800 ${compact ? 20 : dk ? 32 : 26}px ${DISPLAY}`, color: C.goldHi }}>
-            {focus?.rewards[0] ? rewardLabel(focus.rewards[0]) : '—'}
+            {focus?.rewards[0] ? rewardLabel(focus.rewards[0]) : t('progression.login.cycleDoneCta')}
           </div>
           {focus && focus.rewards.length > 1 && <RewardRow rewards={focus.rewards.slice(1)} />}
         </div>
@@ -304,7 +316,7 @@ export function LoginRewardsScreen() {
         )}
 
         <div style={{ flex: 1, minHeight: 8 }} />
-        {dkNarrow && <p style={{ font: `400 13.5px ${BODY}`, color: C.muted, lineHeight: 1.5, margin: '12px 0' }}>{t('progression.login.rules')}</p>}
+        {dkNarrow && <p style={{ font: `400 13.5px ${BODY}`, color: C.muted, lineHeight: 1.5, margin: '12px 0' }}>{t('progression.login.rules')}{reachNote ? ` ${reachNote}` : ''}</p>}
         <Cta onClick={claim} busy={busy} disabled={!state.claimableDay} minHeight={compact ? 44 : dk ? 54 : 52}>
           {state.claimableDay
             ? t('progression.login.claimCta', { day: state.claimableDay })

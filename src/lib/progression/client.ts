@@ -10,6 +10,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { createClient } from '@/lib/supabase/client'
 import { asObject, requireArray } from './shape'
+import { withLoginStats } from './loginStats'
 import type {
   BoosterResult, ClaimResult, DailyQuestsState, FullProgressionSnapshot,
   LoginRewardState, PendingRewardChoice, ProgressionConfig, ProgressionResult,
@@ -59,10 +60,12 @@ async function mutate<T>(scope: string, fn: string, args: Record<string, unknown
 export function getLoginRewards(): Promise<ProgressionResult<LoginRewardState> | null> {
   return call<LoginRewardState>('rvn_get_login_cycle')
     .then((r) => requireArray<LoginRewardState>('rvn_get_login_cycle', r, 'rewards'))
+    .then((r) => (r && !('error' in r) ? withLoginStats(r as LoginRewardState) : r))
 }
 
 export function claimLoginReward(): Promise<ProgressionResult<ClaimResult<LoginRewardState>> | null> {
   return mutate<ClaimResult<LoginRewardState>>('login', 'rvn_claim_login_reward', {})
+    .then((r) => (r && !('error' in r) && r.snapshot ? { ...r, snapshot: withLoginStats(r.snapshot) } : r))
 }
 
 // ════════════════════════════════════════════════════════════════════════════
