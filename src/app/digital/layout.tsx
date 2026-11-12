@@ -168,7 +168,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   }, [refreshWallet])
 
   const isActive = (it: NavItem) => {
-    if (it.action === 'store') return storeOpen
+    if (storeOpen) return it.action === 'store'   // atidarius parduotuvę paryškinta tik ji (ne ir „Pradžia“)
     if (it.href === '/digital') return pathname === '/digital'
     return !!it.href && pathname.startsWith(it.href)
   }
@@ -281,7 +281,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
                           {rank.full}
                         </>
                       ) : profile ? <>{t('home.tier', { n: profile.level })}</> : null}
-                      {profile && (profile.role === 'tester' || profile.role === 'admin') && (
+                      {profile && (profile.role === 'tester' || profile.role === 'admin') && (deskUi || pathname !== '/digital') && (/* telefone Pradžioje vietos reikia formato perjungikliui */
                         <span title={profile.role} style={{ marginLeft: 4, padding: '1px 5px', border: '1px solid rgba(123,211,137,.6)', color: '#7bd389', font: `700 ${deskUi ? 12 : 7.5}px/1.3 var(--ravenof-font-body)`, letterSpacing: 1.2, textTransform: 'uppercase', borderRadius: 2 }}>
                           {profile.role === 'admin' ? 'ADMIN' : t('common.testerBadge')}
                         </span>

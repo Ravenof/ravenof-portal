@@ -291,7 +291,7 @@ export function SeasonPathScreen() {
                         aria-pressed={sel === row.level} data-level={row.level}
                         style={{
                           width: D ? 164 : compact ? 92 : 116, flex: 'none', display: 'flex', flexDirection: 'column',
-                          justifyContent: 'center', gap: 0, background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
+                          justifyContent: compact ? 'flex-start' : 'center', gap: 0, background: 'transparent', border: 0, padding: 0, cursor: 'pointer',
                           transform: compact ? undefined : `translateY(${row.level % 2 ? -6 : 6}px)`,
                           outline: sel === row.level ? `${D ? 2 : 1}px solid rgba(198,161,79,${D ? '.7' : '.45'})` : 'none',
                           outlineOffset: D ? 3 : undefined,
@@ -349,7 +349,7 @@ export function SeasonPathScreen() {
         <div style={{ flex: 'none', borderTop: `1px solid ${C.line}`, background: 'linear-gradient(180deg,#12101a,#0a0810)', padding: '9px 12px', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ flex: 'none' }}>
             <div style={{ font: `700 14px ${DISPLAY}`, color: C.bone }}>{t('progression.season.level')} {selected.level}</div>
-            <div style={{ font: `400 9px ${BODY}`, color: C.label }}>{selected.reached ? t('progression.season.claimable') : t('progression.season.notReached')}</div>
+            <div style={{ font: `400 9px ${BODY}`, color: C.label }}>{selected.free.claimable || selected.pass.claimable ? t('progression.season.claimable') : selected.reached ? t('progression.season.claimed') : t('progression.season.notReached')}</div>
           </div>
           <div style={{ flex: 1, display: 'flex', gap: 8, overflowX: 'auto' }} className="rvn-prog-scroll">
             {(['free', 'pass'] as const).map((tr) => selected[tr].rewards.map((r, i) => (

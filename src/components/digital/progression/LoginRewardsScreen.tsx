@@ -137,7 +137,7 @@ export function LoginRewardsScreen() {
           </div>
         )}
         {dk && <div style={{ flex: 1 }} />}
-        <div style={{ font: `${dk ? 600 : 500} ${dk ? 12 : 7}px ${BODY}`, letterSpacing: dk ? 1.5 : 1, color: tone.label, textTransform: 'uppercase' }}>
+        <div style={{ font: `${dk ? 600 : 500} ${dk ? 11 : 7}px ${BODY}`, letterSpacing: dk ? 0.6 : 0.5, color: tone.label, textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
           {d.claimed ? t('progression.login.stClaimed')
             : st === 'today' ? t('progression.login.stReady')
             : d.rewards.some((r) => rewardRequiresChoice(r)) ? t('progression.login.stChoice')

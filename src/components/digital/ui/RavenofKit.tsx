@@ -48,7 +48,7 @@ export function ravenofRarityGem(name?: string | null): string {
 }
 export function ravenofCardTypeIcon(name?: string | null): string | null {
   const s = (name || '').toLowerCase()
-  const key = /būtyb|butyb|creature/.test(s) ? 'creature'
+  const key = /padar|būtyb|butyb|creature/.test(s) ? 'creature'
     : /artefakt|artefact|artifact/.test(s) ? 'artefact'
     : /reakcij|reaction/.test(s) ? 'reaction'
     : /lauk|field/.test(s) ? 'field'

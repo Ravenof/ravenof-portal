@@ -1,6 +1,6 @@
 {
   "achievements": "Achievements",
-  "achievementsSub": "All 70 badges and progress",
+  "achievementsSub": "All badges and progress",
   "confirmExitBody": "The app will be closed.",
   "confirmExitTitle": "Are you sure you want to exit?",
   "exit": "Exit",
@@ -12,7 +12,7 @@
   "level": "Account level",
   "levelSub": "All 50 levels and rewards",
   "loginRewards": "Login rewards",
-  "loginRewardsSub": "Daily 31-day cycle",
+  "loginRewardsSub": "Daily monthly cycle",
   "logout": "Sign out",
   "logoutSub": "End your account session",
   "market": "Auction house",

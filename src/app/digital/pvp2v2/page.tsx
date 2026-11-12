@@ -1,3 +1,6 @@
-import { DigitalPvp2v2 } from '@/components/digital/DigitalPvp2v2'
-export const metadata = { title: '2v2 PvP | Ravenof Digital' }
-export default function Page() { return <DigitalPvp2v2 /> }
+import { redirect } from 'next/navigation'
+
+// 773: 2v2 idėjos atsisakyta – maršrutas nebepasiekiamas (buvo atidaromas tik įvedus adresą ranka).
+export default function Page() {
+  redirect('/digital')
+}

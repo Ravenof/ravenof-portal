@@ -256,7 +256,7 @@ export function TournamentScreen({ id, userId, desktop: D, onExit }: { id: strin
     {err && <p role="status" style={{ margin: 0, font: `400 ${fs(14, 11)}px var(--ravenof-font-body)`, color: '#c65563' }}>{err}</p>}
 
     {/* Ready-check */}
-    {myMatch?.status === 'ready_check' && me && opp && (
+    {myMatch?.status === 'ready_check' && tour.status === 'running' && me && me.status === 'active' && opp && (
       <DeskDialog title={t('battle.tournament.readyTitle')} width={D ? 460 : 'min(92vw, 420px)'} zIndex={120}>
         <div className="flex flex-col items-center text-center" style={{ gap: 14 }} data-testid="tourney-ready">
           <div className="flex items-center" style={{ gap: 14 }}>

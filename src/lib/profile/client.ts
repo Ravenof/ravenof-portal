@@ -45,6 +45,11 @@ export async function getAchievements(userId?: string): Promise<AchievementsSnap
   if (error) { console.warn('[profile] getAchievements:', error.message); return null }
   const d = data as AchievementsSnapshot & { error?: string }
   if (!d || d.error) return null
+  // 773: gamyboje dar nesekami pasiekimai (target = 0) slepiami – „X / Y“ visur (profilis, meniu, pasiekimų ekranas)
+  // turi skaičiuoti tą patį MATOMŲ pasiekimų kiekį, kitaip vienur 46/54, kitur 46/70.
+  if (process.env.NODE_ENV === 'production' && Array.isArray(d.achievements)) {
+    d.total = d.achievements.filter((x) => (x as { target?: number }).target! > 0 || !!(x as { completedAt?: string | null }).completedAt).length
+  }
   return d
 }
 
