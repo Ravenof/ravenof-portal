@@ -6,6 +6,7 @@
 // Varikliukas: src/lib/tutorial/engine.ts, AI: ai.ts, scenarijus: script.ts.
 
 import { buildStrategicDeck } from '@/lib/tutorial/ai/aiDeckBuilder'
+import { snapTurn, uploadBotMatchLog, type TurnSnap } from '@/lib/game/botMatchLog'
 import { StatGem, gemSize } from './StatGem'
 import { RollingNumber } from './RollingNumber'
 import { BugIcon, RotateIcon, EyeIcon } from './BattleIcons'
@@ -3381,6 +3382,28 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // Užsipildo TIK po serverio patvirtinimo (rvn_get_recent_achievements).
   const [matchAchievements, setMatchAchievements] = useState<RecentAchievement[]>([])
   const [luDismissed, setLuDismissed] = useState(false) // level-up šventės uždarymas (Fazė 3 overlay)
+  // ── Kovų prieš DI žurnalas (772): būsenos nuotrauka kiekvieno ėjimo pradžioje + suspaustas žurnalas kovos gale ──
+  const botLogOn = !vsRemote && !spectator && !sandbox && !tutorial?.active && deckId !== DEMO_DECK_ID
+  const botSnapsRef = useRef<TurnSnap[]>([])
+  const botLogSentRef = useRef(false)
+  const botTurn = game?.globalTurn ?? -1, botActive = game?.active
+  useEffect(() => {
+    if (!botLogOn || !game || game.winner) return
+    try { const sn = botSnapsRef.current; if (sn.length < 200 && !(sn.length && sn[sn.length - 1].n === game.globalTurn && sn[sn.length - 1].a === game.active)) sn.push(snapTurn(game)) } catch { /* */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [botLogOn, botTurn, botActive])
+  useEffect(() => {
+    if (!botLogOn || !game?.winner || botLogSentRef.current) return
+    botLogSentRef.current = true
+    void uploadBotMatchLog({
+      g: game, clientMatchId: clientMatchIdRef.current, mode: ranked ? 'ranked' : onCampaignResult ? 'campaign' : (rewardMode ?? 'bot'),
+      difficulty, opponentDeck: opponentDeck ?? null, format,
+      durationSeconds: Math.round((Date.now() - (matchStartRef.current || Date.now())) / 1000),
+      snaps: botSnapsRef.current, aiDeck: oppCards, playerDeck: deckCards,
+      aiDeckKind: opponentDeckId ? 'deck' : opponentStarterId ? 'starter' : opponentFaction ? (difficulty === 'hard' ? 'built' : 'random') : 'other',
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [botLogOn, game?.winner])
   const matchRewardRef = useRef(false)
   useEffect(() => {
     if (!game?.winner || matchRewardRef.current) return
