@@ -13,6 +13,7 @@ import { FX_AOE, SUMMON_FX, FX_IMPACTS, SKILL_FX, PROJECTILE_TO_FX, LEGACY_SUMMO
 import { createClient } from '@/lib/supabase/client'
 import { toWebp, LONG_CACHE } from '@/lib/img-optimize'
 import { VoiceLinesUpload } from './VoiceLinesUpload'
+import { SkillComicUpload } from './SkillComicUpload'
 import { CinematicUpload, type CinematicData } from './CinematicUpload'
 import { ComicUpload } from './ComicUpload'
 import {
@@ -23,6 +24,7 @@ import {
   SUMMON_EFFECTS, type SummonEffectType,
   type SkillCinematic,
 } from '@/lib/game/types'
+import type { ChampionSkill } from '@/lib/game/types'
 
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '0.4rem 0.5rem', borderRadius: '0.4rem', fontSize: '0.75rem',
@@ -140,6 +142,9 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
         name: champSkills[idx]?.name ?? '',
         mappings: idx === activeSkill ? arr : (champSkills[idx]?.mappings ?? []),
         cinematic: champSkills[idx]?.cinematic,
+        comic: champSkills[idx]?.comic,
+        voiceLines: champSkills[idx]?.voiceLines,
+        voiceLinesEn: champSkills[idx]?.voiceLinesEn,
         goldCost: champSkills[idx]?.goldCost,
         icon: champSkills[idx]?.icon,
         fx: champSkills[idx]?.fx,
@@ -154,6 +159,9 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       name: champSkills[j]?.name ?? '',
       mappings: champSkills[j]?.mappings ?? [],
       cinematic: champSkills[j]?.cinematic,
+      comic: champSkills[j]?.comic,
+      voiceLines: champSkills[j]?.voiceLines,
+      voiceLinesEn: champSkills[j]?.voiceLinesEn,
       goldCost: champSkills[j]?.goldCost,
       icon: champSkills[j]?.icon,
       fx: j === idx ? fx : champSkills[j]?.fx,
@@ -165,6 +173,9 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       name: j === idx ? name : (champSkills[j]?.name ?? ''),
       mappings: champSkills[j]?.mappings ?? [],
       cinematic: champSkills[j]?.cinematic,
+      comic: champSkills[j]?.comic,
+      voiceLines: champSkills[j]?.voiceLines,
+      voiceLinesEn: champSkills[j]?.voiceLinesEn,
       goldCost: champSkills[j]?.goldCost,
       icon: champSkills[j]?.icon,
       fx: champSkills[j]?.fx,
@@ -176,10 +187,21 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       name: champSkills[j]?.name ?? '',
       mappings: champSkills[j]?.mappings ?? [],
       cinematic: j === idx ? (data as SkillCinematic | undefined) : champSkills[j]?.cinematic,
+      comic: champSkills[j]?.comic,
+      voiceLines: champSkills[j]?.voiceLines,
+      voiceLinesEn: champSkills[j]?.voiceLinesEn,
       goldCost: champSkills[j]?.goldCost,
       icon: champSkills[j]?.icon,
       fx: champSkills[j]?.fx,
     }))
+    update({ ...cfg, championSkillConfig: { skills } })
+  }
+  /** Pakeičia vieną gebėjimo lauką, visus kitus palikdamas kaip buvo. */
+  const patchSkill = (idx: number, p: Partial<ChampionSkill>) => {
+    const skills = [0, 1, 2].map((j) => {
+      const cur: ChampionSkill = { ...(champSkills[j] ?? {}), name: champSkills[j]?.name ?? '', mappings: champSkills[j]?.mappings ?? [] }
+      return j === idx ? { ...cur, ...p } : cur
+    })
     update({ ...cfg, championSkillConfig: { skills } })
   }
   const setSkillGold = (idx: number, goldCost: number | undefined) => {
@@ -187,6 +209,9 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       name: champSkills[j]?.name ?? '',
       mappings: champSkills[j]?.mappings ?? [],
       cinematic: champSkills[j]?.cinematic,
+      comic: champSkills[j]?.comic,
+      voiceLines: champSkills[j]?.voiceLines,
+      voiceLinesEn: champSkills[j]?.voiceLinesEn,
       goldCost: j === idx ? goldCost : champSkills[j]?.goldCost,
       icon: champSkills[j]?.icon,
       fx: champSkills[j]?.fx,
@@ -198,6 +223,9 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
       name: champSkills[j]?.name ?? '',
       mappings: champSkills[j]?.mappings ?? [],
       cinematic: champSkills[j]?.cinematic,
+      comic: champSkills[j]?.comic,
+      voiceLines: champSkills[j]?.voiceLines,
+      voiceLinesEn: champSkills[j]?.voiceLinesEn,
       goldCost: champSkills[j]?.goldCost,
       icon: j === idx ? (icon || undefined) : champSkills[j]?.icon,
       fx: champSkills[j]?.fx,
@@ -221,7 +249,7 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
     const out: GameplayConfig = { ...cfg, needsEffectMapping: needsMapping }
     if (!out.effectMappings?.length) delete out.effectMappings
     if (isChampion && out.championSkillConfig?.skills) {
-      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [], cinematic: sk.cinematic, goldCost: sk.goldCost || undefined, icon: sk.icon || undefined, fx: sk.fx || undefined })) }
+      out.championSkillConfig = { skills: out.championSkillConfig.skills.map((sk) => ({ name: sk.name, mappings: sk.mappings ?? [], cinematic: sk.cinematic, comic: sk.comic?.enabled || sk.comic?.image ? sk.comic : undefined, voiceLines: sk.voiceLines?.length ? sk.voiceLines : undefined, voiceLinesEn: sk.voiceLinesEn?.length ? sk.voiceLinesEn : undefined, goldCost: sk.goldCost || undefined, icon: sk.icon || undefined, fx: sk.fx || undefined })) }
     }
     return JSON.stringify(out)
   }, [cfg, needsMapping])
@@ -994,6 +1022,39 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                   value={champSkills[activeSkill]?.cinematic as CinematicData | undefined}
                   onChange={(data) => setSkillCinematic(activeSkill, data)}
                   defaultTitle={champSkills[activeSkill]?.name || undefined}
+                />
+              </div>
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid rgba(240,180,41,0.25)' }}>
+                <p style={{ ...labelStyle, marginBottom: 6 }}>💥 Skill {activeSkill + 1} komikso intarpas</p>
+                <SkillComicUpload
+                  key={activeSkill}
+                  value={champSkills[activeSkill]?.comic}
+                  onChange={(c) => patchSkill(activeSkill, { comic: c })}
+                  cardId={cardId}
+                  cardNumber={cardNumber}
+                  skillIndex={activeSkill}
+                  isUlt={activeSkill === 2 || (champSkills[activeSkill]?.goldCost ?? 0) > 0}
+                  skillName={champSkills[activeSkill]?.name ?? ''}
+                  summonComic={cfg.summonComic}
+                />
+              </div>
+              <div className="mt-3 pt-3 space-y-3" style={{ borderTop: '1px solid rgba(240,180,41,0.25)' }}>
+                <VoiceLinesUpload
+                  key={`sv-lt-${activeSkill}`}
+                  label={`Skill ${activeSkill + 1} balsai (LT) – skamba kaskart naudojant gebėjimą`}
+                  value={champSkills[activeSkill]?.voiceLines ?? []}
+                  cardId={cardId}
+                  cardNumber={cardNumber}
+                  onChange={(urls) => patchSkill(activeSkill, { voiceLines: urls.length ? urls : undefined })}
+                />
+                <VoiceLinesUpload
+                  key={`sv-en-${activeSkill}`}
+                  locale="en"
+                  label={`Skill ${activeSkill + 1} balsai (EN)`}
+                  value={champSkills[activeSkill]?.voiceLinesEn ?? []}
+                  cardId={cardId}
+                  cardNumber={cardNumber}
+                  onChange={(urls) => patchSkill(activeSkill, { voiceLinesEn: urls.length ? urls : undefined })}
                 />
               </div>
             </div>

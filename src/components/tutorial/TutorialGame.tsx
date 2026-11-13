@@ -67,7 +67,7 @@ import { resolveRewardVisualV2 } from '@/lib/rewards/rewardVisuals'
 import { CardStatusVfxLayer } from '@/components/tutorial/CardStatusVfxLayer'
 import { cachedBattleSkins, getEquippedBattleSkins, randomBotCardBack, type SkinVisual } from '@/lib/cosmetics'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
-import { avatarMapFor, cardVoiceUrls, loadVoices } from '@/lib/game/audioI18n'
+import { avatarMapFor, cardVoiceUrls, skillVoiceUrls, loadVoices } from '@/lib/game/audioI18n'
 import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCache'
 import { getCosmetics, getAvatarAudio } from '@/lib/cosmetics'
 import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio } from '@/lib/game/avatarAudio'
@@ -78,14 +78,14 @@ import { BattleLogList, type LogFilter } from '@/components/tutorial/BattleLogLi
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
 import { RavenofCinematicOverlay } from './RavenofCinematicOverlay'
 import { useCinematicQueue } from '@/lib/game/cinematicQueue'
-import { collectDeckCinematicPosters, preloadCinematicPosters, collectDeckCinematicVideos, preloadCinematicVideos, buildSummonCinematic, peekSummonComicLevel, resetComicSeen, type CinematicCardInput } from '@/lib/game/cinematics'
-import { COMIC_TIMES } from '@/lib/game/comicStage'
+import { collectDeckCinematicPosters, preloadCinematicPosters, collectDeckCinematicVideos, preloadCinematicVideos, buildSummonCinematic, buildSkillCinematic, peekSummonComicTimes, resetComicSeen, type CinematicCardInput } from '@/lib/game/cinematics'
+import { comicTimes } from '@/lib/game/comicStage'
 import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
 import { BattleFxLayer, type BattleFxHandle, type AoeVariant } from './BattleFxLayer'
 import BattleLayout from './BattleLayout'
 import { factionPalette, PROJECTILE_COLOR, factionDirectionalKind } from '@/lib/game/effectAnimations'
 import { fxStage, playAoe, playCurse, type FxHooks, type StrikeKind, type FxAoeId } from '@/lib/game/fxStage'
-import { AOE_FX_HIT_MS, isFxAoeId, PROJECTILE_TO_FX, STATUS_TO_FX, LEGACY_SUMMON_MAP, factionSummonFx, isSummonFxId, isFxImpactId, summonLandMs, isSkillFxId, defaultSkillFx, championKey, type SummonFxId, type FxProjId, type FxImpactId, type SkillFxId } from '@/lib/game/fxCatalog'
+import { AOE_FX_HIT_MS, isFxAoeId, PROJECTILE_TO_FX, STATUS_TO_FX, LEGACY_SUMMON_MAP, factionSummonFx, isSummonFxId, isFxImpactId, summonLandMs, skillCastMs, isSkillFxId, defaultSkillFx, championKey, type SummonFxId, type FxProjId, type FxImpactId, type SkillFxId } from '@/lib/game/fxCatalog'
 import { GUIDED_STEPS, MECHANIC_TIPS, TutStep, TipKey } from '@/lib/tutorial/script'
 import { lockLandscape, unlockOrientation, isPortraitNow } from '@/lib/digital/native'
 import { BATTLECRY_SEQUENTIAL_SUMMON_DELAY_MS, REACTION_CHAIN_ANIMATION_DURATION_MS, REACTION_CHAIN_PHASES, ZMK_PRESENT, TURN_RITUAL, CARD_LANDING, COIN_TOSS } from '@/lib/game/timing'
@@ -2091,8 +2091,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           const cd = findCard(ev.cardName)
           // Komikso intarpas: korta nusileidžia tik kadrams išslydus – kortos efektai laukia ir jo.
           const fromHand = ev.fromZone !== 'graveyard' && !SUMMON_BY_EFFECT_KEYS.has(ev.key ?? '')
-          const lv = cd && fromHand && !cine.isBusy() ? peekSummonComicLevel(toCineCard(cd)) : null
-          const cw = lv ? COMIC_TIMES[lv].exitAt + COMIC_LAND_GAP : 0
+          const pt = cd && fromHand && !cine.isBusy() ? peekSummonComicTimes(toCineCard(cd)) : null
+          const cw = pt ? pt.exitAt + COMIC_LAND_GAP : 0
           const fxId = summonFxFor(cd) ?? (cw > 0 ? factionSummonFx(cd?.factionName) : null)
           return Math.max(mx, cw + summonLandMs(fxId))
         }, 0) : 0
@@ -2275,8 +2275,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               : 'playedFromHand'
             const built = buildSummonCinematic(toCineCard(sc), { source: csrc })
             const started = cine.enqueue(built)
-            if (built?.comic && started === 'now') { const ct = COMIC_TIMES[built.comic.level]; comicWait = ct.exitAt + COMIC_LAND_GAP; comicHero = ct.heroAt }
+            if (built?.comic && started === 'now') { const ct = comicTimes(built.comic); comicWait = ct.exitAt + COMIC_LAND_GAP; comicHero = ct.heroAt }
           }
+          if (sc?.type === 'champion') { for (const sk of sc.gameplay?.championSkillConfig?.skills ?? []) prefetchCardVoice(skillVoiceUrls(sk.voiceLines, sk.voiceLinesEn)) }   // gebėjimų balsai – kad suskambėtų be vėlavimo
           if (sc) { const vUrls = cardVoiceUrls(sc.id, sc.gameplay?.voiceLines), vId = sc.id
             if (comicHero > 0) window.setTimeout(() => { void playCardVoice(vUrls, { cardId: vId }) }, comicHero)   // balsas – ant herojaus kadro
             else playCardVoice(vUrls, { cardId: vId }) }
@@ -2351,13 +2352,27 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           // Premium Čempiono skill kino pop-up (po taikinio pasirinkimo – ability event jau po resolve)
           if (e.t === 'ability' && typeof e.skillIndex === 'number') {
             const cc = findCard(e.cardName)
-            if (cc) cine.enqueueChampionSkillCinematic(toCineCard(cc), e.skillIndex)
+            // Komikso intarpas dengia ekraną – gebėjimo efektai (užtaisymas, smūgiai) laukia, kol kadrai išslys.
+            let skWait = 0, skHit = 0
+            if (cc) {
+              const builtS = buildSkillCinematic(toCineCard(cc), e.skillIndex)
+              const startedS = cine.enqueue(builtS)
+              if (builtS?.comic && startedS === 'now') { const ct = comicTimes(builtS.comic); skWait = ct.exitAt + COMIC_LAND_GAP; skHit = ct.heroAt }
+              // Gebėjimo balsas skamba kaskart (ir pakartojus toje pačioje kovoje) – ant kadro smūgio.
+              const skc = cc.gameplay?.championSkillConfig?.skills?.[e.skillIndex]
+              const sv = skillVoiceUrls(skc?.voiceLines, skc?.voiceLinesEn)
+              if (sv.length) { const vKey = `${cc.id}:skill${e.skillIndex}`; if (skHit > 0) window.setTimeout(() => { void playCardVoice(sv, { cardId: vKey }) }, skHit); else void playCardVoice(sv, { cardId: vKey }) }
+            }
+            if (skWait > 0) { fxSeq += skWait; summonBusyUntilRef.current = Math.max(summonBusyUntilRef.current, performance.now() + skWait) }
             // ── Gebėjimo FX: užtaisymo spektaklis ant čempiono; efektai (smūgiai į taikinius) – jam pasibaigus ──
             const sid = skillFxFor(cc, e.skillIndex), cel = unitEl(e.src?.uid)
             if (sid && cel) {
               const foeSide: Side = e.side === 'you' ? 'ai' : 'you'
-              const castMs = fxStage.skillCast(sid, cel, { foe: rectFor({ side: foeSide }), me: rectFor({ side: e.side }), hooks: fxHooksRef.current })
-              if (castMs > 0) { srcSkill = sid; fxSeq += castMs; summonBusyUntilRef.current = Math.max(summonBusyUntilRef.current, performance.now() + castMs) }
+              const castOpts = { foe: rectFor({ side: foeSide }), me: rectFor({ side: e.side }), hooks: fxHooksRef.current }
+              let castMs = 0
+              if (skWait > 0 && fxStage.available()) { castMs = skillCastMs(sid); const uidS = e.src?.uid; window.setTimeout(() => { const elS = unitEl(uidS) ?? cel; fxStage.skillCast(sid, elS, castOpts) }, skWait) }
+              else castMs = fxStage.skillCast(sid, cel, castOpts)
+              if (castMs > 0) { srcSkill = sid; fxSeq += castMs; summonBusyUntilRef.current = Math.max(summonBusyUntilRef.current, performance.now() + skWait + castMs) }
             }
           }
           keepSrc()

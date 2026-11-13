@@ -12,7 +12,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toWebp, LONG_CACHE } from '@/lib/img-optimize'
 import { CINEMATIC_FRAME_THEMES, type CinematicFrameTheme, type SummonComic, type ComicFocusPoint } from '@/lib/game/types'
 import { COMIC_RGB } from '@/lib/game/cinematics'
-import type { ComicLevel } from '@/lib/game/comicStage'
+import { COMIC_TEMPLATES, COMIC_KITS, type ComicLevel, type ComicTemplate, type ComicKit } from '@/lib/game/comicStage'
 import { ComicCinematicOverlay } from '@/components/tutorial/ComicCinematicOverlay'
 
 type Slot = 'closeup' | 'action' | 'hero'
@@ -46,7 +46,7 @@ export function ComicUpload({ value, onChange, cardId, cardNumber }: {
 
   const patch = (p: Partial<SummonComic>) => {
     const next = { ...v, ...p, enabled: (p.enabled ?? v.enabled) === true, updatedAt: new Date().toISOString() } as SummonComic
-    const empty = !next.enabled && !next.closeup && !next.action && !next.hero && !next.titleOverride && !next.frameTheme
+    const empty = !next.enabled && !next.closeup && !next.action && !next.hero && !next.titleOverride && !next.frameTheme && !next.template && !next.kit
     onChange(empty ? undefined : next)
   }
 
@@ -133,6 +133,20 @@ export function ComicUpload({ value, onChange, cardId, cardNumber }: {
 
         <div className="grid grid-cols-2 gap-2 mt-2">
           <div>
+            <label style={labelStyle}>Šablonas (pilnam intarpui)</label>
+            <select value={v.template ?? ''} onChange={(e) => patch({ template: (e.target.value || undefined) as ComicTemplate | undefined })} style={inputStyle}>
+              <option value="">Žaibas (numatytas)</option>
+              {COMIC_TEMPLATES.filter((t) => t.value !== 'zaibas').map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Personažo vizualai</label>
+            <select value={v.kit ?? ''} onChange={(e) => patch({ kit: (e.target.value || undefined) as ComicKit | undefined })} style={inputStyle}>
+              <option value="">(be papildomų – tik kadrai)</option>
+              {COMIC_KITS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+            </select>
+          </div>
+          <div>
             <label style={labelStyle}>Spalva (tema)</label>
             <select value={v.frameTheme ?? ''} onChange={(e) => patch({ frameTheme: (e.target.value || undefined) as CinematicFrameTheme | undefined })} style={inputStyle}>
               <option value="">(auto pagal frakciją)</option>
@@ -159,13 +173,13 @@ export function ComicUpload({ value, onChange, cardId, cardNumber }: {
       {error && <p className="text-[11px]" style={{ color: '#ef4444' }}>{error}</p>}
       {validation.map((w, i) => <p key={i} className="text-[10px]" style={{ color: w.startsWith('⛔') ? '#ef4444' : w.startsWith('ℹ') ? 'var(--text-muted)' : '#f59e0b' }}>{w}</p>)}
       <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>
-        Lygis parenkamas pats: Legendinė / čempionas – pilnas (3 kadrai), kitos kortos – vidutinis (2 kadrai), pakartotinis iškvietimas toje pačioje kovoje – trumpas.
+        Šablonas ir personažo vizualai parenkami čia; lygis parenkamas pats: Legendinė / čempionas – pilnas (3 kadrai), kitos kortos – vidutinis (2 kadrai), pakartotinis iškvietimas toje pačioje kovoje – trumpas.
         Paveikslėliai be teksto ir rėmų; svarbiausia dalis – centre. Peržiūroje spalva „auto" rodoma neutrali – kovoje bus frakcijos.
       </p>
 
       {pv && typeof document !== 'undefined' && createPortal(
         <ComicCinematicOverlay key={pv.n}
-          comic={{ level: pv.level, closeup: v.closeup, action: v.action, hero: v.hero, title: pv.level === 'short' ? '' : ((v.titleOverride ?? '').trim() || 'Kortos vardas'), rgb, focus: v.focus }}
+          comic={{ level: pv.level, template: v.template, kit: v.kit, closeup: v.closeup, action: v.action, hero: v.hero, title: pv.level === 'short' ? '' : ((v.titleOverride ?? '').trim() || 'Kortos vardas'), rgb, focus: v.focus }}
           onFinished={() => setPv(null)} />,
         document.body,
       )}

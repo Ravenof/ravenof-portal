@@ -13,7 +13,7 @@ import {
 import {
   isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isReducedMotionEnabled,
 } from '@/lib/settings'
-import { COMIC_TIMES, COMIC_EXIT_MS, type ComicSpec, type ComicLevel } from './comicStage'
+import { comicTimes, comicExitMs, type ComicSpec, type ComicLevel } from './comicStage'
 
 export type PremiumCinematicType = 'summon' | 'championSkill'
 
@@ -113,8 +113,12 @@ export const COMIC_RGB: Record<CinematicFrameTheme, string> = {
 }
 // Kortos, kurių intarpas šioje kovoje jau rodytas → pakartotinai rodoma trumpa versija.
 const _comicSeen = new Set<string>()
+// Gebėjimai, kurių intarpas šioje kovoje jau rodytas → pakartotinai trumpa versija (balsas skamba vis tiek).
+const _skillComicSeen = new Set<string>()
 /** Kviesti kovos pradžioje. */
-export function resetComicSeen(): void { _comicSeen.clear() }
+export function resetComicSeen(): void { _comicSeen.clear(); _skillComicSeen.clear() }
+/** Auksinė ultimate spalva; šventai temai – balto aukso. */
+const ULT_RGB = '255,200,70', ULT_RGB_HOLY = '255,246,215'
 
 /**
  * Kokio lygio intarpą ši korta gautų dabar (null – jokio). Būsenos nekeičia.
@@ -134,6 +138,12 @@ export function peekSummonComicLevel(card: CinematicCardInput, ctx: SummonTrigge
   return shouldTriggerSummonCinematic(card) && c.action ? 'full' : 'medium'
 }
 
+/** Kokias laiko gaires (herojaus smūgis, išslydimo pradžia) turėtų šios kortos intarpas dabar; null – intarpo nebus. Būsenos nekeičia. */
+export function peekSummonComicTimes(card: CinematicCardInput, ctx: SummonTriggerContext = {}): { heroAt: number; exitAt: number } | null {
+  const level = peekSummonComicLevel(card, ctx)
+  return level ? comicTimes({ level, template: card.gameplay?.summonComic?.template }) : null
+}
+
 function buildSummonComic(card: CinematicCardInput, ctx: SummonTriggerContext): ActiveCinematic | null {
   const level = peekSummonComicLevel(card, ctx)
   const c = card.gameplay?.summonComic
@@ -141,18 +151,56 @@ function buildSummonComic(card: CinematicCardInput, ctx: SummonTriggerContext): 
   _comicSeen.add(card.id)
   const theme: CinematicFrameTheme = c.frameTheme ?? factionTheme(card.factionName)
   const title = (c.titleOverride ?? '').trim() || card.name
+  const comic: ComicSpec = { level, template: c.template, kit: c.kit, closeup: c.closeup, action: c.action, hero: c.hero, title: level === 'short' ? '' : title, rgb: COMIC_RGB[theme] ?? COMIC_RGB.default, focus: c.focus }
   return {
     type: 'summon',
     cardId: card.id,
     cardName: card.name,
     cardImage: card.image ?? null,
-    durationMs: COMIC_TIMES[level].exitAt + COMIC_EXIT_MS,
-    title: level === 'short' ? '' : title,
+    durationMs: comicTimes(comic).exitAt + comicExitMs(comic),
+    title: comic.title,
     frameTheme: theme,
     cropX: 50, cropY: 50,
     staticOnly: true,
-    comic: { level, closeup: c.closeup, action: c.action, hero: c.hero, title: level === 'short' ? '' : title, rgb: COMIC_RGB[theme] ?? COMIC_RGB.default, focus: c.focus },
+    comic,
     dedupeKey: `summon:${card.id}`,
+  }
+}
+
+/** Ar šis gebėjimas – ultimate (3-ias arba kainuoja auksą). */
+export function isUltimateSkill(card: CinematicCardInput, skillIndex: number): boolean {
+  return skillIndex === 2 || (card.gameplay?.championSkillConfig?.skills?.[skillIndex]?.goldCost ?? 0) > 0
+}
+
+function buildSkillComic(card: CinematicCardInput, skillIndex: number, skillName: string): ActiveCinematic | null {
+  const skill = card.gameplay?.championSkillConfig?.skills?.[skillIndex]
+  const sc = skill?.comic
+  if (!sc || !sc.enabled || !sc.image) return null
+  const key = `${card.id}:${skillIndex}`
+  const rep = _skillComicSeen.has(key)
+  _skillComicSeen.add(key)
+  const sm = card.gameplay?.summonComic
+  const theme: CinematicFrameTheme = sm?.frameTheme ?? skill?.cinematic?.frameTheme ?? factionTheme(card.factionName)
+  const ult = isUltimateSkill(card, skillIndex)
+  const title = rep ? '' : skillName
+  const comic: ComicSpec = ult
+    ? { level: 'full', kind: 'ult', rep, image: sc.image, imageFocus: sc.focus, closeup: sm?.closeup, focus: sm?.focus, title: skillName, rgb: theme === 'holy' ? ULT_RGB_HOLY : ULT_RGB }
+    : { level: 'short', kind: 'skill', rep, image: sc.image, imageFocus: sc.focus, side: skillIndex === 1 ? 'left' : 'right', soft: skillIndex === 1, title, rgb: COMIC_RGB[theme] ?? COMIC_RGB.default }
+  const skillId = `skill-${skillIndex + 1}`
+  return {
+    type: 'championSkill',
+    cardId: card.id,
+    cardName: card.name,
+    cardImage: card.image ?? null,
+    skillId,
+    skillName,
+    durationMs: comicTimes(comic).exitAt + comicExitMs(comic),
+    title: comic.title,
+    frameTheme: theme,
+    cropX: 50, cropY: 50,
+    staticOnly: true,
+    comic,
+    dedupeKey: `skill:${card.id}:${skillId}`,
   }
 }
 
@@ -203,6 +251,11 @@ export function buildSkillCinematic(
   if (skillIndex < 0) return null
 
   const skill = card.gameplay?.championSkillConfig?.skills?.[skillIndex]
+  // Komikso intarpas turi pirmenybę prieš video. Sumažinto judesio režime intarpo nerodom (balsas skamba vis tiek).
+  if (skill?.comic?.enabled && skill.comic.image) {
+    if (isReducedMotionEnabled()) return null
+    return buildSkillComic(card, skillIndex, (skill.name ?? '').trim() || ctx.skillNameFromEngine?.trim() || card.name)
+  }
   const cine: SkillCinematic | undefined = skill?.cinematic
   if (!cine || !cine.enabled) return null
 
@@ -253,7 +306,7 @@ export function collectDeckCinematicPosters(cards: CinematicCardInput[]): string
     const cm = c.gameplay?.summonComic
     if (cm?.enabled) { for (const u of [cm.closeup, cm.action, cm.hero]) if (u) out.push(u) }
     const skills = c.gameplay?.championSkillConfig?.skills ?? []
-    for (const sk of skills) { if (sk.cinematic?.enabled && sk.cinematic.poster) out.push(sk.cinematic.poster) }
+    for (const sk of skills) { if (sk.cinematic?.enabled && sk.cinematic.poster) out.push(sk.cinematic.poster); if (sk.comic?.enabled && sk.comic.image) out.push(sk.comic.image) }
   }
   return out
 }

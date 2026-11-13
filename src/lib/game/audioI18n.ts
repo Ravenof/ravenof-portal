@@ -67,6 +67,17 @@ function clipsFrom(owner: AudioOwner, id: string, trigger: string, locale: Suppo
 }
 
 /**
+ * Čempiono gebėjimo balsai dabartine balsų kalba (saugomi prie gebėjimo: voiceLines / voiceLinesEn).
+ * Ta pati atsarginė politika kaip kortų balsams: nėra pasirinkta kalba → (jei leidžiama) LT → tyla.
+ */
+export function skillVoiceUrls(lt?: string[] | null, en?: string[] | null): string[] {
+  const ltU = lt ?? []
+  if (voiceLocale() === 'lt') return ltU
+  if (en && en.length) return en
+  return isVoiceFallbackLtEnabled() ? ltU : []
+}
+
+/**
  * Kortos iškvietimo balsai dabartine balsų kalba.
  * `ltFallback` = cards.gameplay.voiceLines (legacy LT).
  * Grąžina [] jei kalbos balsų nėra ir LT fallback išjungtas → tyla.

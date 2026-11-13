@@ -26,7 +26,7 @@ export function RavenofCinematicOverlay({ cinematic, onFinished }: {
   return (
     <AnimatePresence>
       {cinematic && cinematic.comic && (
-        <ComicCinematicOverlay key={cinematic.dedupeKey + ':comic:' + cinematic.comic.level} comic={cinematic.comic} onFinished={onFinished} />
+        <ComicCinematicOverlay key={cinematic.dedupeKey + ':comic:' + cinematic.comic.level + (cinematic.comic.rep ? ':r' : '')} comic={cinematic.comic} onFinished={onFinished} />
       )}
       {cinematic && !cinematic.comic && (
         <CinematicFrame key={cinematic.dedupeKey + ':' + cinematic.durationMs} cinematic={cinematic} onFinished={onFinished} />
