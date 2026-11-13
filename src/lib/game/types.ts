@@ -621,7 +621,7 @@ export type SummonComic = {
   /** Pilno intarpo išdėstymas (numatyta – 'zaibas'). */
   template?: 'zaibas' | 'sukes' | 'plysys' | 'kryzius'
   /** Personažo vizualų rinkinys (pjūvis, dalelės, smūgis, išėjimas). */
-  kit?: 'grave' | 'arcane' | 'storm' | 'holy'
+  kit?: 'grave' | 'arcane' | 'storm' | 'holy' | 'inferno'
   updatedAt?: string
 }
 

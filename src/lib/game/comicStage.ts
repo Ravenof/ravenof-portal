@@ -14,7 +14,7 @@ export type ComicFocus = [number, number]
 /** Pilno iškvietimo intarpo išdėstymas. */
 export type ComicTemplate = 'zaibas' | 'sukes' | 'plysys' | 'kryzius'
 /** Personažo vizualų rinkinys: pjūvio forma, aplinkos dalelės, smūgio ir išėjimo efektai. */
-export type ComicKit = 'grave' | 'arcane' | 'storm' | 'holy'
+export type ComicKit = 'grave' | 'arcane' | 'storm' | 'holy' | 'inferno'
 /** summon – iškvietimas; skill – 1/2 gebėjimas (vienas kadras); ult – 3 gebėjimas už auksą. */
 export type ComicKind = 'summon' | 'skill' | 'ult'
 export const COMIC_TEMPLATES: { value: ComicTemplate; label: string }[] = [
@@ -28,6 +28,7 @@ export const COMIC_KITS: { value: ComicKit; label: string }[] = [
   { value: 'arcane', label: 'Arkana – žaibuotas pjūvis, spyglių žiedas, kadrai susitraukia į tuštumą' },
   { value: 'storm', label: 'Audra – kibirkštys, žaibo smūgis, kadrai išsilaksto' },
   { value: 'holy', label: 'Šventas – plunksnos ir šviesos stulpas, kadrai pakyla' },
+  { value: 'inferno', label: 'Pragaras – kylančios žarijos, liepsnų žiedas, kadrai sudega' },
 ]
 export type ComicSpec = {
   level: ComicLevel
@@ -80,7 +81,7 @@ export const COMIC_EXIT_MS = 340
 /** Kiek intarpo sluoksnis dar gyvas po exitAt – personažo išėjimo efektai trunka ilgiau. */
 export function comicExitMs(s: Pick<ComicSpec, 'kind' | 'kit' | 'level'>): number {
   if ((s.kind ?? 'summon') !== 'summon' || s.level === 'static') return COMIC_EXIT_MS
-  return s.kit === 'arcane' ? 680 : s.kit === 'holy' ? 720 : s.kit === 'grave' ? 380 : COMIC_EXIT_MS
+  return s.kit === 'arcane' ? 680 : s.kit === 'holy' ? 720 : s.kit === 'grave' ? 380 : s.kit === 'inferno' ? 520 : COMIC_EXIT_MS
 }
 
 type Pt = [number, number]
@@ -255,7 +256,7 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
   const t0wall = performance.now()
   let Q: { t: number; fn: () => void }[] = []
   let TW: Tw[] = []
-  const parts: { x: number; y: number; vx: number; vy: number; l: number; m: number; r: number }[] = []
+  const parts: { x: number; y: number; vx: number; vy: number; l: number; m: number; r: number; c?: string }[] = []
   const slashes: { pts: Pt[]; t0: number; dur: number; fade: number }[] = []
   const rings: { x: number; y: number; r1: number; t0: number; dur: number; col?: string }[] = []
   const bolts: { a: Pt; b: Pt; t0: number; life: number; w: number; n?: number }[] = []
@@ -264,6 +265,9 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
   const mists: { x: number; y: number; vy: number; l: number; m: number; r: number }[] = []
   const voids: { t0: number; dur: number }[] = []
   const pillars: { x: number; y: number; t0: number; dur: number }[] = []
+  const flares: { x: number; y: number; t0: number; dur: number; seed: number }[] = []
+  /** Žarija: kyla aukštyn, šiek tiek plaukia į šoną. */
+  const ember = (x: number, y: number, up: number, life: number) => { parts.push({ x, y, vx: (Math.random() - 0.5) * 0.12 * SW / 1000, vy: -up * SW / 1000, l: 0, m: life, r: (2 + 4.4 * Math.random()) * SW / 1000, c: Math.random() < 0.35 ? '255,225,150' : '255,150,50' }) }
 
   const at = (ms: number, fn: () => void) => { Q.push({ t: T + ms, fn }) }
   const tw = (o: object, props: Record<string, number>, dur: number, ease: (p: number) => number = eo, delay = 0) => {
@@ -301,6 +305,9 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       bolts.push({ a: [x + (Math.random() - 0.5) * SW * 0.08, -10], b: [x, y], t0: T, life: 340, w: 3.2, n: 9 })
       bolts.push({ a: [x - SW * 0.06, -10], b: [x + SW * 0.03, y + SH * 0.22], t0: T + 70, life: 260, w: 1.8, n: 8 })
       ring(bx, by, 16, 600, '120,255,90'); ring(bx, by, 9, 800, '120,255,90'); S.zap()
+    } else if (kit === 'inferno') {
+      flares.push({ x, y, t0: T, dur: 800, seed: (Math.random() * 1e6) | 0 }); ring(bx, by, 22, 650, '255,170,60'); ring(bx, by, 12, 850, '255,120,40')
+      for (let i = 0; i < (low ? 12 : 36); i++) { const a = Math.random() * 6.283, r = SW * 0.06 * Math.random(); ember(x + Math.cos(a) * r, y + Math.sin(a) * r, 0.25 + 0.5 * Math.random(), 800 + Math.random() * 700) }
     } else if (kit === 'holy') {
       ring(bx, by, 24, 750); ring(bx, by, 13, 950); pillars.push({ x, y, t0: T, dur: 900 })
       for (let i = 0; i < (low ? 8 : 20); i++) { const a = Math.random() * 6.283, v = (0.2 + 0.45 * Math.random()) * SW / 1000; mkFeather(x, y, Math.cos(a) * v, Math.sin(a) * v, 900 + Math.random() * 600, featherCol()) }
@@ -315,6 +322,10 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
     if (kit === 'grave') {
       amb = 70; mkFeather(Math.random() * VW * 1.1, -20, (-0.05 - 0.1 * Math.random()) * SW / 1000, (0.22 + 0.3 * Math.random()) * SW / 1000, 1500 + Math.random() * 600)
       if (!low) mists.push({ x: Math.random() * VW, y: VH * 1.05, vy: -(0.05 + 0.06 * Math.random()) * SW / 1000, l: 0, m: 1900, r: SW * (0.09 + 0.08 * Math.random()) })
+      return
+    }
+    if (kit === 'inferno') {
+      amb = 40; for (let i = 0; i < (low ? 2 : 6); i++) ember(Math.random() * VW, VH * (0.55 + 0.5 * Math.random()), 0.16 + 0.3 * Math.random(), 1200 + Math.random() * 900)
       return
     }
     if (kit === 'holy') {
@@ -366,6 +377,12 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       }
       else if (kit === 'holy') { tw(p, { y: p.y - 42 }, 320, ei); tw(p, { a: 0 }, 220, lin, 80) }
       else if (kit === 'grave') { tw(p, { y: p.y + 38, rot: (Math.random() - 0.5) * 10 }, 300, ei); tw(p, { a: 0 }, 220, lin, 80) }
+      else if (kit === 'inferno') {
+        // Kadras įkaista iki baltumo, susitraukia ir virsta žarijomis.
+        p.fl.style.background = 'linear-gradient(0deg,#ff7a1a,#ffd98a 60%,#fff6dc)'; p.f = 0.15; tw(p, { f: 0.95 }, 200, ei); tw(p, { s: 0.94, y: p.y - 6, rot: (Math.random() - 0.5) * 4 }, 300, ei); tw(p, { a: 0 }, 140, lin, 190)
+        const n = low ? 8 : 26
+        at(150, () => { for (let i = 0; i < n; i++) ember(sx(cx - b[2] * gs / 2 + Math.random() * b[2] * gs), sy(cy - b[3] * gs / 2 + Math.random() * b[3] * gs), 0.3 + 0.6 * Math.random(), 500 + Math.random() * 500) })
+      }
       else { tw(p, EXIT_DIR[k] ?? { y: 130 }, 260, ei); tw(p, { a: 0 }, 60, lin, 230) }
     }
     if (kit === 'arcane') at(250, () => { voids.push({ t0: T, dur: 420 }); flash(0.3, 200); burst(50, 50, 50, 1.1); S.hit(60, 1) })
@@ -373,6 +390,7 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       flash(0.28, 260); pillars.push({ x: VW / 2, y: OY + SH * 0.72, t0: T, dur: 700 })
       for (let i = 0; i < (low ? 10 : 30); i++) parts.push({ x: Math.random() * VW, y: VH * (0.3 + 0.7 * Math.random()), vx: 0, vy: -(0.15 + 0.2 * Math.random()) * SW / 1000, l: 0, m: 700 + Math.random() * 500, r: (1 + 2 * Math.random()) * SW / 1000 })
     }
+    if (kit === 'inferno') { at(170, () => { flash(0.32, 240); S.hit(70, 0.8) }) }
     if (kit === 'storm') { flash(0.5, 220); S.zap(); bolts.push({ a: [VW * 0.5, -10], b: [VW * 0.5, OY + SH * 0.72], t0: T, life: 280, w: 3, n: 9 }) }
     tw(D, { a: 0 }, 300, lin, 40)
     at(comicExitMs(spec), finish)
@@ -474,6 +492,26 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
         const al = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85, w = SW * (0.11 - 0.04 * p)
         c.fillStyle = `rgba(${rgb},${0.16 * al})`; c.fillRect(q.x - w, 0, w * 2, q.y); c.fillStyle = `rgba(${rgb},${0.22 * al})`; c.fillRect(q.x - w * 0.5, 0, w, q.y); c.fillStyle = `rgba(255,255,255,${0.3 * al})`; c.fillRect(q.x - w * 0.14, 0, w * 0.28, q.y) }
       c.globalCompositeOperation = 'source-over' }
+    if (flares.length) { c.globalCompositeOperation = 'lighter'
+      for (let i = flares.length - 1; i >= 0; i--) { const f = flares[i], p = (T - f.t0) / f.dur; if (p >= 1) { flares.splice(i, 1); continue }
+        // Liepsnų liežuviai aplink smūgio tašką: auga, mirga, gęsta.
+        const r = rnd(f.seed + Math.floor(T / 80) * 13), N = 13, R0 = SW * 0.028, al = (1 - p) * (1 - p), grow = 0.4 + 0.6 * eo(Math.min(1, p * 5))
+        const gl = c.createRadialGradient(f.x, f.y, 0, f.x, f.y, SW * 0.2 * (0.5 + grow * 0.5)); gl.addColorStop(0, `rgba(255,170,60,${0.55 * al})`); gl.addColorStop(1, 'rgba(255,90,20,0)')
+        c.fillStyle = gl; c.beginPath(); c.arc(f.x, f.y, SW * 0.2, 0, 6.283); c.fill()
+        for (let j = 0; j < N; j++) {
+          const a = j / N * 6.283 + (r() - 0.5) * 0.3, len = SW * (0.1 + 0.17 * r()) * grow, w = 0.3 + 0.22 * r(), bend = (r() - 0.5) * len * 0.7
+          const ca = Math.cos(a), sa = Math.sin(a), lift = len * 0.3
+          const tongue = (k: number, col: string) => {
+            const L = len * k, ww = w * k
+            const x0 = f.x + Math.cos(a - ww) * R0, y0 = f.y + Math.sin(a - ww) * R0, x1 = f.x + Math.cos(a + ww) * R0, y1 = f.y + Math.sin(a + ww) * R0
+            const tx = f.x + ca * (R0 + L) - sa * bend * k, ty = f.y + sa * (R0 + L) + ca * bend * k - lift * k
+            const mx = f.x + ca * (R0 + L * 0.5), my = f.y + sa * (R0 + L * 0.5) - lift * k * 0.3
+            c.fillStyle = col; c.beginPath(); c.moveTo(x0, y0)
+            c.quadraticCurveTo(mx - sa * L * 0.28, my + ca * L * 0.28, tx, ty); c.quadraticCurveTo(mx + sa * L * 0.28, my - ca * L * 0.28, x1, y1); c.closePath(); c.fill()
+          }
+          tongue(1, `rgba(255,95,25,${0.55 * al})`); tongue(0.62, `rgba(255,190,80,${0.6 * al})`); tongue(0.32, `rgba(255,245,200,${0.6 * al})`)
+        } }
+      c.globalCompositeOperation = 'source-over' }
     for (let i = voids.length - 1; i >= 0; i--) { const v = voids[i], p = (T - v.t0) / v.dur; if (p >= 1) { voids.splice(i, 1); continue }
       c.fillStyle = `rgba(0,0,0,${1 - p})`; c.beginPath(); c.arc(VW / 2, VH / 2, Math.max(0, SW * 0.09 * (1 - p)), 0, 6.283); c.fill()
       c.strokeStyle = `rgba(${rgb},${1 - p})`; c.lineWidth = SW * 0.005 * (1 - p) + 1; c.beginPath(); c.arc(VW / 2, VH / 2, SW * (0.03 + 0.22 * eo(p)), 0, 6.283); c.stroke() }
@@ -508,7 +546,7 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       for (let i = parts.length - 1; i >= 0; i--) { const q = parts[i]; q.l += dt
         if (q.l >= q.m) { parts[i] = parts[parts.length - 1]; parts.pop(); continue }
         const dk = Math.pow(0.985, dt / 16.7); q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= dk; q.vy *= dk; const k = 1 - q.l / q.m
-        ctx.fillStyle = `rgba(${rgb},${k * 0.9})`; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (0.5 + k * 0.5), 0, 6.283); ctx.fill() }
+        ctx.fillStyle = `rgba(${q.c ?? rgb},${k * 0.9})`; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (0.5 + k * 0.5), 0, 6.283); ctx.fill() }
       ctx.globalCompositeOperation = 'source-over'
     }
     if (kit) drawKit(ctx, dt)
