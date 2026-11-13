@@ -9,6 +9,7 @@
 // Taip naudojama ta pati žaidimo logika kaip pelei – kovos kodo keisti nereikia.
 // ════════════════════════════════════════════════════════════════════════════
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { useT } from '@/lib/i18n/react'
 import { getPadScroll, getPadState, onPadPress, startGamepad, subscribePad, type PadBtn } from '@/lib/gamepad/core'
 import { PadGlyph } from './PadGlyph'
@@ -50,24 +51,32 @@ function candidates(carry: boolean): HTMLElement[] {
 }
 
 function best(from: Rect, dir: PadBtn, list: HTMLElement[], skip: Element | null): HTMLElement | null {
+  // Atstumas matuojamas tarp KRAŠTŲ (ne centrų) – kitaip dideli skydeliai atrodo „toli" ir fokusas
+  // nušoka įstrižai. Kandidatas privalo būti realiai toje pusėje (jo tolimasis kraštas už mūsų krašto).
   const fx = from.x + from.w / 2, fy = from.y + from.h / 2
+  const fr = from.x + from.w, fb = from.y + from.h
   let win: HTMLElement | null = null; let score = Infinity
   for (const el of list) {
     if (el === skip) continue
     const r = el.getBoundingClientRect()
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2
-    const dx = cx - fx, dy = cy - fy
-    let prim: number, orth: number, overlap: boolean
+    let gap: number, orthGap: number, align: number, ok: boolean
     if (dir === 'left' || dir === 'right') {
-      prim = dir === 'right' ? dx : -dx; orth = Math.abs(dy)
-      overlap = r.top < from.y + from.h && r.bottom > from.y
+      ok = dir === 'right' ? (r.right > fr + 4 && cx > fx + 6) : (r.left < from.x - 4 && cx < fx - 6)
+      gap = Math.max(0, dir === 'right' ? r.left - fr : from.x - r.right)
+      const overlap = r.top < fb && r.bottom > from.y
+      orthGap = overlap ? 0 : Math.min(Math.abs(r.top - fb), Math.abs(from.y - r.bottom))
+      align = Math.abs(cy - fy)
     } else {
-      prim = dir === 'down' ? dy : -dy; orth = Math.abs(dx)
-      overlap = r.left < from.x + from.w && r.right > from.x
+      ok = dir === 'down' ? (r.bottom > fb + 4 && cy > fy + 6) : (r.top < from.y - 4 && cy < fy - 6)
+      gap = Math.max(0, dir === 'down' ? r.top - fb : from.y - r.bottom)
+      const overlap = r.left < fr && r.right > from.x
+      orthGap = overlap ? 0 : Math.min(Math.abs(r.left - fr), Math.abs(from.x - r.right))
+      align = Math.abs(cx - fx)
     }
-    if (prim < 6) continue
-    if (orth > prim * 2.4 && !overlap) continue      // per daug į šoną – ne ta kryptis
-    const s = prim + (overlap ? orth * 0.35 : orth * 2.2)
+    if (!ok) continue
+    if (orthGap > gap + 160) continue               // per daug į šoną – ne ta kryptis
+    const s = gap + orthGap * 2.5 + align * 0.15
     if (s < score) { score = s; win = el }
   }
   return win
@@ -101,7 +110,7 @@ export function GamepadLayer() {
   const carry = useRef<{ src: HTMLElement } | null>(null)
   const [ring, setRing] = useState<Rect | null>(null)
   const [ctx, setCtx] = useState<Ctx>('menu')
-  const zone = useRef(0)
+  const zone = useRef(-1)
 
   useEffect(() => { startGamepad() }, [])
 
@@ -221,7 +230,9 @@ export function GamepadLayer() {
       const close = list.find((e) => /uždaryti|close|atšaukti|cancel/i.test(e.getAttribute('aria-label') ?? '') || /^[✕×]$/.test((e.textContent ?? '').trim()))
       const backBtn = list.find((e) => /atgal|back/i.test(e.getAttribute('aria-label') ?? '') || /‹/.test(lab(e)))
       const hit = close ?? backBtn
-      if (hit) hit.click(); else key('Escape')
+      if (hit) hit.click()
+      else if (document.querySelector('[role="dialog"], [aria-modal="true"]')) key('Escape')
+      else if (window.location.pathname.replace(/\/$/, '') !== '/digital') window.history.back()   // ekranai be „atgal" mygtuko (kompiuteryje)
       window.setTimeout(() => { if (!cur.current?.isConnected || !visible(cur.current, true)) cur.current = null }, 200)
     }
     const activate = () => {
@@ -255,7 +266,7 @@ export function GamepadLayer() {
       if (carry.current) return
       if (inBattle()) {
         // LB – ranka; RB – lenta (sava eilė → priešo eilė → priešo herbas)
-        if (d < 0) { const h = document.querySelector<HTMLElement>('[data-hand-card]'); if (h) focus(h); return }
+        if (d < 0) { zone.current = -1; const h = document.querySelector<HTMLElement>('[data-hand-card]'); if (h) focus(h); return }
         const stops = [
           document.querySelector<HTMLElement>('[data-tut="units-you"] [data-unit-uid]'),
           document.querySelector<HTMLElement>('[data-tut="units-ai"] [data-unit-uid]'),
@@ -300,7 +311,8 @@ export function GamepadLayer() {
     : ctx === 'battle' ? [H('a', t('common.gp.take')), H('y', t('common.gp.inspect')), H('x', t('common.gp.endTurn')), H('lb', t('common.gp.hand')), H('rb', t('common.gp.board'))]
     : ctx === 'dialog' ? [H('a', t('common.gp.select')), H('b', t('common.close'))]
     : [H('a', t('common.gp.select')), H('b', t('common.back')), H('lb', ''), H('rb', t('common.gp.tabs'))]
-  return (
+  // Portalas į body: kova ir langai irgi yra body portalai – layout'o viduje sluoksnis liktų PO jais.
+  return createPortal(
     <div data-gp-ignore aria-hidden style={{ position: 'fixed', inset: 0, zIndex: 9000, pointerEvents: 'none' }}>
       {ring && (
         <div style={{ position: 'fixed', left: ring.x - 4, top: ring.y - 4, width: ring.w + 8, height: ring.h + 8, borderRadius: 6,
@@ -312,6 +324,7 @@ export function GamepadLayer() {
         font: '600 11.5px var(--ravenof-font-body, sans-serif)', color: '#f3ead3', maxWidth: '96vw', overflow: 'hidden' }}>
         {hints}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

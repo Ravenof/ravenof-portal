@@ -11,8 +11,9 @@ import {
   CINEMATIC_DEFAULT_DURATION_MS_SUMMON, CINEMATIC_DEFAULT_DURATION_MS_SKILL,
 } from './types'
 import {
-  isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled,
+  isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isReducedMotionEnabled,
 } from '@/lib/settings'
+import { COMIC_TIMES, COMIC_EXIT_MS, type ComicSpec, type ComicLevel } from './comicStage'
 
 export type PremiumCinematicType = 'summon' | 'championSkill'
 
@@ -33,6 +34,7 @@ export type ActiveCinematic = {
   cropX: number         // 0..100 object-position X (vertikalus mobile rėmas crop'ina šonus)
   cropY: number         // 0..100 object-position Y
   staticOnly: boolean   // nėra video → rodom tik poster/kortos artą (zoom/glow)
+  comic?: ComicSpec     // komikso intarpas (comicStage) – jei yra, video kelias nenaudojamas
   dedupeKey: string
 }
 
@@ -103,9 +105,64 @@ export function shouldTriggerSummonCinematic(card: CinematicCardInput): boolean 
   return rarity === 'legendinis' || type === 'champion' || type === 'čempionas' || !!card.isChampion
 }
 
+// ── Komikso intarpas („Kirtis") ───────────────────────────────────────────────
+/** Frakcijos švytėjimo spalva komikso kadrams („r,g,b"). */
+export const COMIC_RGB: Record<CinematicFrameTheme, string> = {
+  default: '190,205,225', undead: '60,255,140', demon: '255,90,50', holy: '255,220,140', mystic: '185,120,255',
+  goblin: '160,220,70', pirate: '110,180,240', eastern: '150,225,200', inquisition: '235,70,60',
+}
+// Kortos, kurių intarpas šioje kovoje jau rodytas → pakartotinai rodoma trumpa versija.
+const _comicSeen = new Set<string>()
+/** Kviesti kovos pradžioje. */
+export function resetComicSeen(): void { _comicSeen.clear() }
+
+/**
+ * Kokio lygio intarpą ši korta gautų dabar (null – jokio). Būsenos nekeičia.
+ * Trūkstant paveikslėlių lygis nusileidžia: pilnas → vidutinis → trumpas.
+ */
+export function peekSummonComicLevel(card: CinematicCardInput, ctx: SummonTriggerContext = {}): ComicLevel | null {
+  if (!isSummonCinematicsEnabled()) return null
+  const c = card.gameplay?.summonComic
+  if (!c || !c.enabled) return null
+  if (!c.closeup && !c.hero) return null
+  const allowed = (c.triggerSources && c.triggerSources.length ? c.triggerSources : ['playedFromHand']) as CinematicTriggerSource[]
+  if (!allowed.includes(ctx.source ?? 'playedFromHand')) return null
+  if (isReducedMotionEnabled()) return 'static'
+  if (_comicSeen.has(card.id)) return 'short'
+  const both = !!c.closeup && !!c.hero
+  if (!both) return 'short'
+  return shouldTriggerSummonCinematic(card) && c.action ? 'full' : 'medium'
+}
+
+function buildSummonComic(card: CinematicCardInput, ctx: SummonTriggerContext): ActiveCinematic | null {
+  const level = peekSummonComicLevel(card, ctx)
+  const c = card.gameplay?.summonComic
+  if (!level || !c) return null
+  _comicSeen.add(card.id)
+  const theme: CinematicFrameTheme = c.frameTheme ?? factionTheme(card.factionName)
+  const title = (c.titleOverride ?? '').trim() || card.name
+  return {
+    type: 'summon',
+    cardId: card.id,
+    cardName: card.name,
+    cardImage: card.image ?? null,
+    durationMs: COMIC_TIMES[level].exitAt + COMIC_EXIT_MS,
+    title: level === 'short' ? '' : title,
+    frameTheme: theme,
+    cropX: 50, cropY: 50,
+    staticOnly: true,
+    comic: { level, closeup: c.closeup, action: c.action, hero: c.hero, title: level === 'short' ? '' : title, rgb: COMIC_RGB[theme] ?? COMIC_RGB.default, focus: c.focus },
+    dedupeKey: `summon:${card.id}`,
+  }
+}
+
 // ── Summon kino sukūrimas (arba null, jei nereikia rodyti) ────────────────────
 export function buildSummonCinematic(card: CinematicCardInput, ctx: SummonTriggerContext = {}): ActiveCinematic | null {
   if (!isSummonCinematicsEnabled()) return null
+  // Komikso intarpas turi pirmenybę prieš video (ir neribojamas retumu – įjungia adminas prie kortos).
+  const comic = buildSummonComic(card, ctx)
+  if (comic) return comic
+  if (card.gameplay?.summonComic?.enabled && isReducedMotionEnabled()) return null
   if (!shouldTriggerSummonCinematic(card)) return null
 
   const sc: SummonCinematic | undefined = card.gameplay?.summonCinematic
@@ -193,6 +250,8 @@ export function collectDeckCinematicPosters(cards: CinematicCardInput[]): string
   for (const c of cards) {
     const sc = c.gameplay?.summonCinematic
     if (sc?.enabled && sc.poster) out.push(sc.poster)
+    const cm = c.gameplay?.summonComic
+    if (cm?.enabled) { for (const u of [cm.closeup, cm.action, cm.hero]) if (u) out.push(u) }
     const skills = c.gameplay?.championSkillConfig?.skills ?? []
     for (const sk of skills) { if (sk.cinematic?.enabled && sk.cinematic.poster) out.push(sk.cinematic.poster) }
   }

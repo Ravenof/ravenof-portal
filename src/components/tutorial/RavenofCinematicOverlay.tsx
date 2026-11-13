@@ -11,6 +11,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import type { ActiveCinematic } from '@/lib/game/cinematics'
 import { CINEMATIC_THEME_PALETTE, prefersReducedMotion } from '@/lib/game/cinematics'
 import { t as tGlobal } from '@/lib/i18n/core'
+import { ComicCinematicOverlay } from './ComicCinematicOverlay'
 
 const SKIP_DELAY_MS = 500
 const END_BUFFER_MS = 350           // saugiklis virš durationMs (tik static/poster keliui)
@@ -24,7 +25,10 @@ export function RavenofCinematicOverlay({ cinematic, onFinished }: {
 }) {
   return (
     <AnimatePresence>
-      {cinematic && (
+      {cinematic && cinematic.comic && (
+        <ComicCinematicOverlay key={cinematic.dedupeKey + ':comic:' + cinematic.comic.level} comic={cinematic.comic} onFinished={onFinished} />
+      )}
+      {cinematic && !cinematic.comic && (
         <CinematicFrame key={cinematic.dedupeKey + ':' + cinematic.durationMs} cinematic={cinematic} onFinished={onFinished} />
       )}
     </AnimatePresence>

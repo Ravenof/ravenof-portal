@@ -35,6 +35,8 @@ export const getPadScroll = (): { x: number; y: number } => scroll
 
 export function detectPadType(id: string): PadType {
   const s = id.toLowerCase()
+  // Xbox tikrinam PIRMA: „Xbox Wireless Controller" kitaip atitiktų PlayStation šabloną „wireless controller"
+  if (/xbox|xinput|microsoft|045e/.test(s)) return 'xbox'
   if (/playstation|dualsense|dualshock|sony|054c|ps[345]\b|wireless controller/.test(s)) return 'ps'
   return 'xbox'
 }

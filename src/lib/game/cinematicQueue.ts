@@ -15,7 +15,10 @@ export type CinematicQueueApi = {
   current: ActiveCinematic | null
   enqueueSummonCinematic: (card: CinematicCardInput, ctx?: SummonTriggerContext) => void
   enqueueChampionSkillCinematic: (card: CinematicCardInput, skillIndex: number, ctx?: { skillNameFromEngine?: string }) => void
-  enqueue: (item: ActiveCinematic | null) => void
+  /** 'now' – pradėta rodyti iškart; 'queued' – laukia eilėje; 'dropped' – nerodoma (null / dublikatas). */
+  enqueue: (item: ActiveCinematic | null) => 'now' | 'queued' | 'dropped'
+  /** Ar šiuo metu rodomas kino pop-up / intarpas. */
+  isBusy: () => boolean
   skip: () => void
   finish: () => void
   clear: () => void
@@ -33,12 +36,12 @@ export function useCinematicQueue(maxQueue: number = DEFAULT_MAX_QUEUE): Cinemat
     setCurrent(next)
   }, [])
 
-  const enqueue = useCallback((item: ActiveCinematic | null) => {
-    if (!item) return
+  const enqueue = useCallback((item: ActiveCinematic | null): 'now' | 'queued' | 'dropped' => {
+    if (!item) return 'dropped'
     const now = Date.now()
     // dedupe (ta pati korta/skill per trumpą langą — pvz. efektų grandinė)
     const last = recentRef.current.get(item.dedupeKey)
-    if (last && now - last < DEDUPE_WINDOW_MS) return
+    if (last && now - last < DEDUPE_WINDOW_MS) return 'dropped'
     recentRef.current.set(item.dedupeKey, now)
     // valom seną dedupe info
     if (recentRef.current.size > 32) {
@@ -48,16 +51,18 @@ export function useCinematicQueue(maxQueue: number = DEFAULT_MAX_QUEUE): Cinemat
     if (!currentRef.current) {
       currentRef.current = item
       setCurrent(item)
-      return
+      return 'now'
     }
     // jau rodom — į eilę (jei nedubliuojam tos pačios eilėje ir neviršijam cap)
-    if (queueRef.current.some((q) => q.dedupeKey === item.dedupeKey)) return
+    if (queueRef.current.some((q) => q.dedupeKey === item.dedupeKey)) return 'dropped'
     if (queueRef.current.length >= maxQueue) {
       // numetam seniausią low-priority (summon prieš championSkill? abu vienodi — numetam patį seniausią)
       queueRef.current.shift()
     }
     queueRef.current.push(item)
+    return 'queued'
   }, [maxQueue])
+  const isBusy = useCallback(() => !!currentRef.current, [])
 
   const enqueueSummonCinematic = useCallback((card: CinematicCardInput, ctx?: SummonTriggerContext) => {
     enqueue(buildSummonCinematic(card, ctx))
@@ -71,5 +76,5 @@ export function useCinematicQueue(maxQueue: number = DEFAULT_MAX_QUEUE): Cinemat
   const skip = useCallback(() => { advance() }, [advance])
   const clear = useCallback(() => { queueRef.current = []; currentRef.current = null; setCurrent(null) }, [])
 
-  return { current, enqueueSummonCinematic, enqueueChampionSkillCinematic, enqueue, skip, finish, clear }
+  return { current, enqueueSummonCinematic, enqueueChampionSkillCinematic, enqueue, isBusy, skip, finish, clear }
 }

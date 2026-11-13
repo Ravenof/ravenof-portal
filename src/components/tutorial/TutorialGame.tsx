@@ -78,7 +78,8 @@ import { BattleLogList, type LogFilter } from '@/components/tutorial/BattleLogLi
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
 import { RavenofCinematicOverlay } from './RavenofCinematicOverlay'
 import { useCinematicQueue } from '@/lib/game/cinematicQueue'
-import { collectDeckCinematicPosters, preloadCinematicPosters, collectDeckCinematicVideos, preloadCinematicVideos, type CinematicCardInput } from '@/lib/game/cinematics'
+import { collectDeckCinematicPosters, preloadCinematicPosters, collectDeckCinematicVideos, preloadCinematicVideos, buildSummonCinematic, peekSummonComicLevel, resetComicSeen, type CinematicCardInput } from '@/lib/game/cinematics'
+import { COMIC_TIMES } from '@/lib/game/comicStage'
 import { ArenaBackground, randomArena, type ArenaKey } from './ArenaBackground'
 import { BattleFxLayer, type BattleFxHandle, type AoeVariant } from './BattleFxLayer'
 import BattleLayout from './BattleLayout'
@@ -308,6 +309,8 @@ function skillFxFor(c: TutCard | null | undefined, skillIndex: number): SkillFxI
   if (sk && isSkillFxId(sk.fx)) return sk.fx
   return defaultSkillFx(c.name, skillIndex)
 }
+/** Tarpas tarp komikso kadrų išslydimo pradžios ir kortos nusileidimo choreografijos starto (ms). */
+const COMIC_LAND_GAP = 120
 const isUnitSummonEvent = (ev: { t: string; key?: string }) => ev.t === 'play' || (ev.t === 'champion' && (ev.key ?? '').startsWith('battleLog.playChampion'))
 
 const SUMMON_BY_EFFECT_KEYS = new Set([
@@ -1802,6 +1805,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const initGame = useCallback((cards: TutCard[], opp?: TutCard[] | null) => {
     matchStartRef.current = Date.now()
     // Game-feel telemetrija: kiekviena kova matuojama iš naujo (modulinė būsena).
+    resetComicSeen()
     resetFeelTelemetry({ summonCinematics: isSummonCinematicsEnabled(), skillCinematics: isChampionSkillCinematicsEnabled() })
     resetReactionPacing()   // pirma kovos reakcija visada pilna, vėlesnės — kompaktiškos
     // Scenų FX vartai (ŽMK skrydis + Kovos šūksnis/Paskutinis noras/Trigeris): variklis
@@ -2082,7 +2086,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     // Iškvietimo choreografija (v3) trunka ilgiau nei spyruoklė – kortos efektai (Kovos šūksnis)
     // prasideda tik jai nusileidus. Kortoms be choreografijos lieka įprasti 800 ms.
     const summonLand = (hasPlay && isSummonFxEnabled() && fxStage.available())
-      ? fresh.reduce((mx, ev) => isUnitSummonEvent(ev) ? Math.max(mx, summonLandMs(summonFxFor(findCard(ev.cardName)))) : mx, 0) : 0
+      ? fresh.reduce((mx, ev) => {
+          if (!isUnitSummonEvent(ev)) return mx
+          const cd = findCard(ev.cardName)
+          // Komikso intarpas: korta nusileidžia tik kadrams išslydus – kortos efektai laukia ir jo.
+          const fromHand = ev.fromZone !== 'graveyard' && !SUMMON_BY_EFFECT_KEYS.has(ev.key ?? '')
+          const lv = cd && fromHand && !cine.isBusy() ? peekSummonComicLevel(toCineCard(cd)) : null
+          const cw = lv ? COMIC_TIMES[lv].exitAt + COMIC_LAND_GAP : 0
+          const fxId = summonFxFor(cd) ?? (cw > 0 ? factionSummonFx(cd?.factionName) : null)
+          return Math.max(mx, cw + summonLandMs(fxId))
+        }, 0) : 0
     const SETTLE = hasPlay ? Math.max(800, summonLand ? summonLand + 180 : 0) : 0
     const aoeMode = fresh.filter((ev) => ev.t === 'damage').length >= 2  // ≥2 žalos taikiniai
     // Tikras AoE (engine markeris fxSource.aoe – mapping'as taiko VISĄ zoną): zoninis efektas, be projektilų.
@@ -2254,19 +2267,31 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         case 'play': case 'artifact': case 'champion': {
           if (!e.sound) playBattleSound('summon')
           const sc = findCard(e.cardName)
-          if (sc) playCardVoice(cardVoiceUrls(sc.id, sc.gameplay?.voiceLines), { cardId: sc.id })
+          let comicWait = 0, comicHero = 0   // komikso intarpas: kada korta leidžiasi / kada skamba balsas
           // Premium summon kino pop-up (Legendinis/Čempionas; ne fazės keitimas/artefaktas)
           if (sc && (e.t === 'play' || (e.t === 'champion' && (e.key ?? '').startsWith('battleLog.playChampion')))) {
             const csrc = e.fromZone === 'graveyard' ? 'revived'
               : SUMMON_BY_EFFECT_KEYS.has(e.key ?? '') ? 'summonedByEffect'
               : 'playedFromHand'
-            cine.enqueueSummonCinematic(toCineCard(sc), { source: csrc })
+            const built = buildSummonCinematic(toCineCard(sc), { source: csrc })
+            const started = cine.enqueue(built)
+            if (built?.comic && started === 'now') { const ct = COMIC_TIMES[built.comic.level]; comicWait = ct.exitAt + COMIC_LAND_GAP; comicHero = ct.heroAt }
           }
+          if (sc) { const vUrls = cardVoiceUrls(sc.id, sc.gameplay?.voiceLines), vId = sc.id
+            if (comicHero > 0) window.setTimeout(() => { void playCardVoice(vUrls, { cardId: vId }) }, comicHero)   // balsas – ant herojaus kadro
+            else playCardVoice(vUrls, { cardId: vId }) }
           // ── Iškvietimo choreografija v3: juda PATI korta (fxStage). Jei negrojama – senas kelias. ──
           let v3Played = false
           { const bySkill = srcSkill && SUMMON_BY_EFFECT_KEYS.has(e.key ?? '') ? fxStage.skillSummonFx(srcSkill) : null   // gebėjimo iškviesti padarai (zombiai, impai)
-            const v3 = sc && isSummonFxEnabled() && isUnitSummonEvent(e) ? (summonFxFor(sc) ?? bySkill) : null
-            if (v3) {
+            const v3 = sc && isSummonFxEnabled() && isUnitSummonEvent(e) ? (summonFxFor(sc) ?? bySkill ?? (comicWait > 0 ? factionSummonFx(sc.factionName) : null)) : null
+            const uidC = v3 && comicWait > 0 ? (e.src?.uid ?? P(game, e.side).units.find((u) => u?.card.name === e.cardName)?.uid) : undefined
+            if (v3 && uidC && fxStage.available()) {
+              // Komikso intarpas dengia ekraną – nusileidimo choreografija startuoja kadrams išslystant.
+              const v3c = v3, hk = fxHooksRef.current
+              window.setTimeout(() => { const elC = unitEl(uidC); if (elC) fxStage.summon(v3c, elC, { hooks: hk }) }, comicWait)
+              v3Played = true; summonV3Ref.current.add(uidC)
+              summonBusyUntilRef.current = Math.max(summonBusyUntilRef.current, performance.now() + comicWait + summonLandMs(v3) + 180)
+            } else if (v3) {
               const uid3 = e.src?.uid ?? P(game, e.side).units.find((u) => u?.card.name === e.cardName)?.uid
               const el3 = unitEl(uid3)
               const land3 = uid3 && el3 ? fxStage.summon(v3, el3, { hooks: fxHooksRef.current }) : 0

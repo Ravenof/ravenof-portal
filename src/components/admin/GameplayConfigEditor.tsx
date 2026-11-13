@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toWebp, LONG_CACHE } from '@/lib/img-optimize'
 import { VoiceLinesUpload } from './VoiceLinesUpload'
 import { CinematicUpload, type CinematicData } from './CinematicUpload'
+import { ComicUpload } from './ComicUpload'
 import {
   STATUS_OR_KEYWORDS,
   TARGET_TYPES, EFFECT_TYPES, TRIGGER_TYPES, PROJECTILE_TYPES, EFFECT_GROUP_ORDER,
@@ -292,6 +293,17 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
             style={{ background: 'var(--gold)', color: '#0a0a0f', cursor: cfg.summonEffect ? 'pointer' : 'not-allowed' }}
           >▶ Peržiūra</button>
         </div>
+      </div>
+
+      {/* Komikso intarpas iškvietimui („Kirtis") – paveikslėlių rinkinys */}
+      <div className="rounded-lg p-3" style={{ background: 'rgba(60,255,140,0.04)', border: '1px solid var(--bg-border)' }}>
+        <p style={{ ...labelStyle, marginBottom: 6 }}>💥 Komikso intarpas — iškvietimas (Legendinė / Epinė / Čempionas)</p>
+        <ComicUpload
+          cardId={cardId}
+          cardNumber={cardNumber}
+          value={cfg.summonComic}
+          onChange={(data) => update({ ...cfg, summonComic: data })}
+        />
       </div>
 
       {/* Premium summon kino pop-up (Legendiniams / Čempionams) */}

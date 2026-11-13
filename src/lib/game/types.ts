@@ -604,6 +604,23 @@ export type SkillCinematic = {
   updatedAt?: string
 }
 
+// ── Komikso intarpas iškvietimui („Kirtis") — paveikslėlių rinkinys vietoj video ──
+// Variklis: lib/game/comicStage.ts. Failai – card-cinematics bucket'e (cards/<nr>/comic/).
+// Lygis parenkamas automatiškai: Legendinis / čempionas → pilnas (3 kadrai), kitos → vidutinis
+// (2 kadrai), pakartotinis iškvietimas toje pačioje kovoje → trumpas (1 kadras).
+export type ComicFocusPoint = [number, number]
+export type SummonComic = {
+  enabled: boolean
+  closeup?: string   // akys / veidas, ~3:1
+  action?: string    // veiksmas, ~2:1
+  hero?: string      // visa figūra, ~3:4
+  focus?: { closeup?: ComicFocusPoint; action?: ComicFocusPoint; hero?: ComicFocusPoint }   // object-position %, kiekvienam kadrui
+  titleOverride?: string
+  frameTheme?: CinematicFrameTheme
+  triggerSources?: CinematicTriggerSource[]
+  updatedAt?: string
+}
+
 // ── Čempiono skill (3 vnt; atrakinami pagal fazę: skill1=faze1, skill2=faze2, skill3=faze3) ──
 export type ChampionSkill = { name?: string; mappings: EffectMapping[]; cinematic?: SkillCinematic; /** Gebėjimo FX (fxStage). Nenurodžius – pagal čempiono vardą. */ fx?: SkillFxId; goldCost?: number /* kaina auksu; 0/nenurodyta = nemokamas */; icon?: string | null /* skill ikona (card-images/skill-icons/…), rodoma pasirinkimo lange */ }
 
@@ -707,6 +724,7 @@ export type GameplayConfig = {
   animationType?: string
   soundType?: BattleSoundType
   voiceLines?: string[]            // iškvietimo balsai: keli mp3/ogg URL, grojami atsitiktinai per voiceManager
+  summonComic?: SummonComic        // Komikso intarpas iškvietimui (pirmenybė prieš summonCinematic) — žr. lib/game/comicStage.ts
   summonCinematic?: SummonCinematic // Premium kino pop-up (Legendiniams/Čempionams) — žr. lib/game/cinematics.ts
   summonEffect?: SummonEffectType  // pilno lauko vizualus efektas iškviečiant kortą
   /** Iškvietimo choreografija v3 (juda pati korta). Turi pirmenybę prieš seną `summonEffect`. */
