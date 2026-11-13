@@ -1509,6 +1509,16 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     if (game.field?.card.name === name) return game.field.card
     return null
   }, [cardByName, game])
+  // Čempiono fazių kortos vadinasi vienodai – pagal vardą rastume bet kurią fazę. Kai korta jau lentoje,
+  // imam būtent ją (tikroji fazė: jos intarpas, balsai, gebėjimai); kitaip – įprasta paieška pagal vardą.
+  const findPlayedCard = useCallback((side: Side | undefined, name?: string | null, uid?: string | null): TutCard | null => {
+    if (game && side && name) {
+      const us = P(game, side).units
+      const u = (uid ? us.find((x) => x?.uid === uid) : null) ?? us.find((x) => x?.card.name === name)
+      if (u && u.card.name === name) return u.card
+    }
+    return findCard(name)
+  }, [game, findCard])
 
   const [soundOn, setSoundOn] = useState(true)
   const seenRef = useRef(0)
@@ -2088,7 +2098,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     const summonLand = (hasPlay && isSummonFxEnabled() && fxStage.available())
       ? fresh.reduce((mx, ev) => {
           if (!isUnitSummonEvent(ev)) return mx
-          const cd = findCard(ev.cardName)
+          const cd = findPlayedCard(ev.side, ev.cardName, ev.src?.uid)
           // Komikso intarpas: korta nusileidžia tik kadrams išslydus – kortos efektai laukia ir jo.
           const fromHand = ev.fromZone !== 'graveyard' && !SUMMON_BY_EFFECT_KEYS.has(ev.key ?? '')
           const pt = cd && fromHand && !cine.isBusy() ? peekSummonComicTimes(toCineCard(cd)) : null
@@ -2266,7 +2276,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         }
         case 'play': case 'artifact': case 'champion': {
           if (!e.sound) playBattleSound('summon')
-          const sc = findCard(e.cardName)
+          const sc = findPlayedCard(e.side, e.cardName, e.src?.uid)
           let comicWait = 0, comicHero = 0   // komikso intarpas: kada korta leidžiasi / kada skamba balsas
           // Premium summon kino pop-up (Legendinis/Čempionas; ne fazės keitimas/artefaktas)
           if (sc && (e.t === 'play' || (e.t === 'champion' && (e.key ?? '').startsWith('battleLog.playChampion')))) {
@@ -2351,7 +2361,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           srcRef = e.src; srcCard = findCard(e.cardName) ?? srcCard; srcKind = 'ability'; srcSkill = null
           // Premium Čempiono skill kino pop-up (po taikinio pasirinkimo – ability event jau po resolve)
           if (e.t === 'ability' && typeof e.skillIndex === 'number') {
-            const cc = findCard(e.cardName)
+            const cc = findPlayedCard(e.side, e.cardName, e.src?.uid)
             // Komikso intarpas dengia ekraną – gebėjimo efektai (užtaisymas, smūgiai) laukia, kol kadrai išslys.
             let skWait = 0, skHit = 0
             if (cc) {
