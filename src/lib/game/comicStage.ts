@@ -14,7 +14,7 @@ export type ComicFocus = [number, number]
 /** Pilno iškvietimo intarpo išdėstymas. */
 export type ComicTemplate = 'zaibas' | 'sukes' | 'plysys' | 'kryzius'
 /** Personažo vizualų rinkinys: pjūvio forma, aplinkos dalelės, smūgio ir išėjimo efektai. */
-export type ComicKit = 'grave' | 'arcane' | 'storm' | 'holy' | 'inferno'
+export type ComicKit = 'grave' | 'arcane' | 'storm' | 'holy' | 'inferno' | 'sea'
 /** summon – iškvietimas; skill – 1/2 gebėjimas (vienas kadras); ult – 3 gebėjimas už auksą. */
 export type ComicKind = 'summon' | 'skill' | 'ult'
 export const COMIC_TEMPLATES: { value: ComicTemplate; label: string }[] = [
@@ -29,6 +29,7 @@ export const COMIC_KITS: { value: ComicKit; label: string }[] = [
   { value: 'storm', label: 'Audra – kibirkštys, žaibo smūgis, kadrai išsilaksto' },
   { value: 'holy', label: 'Šventas – plunksnos ir šviesos stulpas, kadrai pakyla' },
   { value: 'inferno', label: 'Pragaras – kylančios žarijos, liepsnų žiedas, kadrai sudega' },
+  { value: 'sea', label: 'Jūra – lietus, bangos purslai, kadrus nuplauna banga' },
 ]
 export type ComicSpec = {
   level: ComicLevel
@@ -81,7 +82,7 @@ export const COMIC_EXIT_MS = 340
 /** Kiek intarpo sluoksnis dar gyvas po exitAt – personažo išėjimo efektai trunka ilgiau. */
 export function comicExitMs(s: Pick<ComicSpec, 'kind' | 'kit' | 'level'>): number {
   if ((s.kind ?? 'summon') !== 'summon' || s.level === 'static') return COMIC_EXIT_MS
-  return s.kit === 'arcane' ? 680 : s.kit === 'holy' ? 720 : s.kit === 'grave' ? 380 : s.kit === 'inferno' ? 520 : COMIC_EXIT_MS
+  return s.kit === 'arcane' ? 680 : s.kit === 'holy' ? 720 : s.kit === 'grave' ? 380 : s.kit === 'inferno' ? 520 : s.kit === 'sea' ? 600 : COMIC_EXIT_MS
 }
 
 type Pt = [number, number]
@@ -256,7 +257,7 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
   const t0wall = performance.now()
   let Q: { t: number; fn: () => void }[] = []
   let TW: Tw[] = []
-  const parts: { x: number; y: number; vx: number; vy: number; l: number; m: number; r: number; c?: string }[] = []
+  const parts: { x: number; y: number; vx: number; vy: number; l: number; m: number; r: number; c?: string; g?: number }[] = []
   const slashes: { pts: Pt[]; t0: number; dur: number; fade: number }[] = []
   const rings: { x: number; y: number; r1: number; t0: number; dur: number; col?: string }[] = []
   const bolts: { a: Pt; b: Pt; t0: number; life: number; w: number; n?: number }[] = []
@@ -266,6 +267,10 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
   const voids: { t0: number; dur: number }[] = []
   const pillars: { x: number; y: number; t0: number; dur: number }[] = []
   const flares: { x: number; y: number; t0: number; dur: number; seed: number }[] = []
+  const rain: { x: number; y: number; l: number; m: number; len: number }[] = []
+  const waves: { t0: number; dur: number }[] = []
+  /** Vandens lašas: išlekia vėduokle ir krenta žemyn. */
+  const droplet = (x: number, y: number, a: number, v: number, life: number) => { parts.push({ x, y, vx: Math.cos(a) * v * SW / 1000, vy: Math.sin(a) * v * SW / 1000, l: 0, m: life, r: (1.4 + 3 * Math.random()) * SW / 1000, c: Math.random() < 0.5 ? '235,250,250' : '150,215,225', g: 0.0022 * SW / 1000 }) }
   /** Žarija: kyla aukštyn, šiek tiek plaukia į šoną. */
   const ember = (x: number, y: number, up: number, life: number) => { parts.push({ x, y, vx: (Math.random() - 0.5) * 0.12 * SW / 1000, vy: -up * SW / 1000, l: 0, m: life, r: (2 + 4.4 * Math.random()) * SW / 1000, c: Math.random() < 0.35 ? '255,225,150' : '255,150,50' }) }
 
@@ -305,6 +310,9 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       bolts.push({ a: [x + (Math.random() - 0.5) * SW * 0.08, -10], b: [x, y], t0: T, life: 340, w: 3.2, n: 9 })
       bolts.push({ a: [x - SW * 0.06, -10], b: [x + SW * 0.03, y + SH * 0.22], t0: T + 70, life: 260, w: 1.8, n: 8 })
       ring(bx, by, 16, 600, '120,255,90'); ring(bx, by, 9, 800, '120,255,90'); S.zap()
+    } else if (kit === 'sea') {
+      ring(bx, by, 24, 700, '170,230,235'); ring(bx, by, 14, 900, '235,250,250')
+      for (let i = 0; i < (low ? 16 : 48); i++) droplet(x + (Math.random() - 0.5) * SW * 0.05, y, -Math.PI / 2 + (Math.random() - 0.5) * 2.4, 0.35 + 0.75 * Math.random(), 700 + Math.random() * 500)
     } else if (kit === 'inferno') {
       flares.push({ x, y, t0: T, dur: 800, seed: (Math.random() * 1e6) | 0 }); ring(bx, by, 22, 650, '255,170,60'); ring(bx, by, 12, 850, '255,120,40')
       for (let i = 0; i < (low ? 12 : 36); i++) { const a = Math.random() * 6.283, r = SW * 0.06 * Math.random(); ember(x + Math.cos(a) * r, y + Math.sin(a) * r, 0.25 + 0.5 * Math.random(), 800 + Math.random() * 700) }
@@ -322,6 +330,10 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
     if (kit === 'grave') {
       amb = 70; mkFeather(Math.random() * VW * 1.1, -20, (-0.05 - 0.1 * Math.random()) * SW / 1000, (0.22 + 0.3 * Math.random()) * SW / 1000, 1500 + Math.random() * 600)
       if (!low) mists.push({ x: Math.random() * VW, y: VH * 1.05, vy: -(0.05 + 0.06 * Math.random()) * SW / 1000, l: 0, m: 1900, r: SW * (0.09 + 0.08 * Math.random()) })
+      return
+    }
+    if (kit === 'sea') {
+      amb = 30; for (let i = 0; i < (low ? 3 : 11); i++) rain.push({ x: Math.random() * VW * 1.25, y: -SW * 0.05 + Math.random() * VH * 0.5, l: 0, m: 380 + Math.random() * 220, len: SW * (0.03 + 0.035 * Math.random()) })
       return
     }
     if (kit === 'inferno') {
@@ -377,6 +389,11 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       }
       else if (kit === 'holy') { tw(p, { y: p.y - 42 }, 320, ei); tw(p, { a: 0 }, 220, lin, 80) }
       else if (kit === 'grave') { tw(p, { y: p.y + 38, rot: (Math.random() - 0.5) * 10 }, 300, ei); tw(p, { a: 0 }, 220, lin, 80) }
+      else if (kit === 'sea') {
+        // Banga eina iš kairės į dešinę: kadrai nunešami tada, kai ji juos pasiekia.
+        const d = Math.max(0, (cx / 100 + 0.1) / 1.35 * 520 - 30)
+        tw(p, { x: p.x + 70, y: p.y + 10, rot: 5 + Math.random() * 6 }, 200, ei, d); tw(p, { a: 0 }, 110, lin, d + 60)
+      }
       else if (kit === 'inferno') {
         // Kadras įkaista iki baltumo, susitraukia ir virsta žarijomis.
         p.fl.style.background = 'linear-gradient(0deg,#ff7a1a,#ffd98a 60%,#fff6dc)'; p.f = 0.15; tw(p, { f: 0.95 }, 200, ei); tw(p, { s: 0.94, y: p.y - 6, rot: (Math.random() - 0.5) * 4 }, 300, ei); tw(p, { a: 0 }, 140, lin, 190)
@@ -391,6 +408,7 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       for (let i = 0; i < (low ? 10 : 30); i++) parts.push({ x: Math.random() * VW, y: VH * (0.3 + 0.7 * Math.random()), vx: 0, vy: -(0.15 + 0.2 * Math.random()) * SW / 1000, l: 0, m: 700 + Math.random() * 500, r: (1 + 2 * Math.random()) * SW / 1000 })
     }
     if (kit === 'inferno') { at(170, () => { flash(0.32, 240); S.hit(70, 0.8) }) }
+    if (kit === 'sea') { waves.push({ t0: T, dur: 520 }); S.whoosh(); at(120, () => S.hit(60, 0.7)) }
     if (kit === 'storm') { flash(0.5, 220); S.zap(); bolts.push({ a: [VW * 0.5, -10], b: [VW * 0.5, OY + SH * 0.72], t0: T, life: 280, w: 3, n: 9 }) }
     tw(D, { a: 0 }, 300, lin, 40)
     at(comicExitMs(spec), finish)
@@ -492,6 +510,28 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
         const al = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85, w = SW * (0.11 - 0.04 * p)
         c.fillStyle = `rgba(${rgb},${0.16 * al})`; c.fillRect(q.x - w, 0, w * 2, q.y); c.fillStyle = `rgba(${rgb},${0.22 * al})`; c.fillRect(q.x - w * 0.5, 0, w, q.y); c.fillStyle = `rgba(255,255,255,${0.3 * al})`; c.fillRect(q.x - w * 0.14, 0, w * 0.28, q.y) }
       c.globalCompositeOperation = 'source-over' }
+    if (rain.length) {
+      // Įstrižas lietus: trumpi šviesūs brūkšniai.
+      c.strokeStyle = 'rgba(210,235,240,0.5)'; c.lineWidth = Math.max(1, SW * 0.0012); c.beginPath()
+      const vx = -0.55 * SW / 1000, vy = 1.75 * SW / 1000
+      for (let i = rain.length - 1; i >= 0; i--) { const q = rain[i]; q.l += dt; if (q.l >= q.m) { rain[i] = rain[rain.length - 1]; rain.pop(); continue }
+        q.x += vx * dt; q.y += vy * dt; c.moveTo(q.x, q.y); c.lineTo(q.x + q.len * 0.3, q.y - q.len) }
+      c.stroke()
+    }
+    for (let i = waves.length - 1; i >= 0; i--) { const w = waves[i], p = (T - w.t0) / w.dur; if (p >= 1) { waves.splice(i, 1); continue }
+      // Banga: putotas priekinis kraštas, už jo – skaidrėjantis vanduo.
+      const xf = -VW * 0.1 + p * VW * 1.35, band = SW * 0.46, al = p < 0.8 ? 1 : 1 - (p - 0.8) / 0.2, N = 44
+      const edge = (k: number) => xf + Math.sin(k * 0.55 + T * 0.012) * SW * 0.02 + Math.sin(k * 0.21 + 1.3) * SW * 0.035 + Math.sin(k * 1.3 + T * 0.02) * SW * 0.006
+      const gr = c.createLinearGradient(xf - band, 0, xf + SW * 0.03, 0)
+      gr.addColorStop(0, 'rgba(30,90,110,0)'); gr.addColorStop(0.55, `rgba(40,120,140,${0.5 * al})`); gr.addColorStop(0.9, `rgba(120,200,210,${0.7 * al})`); gr.addColorStop(1, `rgba(240,252,252,${0.95 * al})`)
+      c.fillStyle = gr; c.beginPath(); c.moveTo(xf - band, 0)
+      for (let k = 0; k <= N; k++) c.lineTo(edge(k), VH * k / N)
+      c.lineTo(xf - band, VH); c.closePath(); c.fill()
+      c.strokeStyle = `rgba(245,255,255,${0.9 * al})`; c.lineWidth = SW * 0.006; c.lineJoin = 'round'; c.beginPath()
+      for (let k = 0; k <= N; k++) { const ex = edge(k), ey = VH * k / N; if (k) c.lineTo(ex, ey); else c.moveTo(ex, ey) }
+      c.stroke()
+      if (dt > 0 && !low) for (let k = 0; k < 3; k++) droplet(edge(Math.random() * N), Math.random() * VH, -0.6 + Math.random() * 1.2 - 0.4, 0.3 + 0.5 * Math.random(), 350 + Math.random() * 300)
+    }
     if (flares.length) { c.globalCompositeOperation = 'lighter'
       for (let i = flares.length - 1; i >= 0; i--) { const f = flares[i], p = (T - f.t0) / f.dur; if (p >= 1) { flares.splice(i, 1); continue }
         // Liepsnų liežuviai aplink smūgio tašką: auga, mirga, gęsta.
@@ -545,7 +585,7 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       ctx.globalCompositeOperation = 'lighter'
       for (let i = parts.length - 1; i >= 0; i--) { const q = parts[i]; q.l += dt
         if (q.l >= q.m) { parts[i] = parts[parts.length - 1]; parts.pop(); continue }
-        const dk = Math.pow(0.985, dt / 16.7); q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= dk; q.vy *= dk; const k = 1 - q.l / q.m
+        const dk = Math.pow(0.985, dt / 16.7); if (q.g) q.vy += q.g * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.vx *= dk; q.vy *= dk; const k = 1 - q.l / q.m
         ctx.fillStyle = `rgba(${q.c ?? rgb},${k * 0.9})`; ctx.beginPath(); ctx.arc(q.x, q.y, q.r * (0.5 + k * 0.5), 0, 6.283); ctx.fill() }
       ctx.globalCompositeOperation = 'source-over'
     }
