@@ -9,6 +9,7 @@ import { create } from 'zustand'
 import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n/core'
 import { DECK_MIN, DECK_MAX, isDeckSizeValid } from '@/lib/deck-validation'
+import { DECKS_VISIBLE_OR } from '@/lib/game/hiddenFactions'
 
 export type DeckValidity = { valid: boolean; reason: string | null }
 export type ActiveDeckInfo = {
@@ -75,7 +76,7 @@ export const useActiveDeck = create<ActiveDeckState>((set, get) => ({
         const [{ data: prof }, { data: rows }, { data: col }] = await Promise.all([
           supabase.from('profiles').select('active_deck_id, role').eq('id', user.id).maybeSingle(),
           supabase.from('decks').select('id, name, card_count, bound_avatar, updated_at, faction:factions ( id, name, icon_url, color_hex )')
-            .eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
+            .eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').or(DECKS_VISIBLE_OR).order('updated_at', { ascending: false }),
           supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
         ])
         const deckIds = (((rows as unknown as { id: string }[]) ?? [])).map((d) => d.id)

@@ -37,6 +37,7 @@ import { useDesktopUi } from './ui/useDesktopUi'
 import { DT } from './ui/deskTokens'
 import { DeskDialog, useDialogFocus } from './ui/DeskKit'
 import { ravenofFactionIcon } from './ui/RavenofKit'
+import { DECKS_VISIBLE_OR } from '@/lib/game/hiddenFactions'
 
 const GOLD = '240,180,41'
 const GOLD_HEX = '#d4a33b'
@@ -304,7 +305,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   const load = useCallback(async () => {
     const supabase = createClient()
     const [{ data: deckRows }, { data: colRows }] = await Promise.all([
-      supabase.from('decks').select('id, name, faction_id, visibility, card_count, avg_gold_cost, faction:factions ( name, slug, color_hex )').eq('user_id', userId).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
+      supabase.from('decks').select('id, name, faction_id, visibility, card_count, avg_gold_cost, faction:factions ( name, slug, color_hex )').eq('user_id', userId).not('name', 'ilike', '[Kampanija]%').or(DECKS_VISIBLE_OR).order('updated_at', { ascending: false }),
       supabase.from('user_collections').select('card_id, quantity').eq('user_id', userId),
       ensureCardTranslations(),
     ])

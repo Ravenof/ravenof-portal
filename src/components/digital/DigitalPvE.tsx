@@ -26,6 +26,7 @@ import { RavenofBannerButton, battleModeAsset, type BattleMode } from '@/compone
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { FormatSwitch } from '@/components/digital/ui/FormatSwitch'
 import { useBattleFormat } from '@/lib/game/format'
+import { DECKS_VISIBLE_OR, withoutHiddenFactions } from '@/lib/game/hiddenFactions'
 
 // i18n
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
@@ -86,7 +87,7 @@ export function DigitalPvE() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { setDecks([]); return }
       const [{ data }, { data: colRows }, { data: prof }] = await Promise.all([
-        supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
+        supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').or(DECKS_VISIBLE_OR).order('updated_at', { ascending: false }),
         supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
         supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
       ])
@@ -103,10 +104,10 @@ export function DigitalPvE() {
       setDecks(ds)
       const first = ds.find((d) => d.missing === 0); if (first) setSel(first.id)
     })
-    supabase.from('factions').select('id, name, icon_url, color_hex').order('sort_order').limit(20).then(({ data }) => setFactions(((data as Faction[]) ?? []).filter((f) => f.name !== 'Universalus')))
+    supabase.from('factions').select('id, name, icon_url, color_hex').order('sort_order').limit(20).then(({ data }) => setFactions(withoutHiddenFactions((data as Faction[]) ?? []).filter((f) => f.name !== 'Universalus')))
     // DI varžovu gali būti TIK galiojančio dydžio (30–40 kortų) vieša kaladė —
     // netinkamos (pvz., 58/60 kortų) iš pasirinkimo pašalinamos visai.
-    supabase.from('decks').select('id, name, user_id, score, card_count, faction:factions ( id, name, icon_url, color_hex )').eq('visibility', 'public')
+    supabase.from('decks').select('id, name, user_id, score, card_count, faction:factions ( id, name, icon_url, color_hex )').eq('visibility', 'public').or(DECKS_VISIBLE_OR)
       .gte('card_count', DECK_MIN).lte('card_count', DECK_MAX).order('score', { ascending: false }).limit(60)
       .then(async ({ data }) => {
         const rows = (data as unknown as { id: string; name: string; user_id: string; score: number | null; card_count: number | null; faction: { id: number; name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []

@@ -5,6 +5,7 @@ import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { createPublicClient } from '@/lib/supabase/public'
 import { DigitalDecks } from '@/components/digital/DigitalDecks'
 import type { CardWithRelations, CollectionMap, DeckEntry, DeckVisibility } from '@/types'
+import { withoutHiddenFactions } from '@/lib/game/hiddenFactions'
 
 export async function generateMetadata() {
   const t = await getServerT()
@@ -29,9 +30,9 @@ const getCachedBuilderCards = unstable_cache(
       `).eq('status', 'active').order('gold_cost').order('name'),
       supabase.from('factions').select('*').order('sort_order'),
     ])
-    return { cards: (cards as unknown as CardWithRelations[]) ?? [], factions: factions ?? [] }
+    return { cards: (cards as unknown as CardWithRelations[]) ?? [], factions: withoutHiddenFactions(factions) }
   },
-  ['deck-builder-cards'],
+  ['deck-builder-cards-v2'],
   { revalidate: 600, tags: ['cards'] }
 )
 

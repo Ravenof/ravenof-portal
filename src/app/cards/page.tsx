@@ -7,6 +7,7 @@ import { NotificationBell } from '@/components/ui/NotificationBell'
 import { HeaderNav } from '@/components/layout/HeaderNav'
 import { fetchNotifications } from '@/lib/notifications'
 import type { CardWithRelations, CollectionMap } from '@/types'
+import { withoutHiddenFactions } from '@/lib/game/hiddenFactions'
 
 const PAGE_SIZE = 48
 
@@ -85,7 +86,7 @@ async function fetchFilterOptions() {
     { data: rarities },
     { count: totalCount },
   ] = await Promise.all([
-    supabase.from('factions').select('*').order('sort_order'),
+    supabase.from('factions').select('*').order('sort_order').then((r) => ({ ...r, data: withoutHiddenFactions(r.data) })),
     supabase.from('card_types').select('*').order('sort_order'),
     supabase.from('rarities').select('*').order('sort_order'),
     supabase.from('cards').select('*', { count: 'exact', head: true }).eq('status', 'active'),

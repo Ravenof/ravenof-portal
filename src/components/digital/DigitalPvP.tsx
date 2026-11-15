@@ -31,6 +31,7 @@ import { DT } from '@/components/digital/ui/deskTokens'
 import { TournamentBrowser } from '@/components/digital/tournament/TournamentBrowser'
 import { TournamentScreen } from '@/components/digital/tournament/TournamentScreen'
 import { myActiveTournament } from '@/lib/tournament/client'
+import { DECKS_VISIBLE_OR } from '@/lib/game/hiddenFactions'
 
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -92,7 +93,7 @@ export function DigitalPvP() {
       setUserName((user.user_metadata?.display_name as string) || (user.user_metadata?.username as string) || (user.email?.split('@')[0]) || t('battle.player'))
       friendsList().then((r) => setFriends(r.friends)).catch(() => {})
       const [{ data }, { data: colRows }, { data: prof }] = await Promise.all([
-        supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
+        supabase.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', user.id).not('name', 'ilike', '[Kampanija]%').or(DECKS_VISIBLE_OR).order('updated_at', { ascending: false }),
         supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
         supabase.from('profiles').select('role').eq('id', user.id).maybeSingle(),
       ])

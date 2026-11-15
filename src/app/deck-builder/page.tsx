@@ -4,6 +4,7 @@ import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { createPublicClient } from '@/lib/supabase/public'
 import { DeckBuilderClient } from './DeckBuilderClient'
 import type { CardWithRelations, CollectionMap } from '@/types'
+import { withoutHiddenFactions } from '@/lib/game/hiddenFactions'
 
 export const metadata = { title: 'Kaladžių kūrėjas' }
 
@@ -26,7 +27,7 @@ const getCachedBuilderCards = unstable_cache(
         .eq('status', 'active')
         .order('gold_cost')
         .order('name'),
-      supabase.from('factions').select('*').order('sort_order'),
+      supabase.from('factions').select('*').order('sort_order').then((r) => ({ ...r, data: withoutHiddenFactions(r.data) })),
     ])
     return {
       cards: (cards as unknown as CardWithRelations[]) ?? [],

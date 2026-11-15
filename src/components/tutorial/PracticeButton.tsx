@@ -13,6 +13,7 @@ import { playUiClick } from '@/lib/ui-sound'
 import { RvnIcon } from '@/components/digital/ui/RvnIcon'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 import { useT, useLocale, useContent } from '@/lib/i18n/react'
+import { DECKS_VISIBLE_OR, withoutHiddenFactions } from '@/lib/game/hiddenFactions'
 
 const TutorialGame = dynamic(() => import('./TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
@@ -64,7 +65,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
     if (!isOpen) return
     const supabase = createClient()
     // DI varžovu — tik 30–40 kortų viešos kaladės (kanoninė dydžio taisyklė)
-    supabase.from('decks').select('id, name, user_id, score, faction:factions ( id, name, icon_url, color_hex )').eq('visibility', 'public').gte('card_count', DECK_MIN).lte('card_count', DECK_MAX).order('score', { ascending: false }).limit(60)
+    supabase.from('decks').select('id, name, user_id, score, faction:factions ( id, name, icon_url, color_hex )').eq('visibility', 'public').or(DECKS_VISIBLE_OR).gte('card_count', DECK_MIN).lte('card_count', DECK_MAX).order('score', { ascending: false }).limit(60)
       .then(async ({ data }) => {
         const rows = (data as unknown as { id: string; name: string; user_id: string; score: number | null; faction: { id: number; name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
         const uids = [...new Set(rows.map((r) => r.user_id).filter(Boolean))]
@@ -76,7 +77,7 @@ export function PracticeButton({ deckId, deckName, variant = 'full', hideTrigger
         setPublicDecks(rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null, factionId: d.faction?.id ?? null, author: authors[d.user_id] ?? 'žaidėjas', score: d.score ?? 0 })))
       })
     supabase.from('factions').select('id, name, icon_url, color_hex').order('sort_order').limit(20)
-      .then(({ data }) => setFactions(((data as Faction[]) ?? []).filter((f) => f.name !== 'Universalus')))
+      .then(({ data }) => setFactions(withoutHiddenFactions((data as Faction[]) ?? []).filter((f) => f.name !== 'Universalus')))
     supabase.from('starter_decks').select('id, name, faction_id').eq('is_active', true).order('sort_order').limit(20)
       .then(({ data }) => setStarterDecks((data as { id: string; name: string; faction_id: number | null }[]) ?? []))
   }, [isOpen])

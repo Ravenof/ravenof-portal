@@ -102,6 +102,7 @@ import { useHpGhost } from '@/components/tutorial/HpGhostBar'
 import { ZmkSpecial, ZmkReshuffleFlash, type ZmkSpecialKind } from '@/components/tutorial/ZmkSpecial'
 import { reportMatchStats } from '@/lib/progression/client'
 import { ReactionChainLayer, type ReactionChainHandle, type ReactionChainVariant } from './ReactionChainLayer'
+import { DECKS_VISIBLE_OR } from '@/lib/game/hiddenFactions'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean; /** server-authoritative: abu klientai – „svečiai“ prie apps/server (žr. lib/pvp/serverChannel) */ server?: boolean
   /** Turnyro stebėjimas: tik skaito host'o būseną (A pusės perspektyva), jokių veiksmų, pokalbio, presence, atlygių. */
@@ -3912,7 +3913,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     const supabase = createClient()
     supabase.from('profiles').select('id, username, display_name, avatar_url, level, is_public').eq('id', net.opponentId).maybeSingle()
       .then(({ data }) => { if (data) setOppProfile(data as typeof oppProfile) })
-    supabase.from('decks').select('id, name').eq('user_id', net.opponentId).eq('visibility', 'public').order('updated_at', { ascending: false }).limit(6)
+    supabase.from('decks').select('id, name').eq('user_id', net.opponentId).eq('visibility', 'public').or(DECKS_VISIBLE_OR).order('updated_at', { ascending: false }).limit(6)
       .then(({ data }) => setOppDecks(((data as { id: string; name: string }[]) ?? [])))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [net?.opponentId])

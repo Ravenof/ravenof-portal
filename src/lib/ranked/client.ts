@@ -5,6 +5,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { t } from '@/lib/i18n/core'
 import { getBattleFormat } from '@/lib/game/format'
+import { DECKS_VISIBLE_OR } from '@/lib/game/hiddenFactions'
 import type {
   RankedSeason, RankedProfile, RankedMatchRow, LeaderboardRow,
   MatchReportResult, PlayerMatchStats,
@@ -170,6 +171,7 @@ export async function getRankedDecks(): Promise<{ id: string; name: string; fact
     .select('id, name, faction:factions ( name, icon_url, color_hex )')
     .eq('user_id', user.id)
     .not('name', 'ilike', '[Kampanija]%')
+    .or(DECKS_VISIBLE_OR)
     .order('updated_at', { ascending: false })
   const rows = (data as unknown as { id: string; name: string; faction: { name: string; icon_url: string | null; color_hex: string | null } | null }[]) ?? []
   return rows.map((d) => ({ id: d.id, name: d.name, faction: d.faction?.name ?? null, factionIcon: d.faction?.icon_url ?? null, factionColor: d.faction?.color_hex ?? null }))

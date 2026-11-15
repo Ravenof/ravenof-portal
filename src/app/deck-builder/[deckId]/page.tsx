@@ -2,6 +2,7 @@ import { redirect, notFound } from 'next/navigation'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { DeckBuilderClient } from '../DeckBuilderClient'
 import type { CardWithRelations, CollectionMap, DeckEntry, DeckVisibility } from '@/types'
+import { withoutHiddenFactions } from '@/lib/game/hiddenFactions'
 
 export const metadata = { title: 'Redaguoti kaladę' }
 
@@ -37,7 +38,7 @@ async function fetchEditData(deckId: string) {
       .eq('status', 'active')
       .order('gold_cost')
       .order('name'),
-    supabase.from('factions').select('*').order('sort_order'),
+    supabase.from('factions').select('*').order('sort_order').then((r) => ({ ...r, data: withoutHiddenFactions(r.data) })),
     supabase.from('user_collections').select('card_id, quantity').eq('user_id', user.id),
     supabase
       .from('deck_cards')

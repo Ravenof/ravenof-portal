@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from 'react'
 import { isBgFxEnabled } from '@/lib/settings'
+import { HIDDEN_FACTION_SLUGS } from '@/lib/game/hiddenFactions'
 
 export type ArenaKey = 'crypt' | 'arcane' | 'cathedral' | 'citadel' | 'inferno' | 'scrapyard' | 'harbor' | 'dojo'
 export const ARENA_KEYS: ArenaKey[] = ['crypt', 'arcane', 'cathedral', 'citadel', 'inferno', 'scrapyard', 'harbor', 'dojo']
@@ -26,8 +27,10 @@ if (typeof window !== 'undefined') detectArenaArt()
 
 /** Atsitiktinė arena – PIRMENYBĖ toms, kurios turi tikrą paveikslėlį (kad nerodytų procedūrinės). */
 export function randomArena(): ArenaKey {
-  const withArt = ARENA_KEYS.filter((k) => arenaHasArt[k])
-  const pool = withArt.length ? withArt : ARENA_KEYS
+  // Paslėptos frakcijos arena (dojo = Rytų vėjas) į atsitiktinį parinkimą nepatenka
+  const keys = ARENA_KEYS.filter((k) => !(k === 'dojo' && HIDDEN_FACTION_SLUGS.includes('rytu-vejas')))
+  const withArt = keys.filter((k) => arenaHasArt[k])
+  const pool = withArt.length ? withArt : keys
   return pool[Math.floor(Math.random() * pool.length)]
 }
 

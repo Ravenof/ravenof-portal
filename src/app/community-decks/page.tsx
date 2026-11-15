@@ -3,6 +3,7 @@ import { HeaderNav } from '@/components/layout/HeaderNav'
 import { createClient, getCachedUser } from '@/lib/supabase/server'
 import { CommunityDeckCard } from '@/components/community/CommunityDeckCard'
 import type { PublicDeck, VoteValue, Profile } from '@/types'
+import { DECKS_VISIBLE_OR, withoutHiddenFactions } from '@/lib/game/hiddenFactions'
 
 export const metadata = { title: 'Viešos kaladės' }
 export const revalidate = 30
@@ -25,6 +26,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
       faction:factions ( id, name, slug, color_hex, icon_url, description, sort_order )
     `)
     .eq('visibility', 'public')
+    .or(DECKS_VISIBLE_OR)
 
   if (params.faction) query = query.eq('faction_id', Number(params.faction))
   if (search)         query = query.ilike('name', '%' + search + '%')
@@ -53,7 +55,7 @@ export default async function CommunityDecksPage({ searchParams }: { searchParam
     user && deckIds.length > 0
       ? supabase.from('deck_votes').select('deck_id, vote').eq('user_id', user.id).in('deck_id', deckIds)
       : Promise.resolve({ data: null }),
-    supabase.from('factions').select('id, name, color_hex').order('sort_order'),
+    supabase.from('factions').select('id, name, color_hex').order('sort_order').then((r) => ({ ...r, data: withoutHiddenFactions(r.data) })),
   ])
 
   let profileMap: Record<string, Profile> = {}

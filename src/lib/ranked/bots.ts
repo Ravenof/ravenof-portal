@@ -66,7 +66,7 @@ export const RANKED_BOTS: RankedBot[] = [
   { slug: 'piratewifi', name: 'PirateWifi', avatar: '🏴‍☠️', factionSlug: 'plesiku-naktis', faction: 'Plėšikų naktis',
     strategyType: 'tempo', aggression: 'high', controlPreference: 'medium', tradePreference: 'medium', riskTolerance: 'medium',
     rankStep: R(28, 'gold'), difficultyModifier: 'normal', personality: 'Žaidžia greitai, baudžia klaidas.', deckName: 'Plėšikų tempas' },
-  { slug: 'sneak-exe', name: 'Sneak.exe', avatar: '🥷', factionSlug: 'rytu-vejas', faction: 'Rytų vėjas',
+  { slug: 'sneak-exe', name: 'Sneak.exe', avatar: '🥷', factionSlug: 'plesiku-naktis', faction: 'Plėšikų naktis', // laikinai; originalas rytu-vejas
     strategyType: 'stealth', aggression: 'medium', controlPreference: 'medium', tradePreference: 'low', riskTolerance: 'low',
     rankStep: R(15, 'silver'), difficultyModifier: 'hard', personality: 'Asasinas, laukia lethal lango.', deckName: 'Tylus durklas' },
   { slug: 'healmepls', name: 'HealMePls', avatar: '✨', factionSlug: 'inkvizicijos-legionas', faction: 'Inkvizicijos legionas',
@@ -90,7 +90,7 @@ export const RANKED_BOTS: RankedBot[] = [
   { slug: 'faceisplace', name: 'FaceIsPlace', avatar: '💥', factionSlug: 'vryhioko-gauja', faction: 'Goblinų Gauja',
     strategyType: 'aggro', aggression: 'very_high', controlPreference: 'very_low', tradePreference: 'very_low', riskTolerance: 'very_high',
     rankStep: R(33, 'silver'), difficultyModifier: 'normal', personality: 'Klasikinis aggro, ignoruoja lentą.', deckName: 'Tik į veidą' },
-  { slug: 'critkestas', name: 'CritKestas', avatar: '🎯', factionSlug: 'rytu-vejas', faction: 'Rytų vėjas',
+  { slug: 'critkestas', name: 'CritKestas', avatar: '🎯', factionSlug: 'mirties-marsas', faction: 'Mirties maršas', // laikinai; originalas rytu-vejas
     strategyType: 'stealth', aggression: 'medium', controlPreference: 'medium', tradePreference: 'low', riskTolerance: 'low',
     rankStep: R(14, 'gold'), difficultyModifier: 'hard', personality: 'Burst žaidėjas, vienas švarus kill.', deckName: 'Apskaičiuotas smūgis' },
   { slug: 'buffdaddylt', name: 'BuffDaddyLT', avatar: '💪', factionSlug: 'inkvizicijos-legionas', faction: 'Inkvizicijos legionas',

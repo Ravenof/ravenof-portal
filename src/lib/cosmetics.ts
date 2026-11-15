@@ -1,5 +1,6 @@
 // ── Kosmetika + dienos kortų pasiūlymas (kliento RPC apvalkalai) ──────────────
 import { createClient } from '@/lib/supabase/client'
+import { HIDDEN_FACTION_SLUGS } from '@/lib/game/hiddenFactions'
 
 export type CosmeticKind = 'card_back' | 'board' | 'avatar'
 
@@ -151,7 +152,7 @@ export const BOT_CARD_BACKS: string[] = [
   '/card-backs/cb-rytu-vejas.webp',
   '/card-backs/cb-sviesos-pulkas.webp',
   '/card-backs/cb-vryhioko-gauja.webp',
-]
+].filter((u) => !HIDDEN_FACTION_SLUGS.some((sl) => u.includes('cb-' + sl + '.')))
 
 /** Atsitiktinė boto nugarėlė (nauja kiekvienai kovai). */
 export function randomBotCardBack(): SkinVisual {

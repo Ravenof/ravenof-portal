@@ -3,6 +3,7 @@
 // užklausos, kad kolekcija, kaladžių kūrimas ir PvE veiktų be tinklo iškart
 // (offlineFetch.ts jas kešuoja pagal URL). Kviečiama po auth state change.
 import { createClient } from '@/lib/supabase/client'
+import { DECKS_VISIBLE_OR } from '@/lib/game/hiddenFactions'
 
 const CARD_SEL = `
   id, card_number, name, gold_cost, attack, health,
@@ -35,8 +36,8 @@ export async function warmOfflineCache(): Promise<void> {
     const u = session.user.id
     jobs.push(
       sb.from('user_collections').select('card_id, quantity').eq('user_id', u),
-      sb.from('decks').select('id, name, faction_id, visibility, card_count, avg_gold_cost, faction:factions ( name, color_hex )').eq('user_id', u).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
-      sb.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', u).not('name', 'ilike', '[Kampanija]%').order('updated_at', { ascending: false }),
+      sb.from('decks').select('id, name, faction_id, visibility, card_count, avg_gold_cost, faction:factions ( name, color_hex )').eq('user_id', u).not('name', 'ilike', '[Kampanija]%').or(DECKS_VISIBLE_OR).order('updated_at', { ascending: false }),
+      sb.from('decks').select('id, name, faction:factions ( name, icon_url, color_hex )').eq('user_id', u).not('name', 'ilike', '[Kampanija]%').or(DECKS_VISIBLE_OR).order('updated_at', { ascending: false }),
       sb.from('profiles').select('digital_settings').eq('id', u).maybeSingle(),
       sb.from('profiles').select('role').eq('id', u).maybeSingle(),
       sb.auth.getUser(),

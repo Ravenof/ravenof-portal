@@ -22,6 +22,7 @@ import { isDeckSizeValid, formatDeckCount } from '@/lib/deck-validation'
 import { useDesktopUi } from './ui/useDesktopUi'
 import { DT } from './ui/deskTokens'
 import { useDialogFocus } from './ui/DeskKit'
+import { DECKS_VISIBLE_OR } from '@/lib/game/hiddenFactions'
 
 type Entry = { cardId: string; name: string; image: string | null; gold: number; rarity: string | null; qty: number; owned: number }
 type CDeck = {
@@ -69,7 +70,7 @@ export function DigitalCommunityDecks({ userId }: { userId: string }) {
     const supabase = createClient()
     const { data: deckRows } = await supabase.from('decks')
       .select('id, name, faction_id, card_count, score, user_id, updated_at, faction:factions ( name, color_hex )')
-      .eq('visibility', 'public').order('score', { ascending: false }).limit(60)
+      .eq('visibility', 'public').or(DECKS_VISIBLE_OR).order('score', { ascending: false }).limit(60)
     type DR = { id: string; name: string; faction_id: number | null; card_count: number; score: number; user_id: string; updated_at: string; faction: { name: string; color_hex: string } | null }
     const rows = (deckRows as unknown as DR[]) ?? []
     const ids = rows.map((d) => d.id)
