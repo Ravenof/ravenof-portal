@@ -213,7 +213,13 @@ function leafOnce(g: GameState, cfg: MasterCfg, reshuffle: boolean): number {
 }
 
 // ── Viešas planuotojas ───────────────────────────────────────────────────────
-export type MasterPlan = { seq: ActionDescriptor[]; value: number; explored: number; ms: number }
+/** `starved` – laiko biudžetas baigėsi, kol nebuvo įvertinti net pirmo žingsnio variantai:
+ *  tuščias planas tada reiškia „nespėjau", o NE „geriausia baigti ėjimą". */
+export type MasterPlan = { seq: ActionDescriptor[]; value: number; explored: number; ms: number; starved: boolean }
+
+/** Paieškos statistika vienai kovai (įrašoma į bot_match_logs – kad matytųsi, ar DI „dūsta"). */
+export const aiPlanStats = { plans: 0, starved: 0, rescued: 0, maxMs: 0 }
+export function resetAiPlanStats(): void { aiPlanStats.plans = 0; aiPlanStats.starved = 0; aiPlanStats.rescued = 0; aiPlanStats.maxMs = 0 }
 
 export function planMasterTurn(g0: GameState, cfgIn: MasterCfg | number = MASTER_CFG.normal): MasterPlan | null {
   const cfg: MasterCfg = typeof cfgIn === 'number' ? { ...MASTER_CFG.normal, budget: cfgIn } : cfgIn
@@ -229,16 +235,18 @@ export function planMasterTurn(g0: GameState, cfgIn: MasterCfg | number = MASTER
     let beam: Node[] = [{ g: root, seq: [], h: 0 }]
     const seen = new Set<string>([sig(root)])
     let explored = 0
+    let firstStepDone = false   // ar pirmo žingsnio variantai iki galo išplėsti IR įvertinti
     for (let depth = 0; depth < MAX_DEPTH && beam.length; depth++) {
       const next: Node[] = []
+      let cutShort = false
       for (const node of beam) {
-        if (now() - t0 > budgetMs) break
+        if (now() - t0 > budgetMs) { cutShort = true; break }
         for (const d of candidates(node.g)) {
-          if (now() - t0 > budgetMs) break
+          if (now() - t0 > budgetMs) { cutShort = true; break }
           const c = cloneState(node.g)
           if (!applyDesc(c, d, 'ai')) continue
           explored++
-          if (c.winner === 'ai') return { seq: [...node.seq, d], value: 1_000_000, explored, ms: now() - t0 }
+          if (c.winner === 'ai') return { seq: [...node.seq, d], value: 1_000_000, explored, ms: now() - t0, starved: false }
           if (c.winner) continue
           const k = sig(c)
           if (seen.has(k)) continue
@@ -246,16 +254,22 @@ export function planMasterTurn(g0: GameState, cfgIn: MasterCfg | number = MASTER
           next.push({ g: c, seq: [...node.seq, d], h: evaluatePosition(c, 'ai') })
         }
       }
-      if (!next.length) break
+      if (!next.length) { if (depth === 0 && !cutShort) firstStepDone = true; break }
       next.sort((a, b) => b.h - a.h)
       beam = next.slice(0, BEAM)
+      let evaluated = 0
       for (const n of beam) {
         if (now() - t0 > budgetMs * 1.4) break
         const v = leafValue(n.g, cfg)
+        evaluated++
         if (v > best.v) best = { seq: n.seq, v }
       }
+      if (depth === 0 && !cutShort && evaluated === beam.length) firstStepDone = true
     }
-    return { seq: best.seq, value: best.v, explored, ms: now() - t0 }
+    const ms = now() - t0
+    const starved = !firstStepDone
+    aiPlanStats.plans++; if (starved) aiPlanStats.starved++; if (ms > aiPlanStats.maxMs) aiPlanStats.maxMs = Math.round(ms)
+    return { seq: best.seq, value: best.v, explored, ms, starved }
   } catch (err) {
     // eslint-disable-next-line no-console
     console.warn('[AI master] planavimo klaida – grįžtam prie greedy:', err)
@@ -265,6 +279,50 @@ export function planMasterTurn(g0: GameState, cfgIn: MasterCfg | number = MASTER
   }
 }
 
+/**
+ * Saugiklis prieš „praleistas progas": kai planas siūlo baigti ėjimą, dar kartą pigiai
+ * (vienas žingsnis, statinis vertinimas, keli ŽMK scenarijai) patikrinam, ar neliko
+ * akivaizdžiai naudingo veiksmo – nemokamos atakos į veidą, pelningo prasikeitimo,
+ * čempiono gebėjimo ar padaro, kuriam užtenka aukso (auksas į kitą ėjimą nepersikelia).
+ * Burtų čia neliečiam – juos laikyti ar ne sprendžia pilna paieška.
+ * Grąžina geriausią veiksmą, jei jis padėtį pagerina daugiau nei slenkstis.
+ */
+export function bestLeftoverAction(g0: GameState, samples = 3): { d: ActionDescriptor; gain: number } | null {
+  if (g0.winner || g0.active !== 'ai') return null
+  const realRng = getRng()
+  setRng(mulberry32((g0.globalTurn * 104729 + P(g0, 'ai').hp * 131 + P(g0, 'you').hp * 17 + 7) >>> 0))
+  try {
+    const base = evaluatePosition(g0, 'ai')
+    const hand = P(g0, 'ai').hand
+    let best: { d: ActionDescriptor; gain: number } | null = null
+    for (const d of candidates(g0)) {
+      let minGain = 0.5
+      if (d.type === 'play') {
+        const c = hand.find((x) => x.uid === d.uid)
+        if (!c || (c.type !== 'unit' && c.type !== 'champion')) continue
+        minGain = 1
+      } else if (d.type !== 'attack' && d.type !== 'ability') continue
+      let sum = 0, n = 0, ok = true
+      for (let i = 0; i < samples; i++) {
+        const c = cloneState(g0)
+        shuffleInPlace(c.you.zmk); shuffleInPlace(c.ai.zmk)
+        if (!applyDesc(c, d, 'ai')) { ok = false; break }
+        if (c.winner === 'ai') return { d, gain: 1_000_000 }
+        sum += (c.winner === 'you' ? -1_000_000 : evaluatePosition(c, 'ai')) - base
+        n++
+      }
+      if (!ok || !n) continue
+      const gain = sum / n
+      if (gain > minGain && (!best || gain > best.gain)) best = { d, gain }
+    }
+    return best
+  } catch {
+    return null
+  } finally {
+    setRng(realRng)
+  }
+}
+
 export function logPlan(p: MasterPlan): void {
-  aiLog({ master: true, value: Math.round(p.value * 10) / 10, explored: p.explored, ms: Math.round(p.ms), plan: p.seq.map((d) => d.type === 'attack' ? `atk ${d.cardName}→${d.target.kind}` : d.type === 'play' ? `play ${d.cardName}` : d.type) })
+  aiLog({ master: true, starved: p.starved, value: Math.round(p.value * 10) / 10, explored: p.explored, ms: Math.round(p.ms), plan: p.seq.map((d) => d.type === 'attack' ? `atk ${d.cardName}→${d.target.kind}` : d.type === 'play' ? `play ${d.cardName}` : d.type) })
 }

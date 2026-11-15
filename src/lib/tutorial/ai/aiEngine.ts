@@ -13,7 +13,11 @@ import { planFocusFire } from './aiFocusFire'
 import { hasLethalThisTurn, evaluateSurvivalRisk, evaluateBoardThreat } from './aiThreatEvaluation'
 import { computeGuaranteedLethal } from './aiHardPlanner'
 import { analyzeCard } from './aiCardRole'
-import { planMasterTurn, logPlan, MASTER_CFG } from './aiMaster'
+import { planMasterTurn, logPlan, MASTER_CFG, bestLeftoverAction, aiPlanStats } from './aiMaster'
+
+// Ėjimas, kuriame paieška nespėjo (laiko biudžetas): likusius to ėjimo veiksmus renka greedy.
+// Raktas – pati būsena (WeakMap), kad žymė nepersikeltų į kitą kovą.
+const starvedTurns = new WeakMap<GameState, number>()
 
 export type { AiAction, AiDifficulty }
 
@@ -75,14 +79,27 @@ export function aiNextAction(g: GameState, opts?: { difficulty?: AiDifficulty; w
   // HARD: jei yra GARANTUOTAS lethal (blogiausias ŽMK scenarijus), paieškos nebereikia – jį įvykdo greedy su lethal boost'ais.
   let sureLethal = false
   if (difficulty === 'hard') { try { sureLethal = computeGuaranteedLethal(g).lethal } catch { /* */ } }
-  if (difficulty !== 'easy' && !sureLethal) {
+  if (difficulty !== 'easy' && !sureLethal && starvedTurns.get(g) !== g.globalTurn) {
     // Telefonuose paieška stabdo vaizdą (vienas JS srautas) – ten biudžetas trumpesnis.
     const plan = planMasterTurn(g, COARSE ? { ...MASTER_CFG[difficulty], budget: Math.round(MASTER_CFG[difficulty].budget * 0.55) } : MASTER_CFG[difficulty])
     if (plan) {
       logPlan(plan)
-      const d = plan.seq[0]
-      if (!d) return null
-      if (d.type === 'ability') { if (useChampionAbility(g, 'ai', d.skillIndex, { target: d.target, targets: d.targets }).ok) return { kind: 'ability' } }
+      let d = plan.seq[0]
+      if (!d) {
+        // Tuščias planas. Jei paieška nespėjo (laiko biudžetas) – tai ne sprendimas „baigti ėjimą":
+        // šį ėjimą toliau žaidžiam greedy (žemiau), kad kiekvienas veiksmas nedegintų biudžeto iš naujo.
+        if (plan.starved) { starvedTurns.set(g, g.globalTurn) }
+        else {
+          // Paieška baigta ir siūlo baigti ėjimą – prieš tai patikrinam, ar neliko akivaizdžiai naudingo veiksmo.
+          const left = bestLeftoverAction(g)
+          if (!left) return null
+          aiPlanStats.rescued++
+          aiLog({ leftover: left.d.type, gain: Math.round(left.gain * 10) / 10 })
+          d = left.d
+        }
+      }
+      if (!d) { /* starved → greedy žemiau */ }
+      else if (d.type === 'ability') { if (useChampionAbility(g, 'ai', d.skillIndex, { target: d.target, targets: d.targets }).ok) return { kind: 'ability' } }
       else if (d.type === 'play') { if (playCard(g, 'ai', d.uid, d.opts).ok) return { kind: 'play', cardName: d.cardName } }
       else if (d.type === 'attack') { if (attack(g, 'ai', d.uid, d.target).ok) return { kind: 'attack', cardName: d.cardName } }
       else if (d.type === 'discardGold') { if (discardForGold(g, 'ai', d.uid).ok) return { kind: 'discardGold', cardName: d.cardName } }

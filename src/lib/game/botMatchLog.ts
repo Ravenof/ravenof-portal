@@ -7,6 +7,7 @@ import type { GameState, Side, BoardUnit, TutCard } from '@/lib/tutorial/engine'
 import { P } from '@/lib/tutorial/engine'
 import { createClient } from '@/lib/supabase/client'
 import { APP_VERSION } from '@/lib/version'
+import { aiPlanStats, resetAiPlanStats } from '@/lib/tutorial/ai/aiMaster'
 
 export type TurnSnap = { n: number; a: Side; you: SideSnap; ai: SideSnap }
 type SideSnap = { hp: number; gold: number; deck: number; hand: number | string[]; units: string[]; art: string[]; react: number | string[] }
@@ -48,6 +49,9 @@ export async function uploadBotMatchLog(a: {
     if (!user) return
     const log = compactLog(a.g)
     if (log.length > 4000) log.length = 4000
+    // DI paieškos statistika: kiek planų, kiek kartų pritrūko laiko, kiek kartų saugiklis rado praleistą veiksmą
+    log.push(['B', 'aiStats', null, aiPlanStats.plans, `starved ${aiPlanStats.starved} rescued ${aiPlanStats.rescued} maxMs ${aiPlanStats.maxMs}`, null])
+    resetAiPlanStats()
     await supabase.from('bot_match_logs').insert({
       user_id: user.id, client_match_id: a.clientMatchId || null, app_version: APP_VERSION, mode: a.mode,
       difficulty: a.difficulty ?? null, opponent_deck: a.opponentDeck ?? null, ai_deck_kind: a.aiDeckKind, format: a.format ?? 'zmk',
