@@ -2,6 +2,7 @@
 // Auksas/pirkimas tvarkomi per Supabase RPC (rvn_award_gold / rvn_buy_pack).
 
 import { createClient } from '@/lib/supabase/client'
+import { tContent, loadContentTranslations } from '@/lib/i18n/content'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 
 export type GoldReason = 'pve_easy' | 'pve_normal' | 'pve_hard' | 'pve_loss' | 'pvp_unranked' | 'pvp_loss' | 'ranked_win' | 'ranked_loss'
@@ -151,7 +152,9 @@ export type Pack = { id: string; name: string; description: string | null; price
 export async function getActivePacks(): Promise<Pack[]> {
   const supabase = createClient()
   const { data } = await supabase.from('card_packs').select('id, name, description, price_gold, sort_order, image_url').eq('is_active', true).order('sort_order')
-  return (data as Pack[]) ?? []
+  // Pakuotės paveikslėlis gali turėti kalbos variantą (content_translations: card_pack / <id> / image_url)
+  await loadContentTranslations()
+  return ((data as Pack[]) ?? []).map((p) => ({ ...p, image_url: tContent('card_pack', p.id, 'image_url', p.image_url) || null }))
 }
 
 /** Vartotojo turimų pakuočių kiekiai pagal pack_id (tik qty>0). */
