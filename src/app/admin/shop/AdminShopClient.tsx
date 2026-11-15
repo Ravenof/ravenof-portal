@@ -65,6 +65,43 @@ export function AdminShopClient(props: Props) {
 /* eslint-disable @typescript-eslint/no-explicit-any */
 type Common = { supabase: ReturnType<typeof createClient>; flash: (m: string, e?: boolean) => void; reload: () => void }
 
+// ── Kosmetika → parduotuvė ─────────────────────────────────────────────────
+// Žaidimo parduotuvė rodo `shop_items` (rvn_get_shop), ne `cosmetics`. Todėl išsaugojus
+// nugarėlę / avatarą čia pat sukuriama arba atnaujinama jos parduotuvės prekė (slug = kosmetikos id)
+// su sidabro kaina = price_gold. Rubinų kaina (jei yra) neliečiama.
+type ShopSyncInput = { id: string; kind: string; name: string; description?: string | null; rarity?: string | null; price_gold: number; sort_order: number; sellable: boolean }
+async function syncShopItem(supabase: ReturnType<typeof createClient>, c: ShopSyncInput): Promise<string | null> {
+  if (c.kind !== 'card_back' && c.kind !== 'avatar') return null
+  const itemType = c.kind === 'avatar' ? 'player_avatar' : 'card_back'
+  const { data: ex, error: e0 } = await supabase.from('shop_items').select('id').eq('slug', c.id).maybeSingle()
+  if (e0) return e0.message
+  let shopId = (ex as { id: number } | null)?.id ?? null
+  if (shopId == null) {
+    if (!c.sellable) return null
+    const { data: ins, error } = await supabase.from('shop_items').insert({
+      slug: c.id, item_type: itemType, name: c.name, description: c.description ?? null, rarity: c.rarity ?? null,
+      payload: [{ type: 'item', item_type: itemType, item_id: c.id, quantity: 1 }], sort_order: 200 + (c.sort_order || 0),
+    }).select('id').single()
+    if (error) return error.message
+    shopId = (ins as { id: number }).id
+  } else {
+    const patch: Record<string, unknown> = { name: c.name, description: c.description ?? null, is_active: c.sellable, updated_at: new Date().toISOString() }
+    if (c.rarity) patch.rarity = c.rarity
+    const { error } = await supabase.from('shop_items').update(patch).eq('id', shopId)
+    if (error) return error.message
+  }
+  if (!c.sellable) return null
+  const { data: pr, error: e1 } = await supabase.from('shop_item_prices').select('id').eq('shop_item_id', shopId).eq('currency_type', 'silver').maybeSingle()
+  if (e1) return e1.message
+  const { error: e2 } = pr
+    ? await supabase.from('shop_item_prices').update({ amount: c.price_gold, is_active: true }).eq('id', (pr as { id: number }).id)
+    : await supabase.from('shop_item_prices').insert({ shop_item_id: shopId, currency_type: 'silver', amount: c.price_gold })
+  return e2 ? e2.message : null
+}
+async function hideShopItem(supabase: ReturnType<typeof createClient>, cosmeticId: string): Promise<void> {
+  await supabase.from('shop_items').update({ is_active: false, updated_at: new Date().toISOString() }).eq('slug', cosmeticId)
+}
+
 // ───────────────────────────── KOSMETIKA ─────────────────────────────
 function CosmeticsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } & Common) {
   const blank: Cosmetic = { id: '', kind: 'card_back', name: '', description: '', price_gold: 500, css: '', emoji: '', image_url: '', sort_order: 0, is_active: true }
@@ -80,12 +117,17 @@ function CosmeticsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } 
       sort_order: form.sort_order, is_active: form.is_active,
     }, { onConflict: 'id' })
     if (error) { flash(error.message, true); return }
+    const prev = items.find((x) => x.id === form.id.trim()) as (Cosmetic & { owned_by_default?: boolean; is_shop_exclusive?: boolean; rarity?: string | null }) | undefined
+    const shopErr = await syncShopItem(supabase, { id: form.id.trim(), kind: form.kind, name: form.name.trim(), description: form.description || null, rarity: prev?.rarity ?? null, price_gold: form.price_gold, sort_order: form.sort_order,
+      sellable: form.is_active && form.price_gold > 0 && !prev?.owned_by_default && !prev?.is_shop_exclusive && !!(form.image_url || form.css || form.emoji) })
+    if (shopErr) { flash('Kosmetika išsaugota, bet parduotuvės prekė – ne: ' + shopErr, true); reload(); return }
     flash('Išsaugota'); setForm(blank); setEditing(false); reload()
   }
   const del = async (id: string) => {
     if (!confirm('Trinti kosmetiką ' + id + '?')) return
     const { error } = await supabase.from('cosmetics').delete().eq('id', id)
     if (error) { flash(error.message, true); return }
+    await hideShopItem(supabase, id)
     flash('Ištrinta'); reload()
   }
 
@@ -517,12 +559,17 @@ function AvatarsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } & 
       is_active: form.status === 'active', sort_order: form.sort_order, updated_at: new Date().toISOString(),
     }, { onConflict: 'id' })
     if (error) { flash(error.message, true); return }
+    const prevAv = items.find((x) => x.id === form.id.trim()) as (Cosmetic & { is_shop_exclusive?: boolean }) | undefined
+    const shopErr = await syncShopItem(supabase, { id: form.id.trim(), kind: 'avatar', name: form.name.trim(), description: form.description || null, rarity: form.rarity, price_gold: form.price_gold, sort_order: form.sort_order,
+      sellable: form.status === 'active' && form.price_gold > 0 && !form.owned_by_default && !prevAv?.is_shop_exclusive && !!(form.image_url || form.emoji) })
+    if (shopErr) { flash('Avataras išsaugotas, bet parduotuvės prekė – ne: ' + shopErr, true); reload(); return }
     flash('Išsaugota'); setForm(blank); setEditing(false); reload()
   }
   const del = async (id: string) => {
     if (!confirm('Trinti avatarą ' + id + '? (kartu jo garsai)')) return
     const { error } = await supabase.from('cosmetics').delete().eq('id', id)
     if (error) { flash(error.message, true); return }
+    await hideShopItem(supabase, id)
     flash('Ištrinta'); reload()
   }
 
