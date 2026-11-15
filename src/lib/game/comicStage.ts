@@ -14,7 +14,7 @@ export type ComicFocus = [number, number]
 /** Pilno iškvietimo intarpo išdėstymas. */
 export type ComicTemplate = 'zaibas' | 'sukes' | 'plysys' | 'kryzius'
 /** Personažo vizualų rinkinys: pjūvio forma, aplinkos dalelės, smūgio ir išėjimo efektai. */
-export type ComicKit = 'grave' | 'arcane' | 'storm' | 'holy' | 'inferno' | 'sea'
+export type ComicKit = 'grave' | 'arcane' | 'storm' | 'holy' | 'inferno' | 'sea' | 'stone'
 /** summon – iškvietimas; skill – 1/2 gebėjimas (vienas kadras); ult – 3 gebėjimas už auksą. */
 export type ComicKind = 'summon' | 'skill' | 'ult'
 export const COMIC_TEMPLATES: { value: ComicTemplate; label: string }[] = [
@@ -30,6 +30,7 @@ export const COMIC_KITS: { value: ComicKit; label: string }[] = [
   { value: 'holy', label: 'Šventas – plunksnos ir šviesos stulpas, kadrai pakyla' },
   { value: 'inferno', label: 'Pragaras – kylančios žarijos, liepsnų žiedas, kadrai sudega' },
   { value: 'sea', label: 'Jūra – lietus, bangos purslai, kadrus nuplauna banga' },
+  { value: 'stone', label: 'Akmuo – krenta skalda ir dulkės, švytintys įtrūkimai, kadrai subyra žemyn' },
 ]
 export type ComicSpec = {
   level: ComicLevel
@@ -82,7 +83,7 @@ export const COMIC_EXIT_MS = 340
 /** Kiek intarpo sluoksnis dar gyvas po exitAt – personažo išėjimo efektai trunka ilgiau. */
 export function comicExitMs(s: Pick<ComicSpec, 'kind' | 'kit' | 'level'>): number {
   if ((s.kind ?? 'summon') !== 'summon' || s.level === 'static') return COMIC_EXIT_MS
-  return s.kit === 'arcane' ? 680 : s.kit === 'holy' ? 720 : s.kit === 'grave' ? 380 : s.kit === 'inferno' ? 520 : s.kit === 'sea' ? 600 : COMIC_EXIT_MS
+  return s.kit === 'arcane' ? 680 : s.kit === 'holy' ? 720 : s.kit === 'grave' ? 380 : s.kit === 'inferno' ? 520 : s.kit === 'sea' ? 600 : s.kit === 'stone' ? 520 : COMIC_EXIT_MS
 }
 
 type Pt = [number, number]
@@ -195,7 +196,8 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
   const kind: ComicKind = spec.kind ?? 'summon'
   const lvl = spec.level
   const tpl: ComicTemplate = spec.template ?? 'zaibas'
-  const kit: ComicKit | undefined = kind === 'summon' && lvl !== 'static' ? spec.kit : undefined
+  // Nežinomas rinkinys (admine jau parinktas naujesnis, nei moka šis klientas) – rodom tik kadrus.
+  const kit: ComicKit | undefined = kind === 'summon' && lvl !== 'static' && COMIC_KITS.some((k) => k.value === spec.kit) ? spec.kit : undefined
   const rep = !!spec.rep
   const jag = kit === 'arcane' || kit === 'storm'
   const posBr = (kind === 'summon' && lvl === 'full' && tpl === 'kryzius') || (kind === 'skill' && spec.side === 'left')
@@ -269,6 +271,10 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
   const flares: { x: number; y: number; t0: number; dur: number; seed: number }[] = []
   const rain: { x: number; y: number; l: number; m: number; len: number }[] = []
   const waves: { t0: number; dur: number }[] = []
+  const rocks: { x: number; y: number; vx: number; vy: number; rot: number; vr: number; l: number; m: number; s: number; n: number }[] = []
+  const cracks: { pts: Pt[]; t0: number; dur: number }[] = []
+  /** Akmens skeveldra: kampuota, sukasi, krenta. */
+  const rock = (x: number, y: number, vx: number, vy: number, life: number, size: number) => { rocks.push({ x, y, vx: vx * SW / 1000, vy: vy * SW / 1000, rot: Math.random() * 6.283, vr: (Math.random() - 0.5) * 0.012, l: 0, m: life, s: size * SW / 1000, n: (Math.random() * 1e6) | 0 }) }
   /** Vandens lašas: išlekia vėduokle ir krenta žemyn. */
   const droplet = (x: number, y: number, a: number, v: number, life: number) => { parts.push({ x, y, vx: Math.cos(a) * v * SW / 1000, vy: Math.sin(a) * v * SW / 1000, l: 0, m: life, r: (1.4 + 3 * Math.random()) * SW / 1000, c: Math.random() < 0.5 ? '235,250,250' : '150,215,225', g: 0.0022 * SW / 1000 }) }
   /** Žarija: kyla aukštyn, šiek tiek plaukia į šoną. */
@@ -310,6 +316,14 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       bolts.push({ a: [x + (Math.random() - 0.5) * SW * 0.08, -10], b: [x, y], t0: T, life: 340, w: 3.2, n: 9 })
       bolts.push({ a: [x - SW * 0.06, -10], b: [x + SW * 0.03, y + SH * 0.22], t0: T + 70, life: 260, w: 1.8, n: 8 })
       ring(bx, by, 16, 600, '120,255,90'); ring(bx, by, 9, 800, '120,255,90'); S.zap()
+    } else if (kit === 'stone') {
+      // Švytintys įtrūkimai nuo smūgio taško + išlekianti skalda.
+      const r = rnd((Math.random() * 1e6) | 0)
+      for (let i = 0; i < (low ? 5 : 9); i++) { const a = i / 9 * 6.283 + (r() - 0.5) * 0.5, len = SW * (0.12 + 0.16 * r()); const pts: Pt[] = [[x, y]]; let px = x, py = y, ang = a
+        for (let k = 0; k < 5; k++) { ang += (r() - 0.5) * 0.9; px += Math.cos(ang) * len / 5; py += Math.sin(ang) * len / 5; pts.push([px, py]) }
+        cracks.push({ pts, t0: T, dur: 700 }) }
+      for (let i = 0; i < (low ? 8 : 22); i++) { const a = -Math.PI / 2 + (Math.random() - 0.5) * 3.4, v = 0.25 + 0.6 * Math.random(); rock(x, y, Math.cos(a) * v, Math.sin(a) * v, 700 + Math.random() * 500, 5 + 11 * Math.random()) }
+      ring(bx, by, 18, 600); shake(26)
     } else if (kit === 'sea') {
       ring(bx, by, 24, 700, '170,230,235'); ring(bx, by, 14, 900, '235,250,250')
       for (let i = 0; i < (low ? 16 : 48); i++) droplet(x + (Math.random() - 0.5) * SW * 0.05, y, -Math.PI / 2 + (Math.random() - 0.5) * 2.4, 0.35 + 0.75 * Math.random(), 700 + Math.random() * 500)
@@ -330,6 +344,11 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
     if (kit === 'grave') {
       amb = 70; mkFeather(Math.random() * VW * 1.1, -20, (-0.05 - 0.1 * Math.random()) * SW / 1000, (0.22 + 0.3 * Math.random()) * SW / 1000, 1500 + Math.random() * 600)
       if (!low) mists.push({ x: Math.random() * VW, y: VH * 1.05, vy: -(0.05 + 0.06 * Math.random()) * SW / 1000, l: 0, m: 1900, r: SW * (0.09 + 0.08 * Math.random()) })
+      return
+    }
+    if (kit === 'stone') {
+      amb = 110; if (Math.random() < (low ? 0.5 : 1)) rock(Math.random() * VW, -SW * 0.02, (Math.random() - 0.5) * 0.05, 0.1 + 0.2 * Math.random(), 1500 + Math.random() * 500, 3 + 6 * Math.random())
+      if (!low) for (let i = 0; i < 2; i++) parts.push({ x: Math.random() * VW, y: -5, vx: (Math.random() - 0.5) * 0.02 * SW / 1000, vy: (0.08 + 0.1 * Math.random()) * SW / 1000, l: 0, m: 1600 + Math.random() * 700, r: (0.8 + 1.4 * Math.random()) * SW / 1000, c: '190,195,200' })
       return
     }
     if (kit === 'sea') {
@@ -389,6 +408,12 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       }
       else if (kit === 'holy') { tw(p, { y: p.y - 42 }, 320, ei); tw(p, { a: 0 }, 220, lin, 80) }
       else if (kit === 'grave') { tw(p, { y: p.y + 38, rot: (Math.random() - 0.5) * 10 }, 300, ei); tw(p, { a: 0 }, 220, lin, 80) }
+      else if (kit === 'stone') {
+        // Kadrai sutrūkinėja ir nukrenta kaip akmens plokštės – kiekvienas savo akimirką.
+        const d = Math.random() * 120
+        tw(p, { y: p.y + 140, rot: (Math.random() - 0.5) * 22 }, 300, ei, d); tw(p, { a: 0 }, 70, lin, d + 250)
+        at(d, () => { for (let i = 0; i < (low ? 3 : 8); i++) rock(sx(cx - b[2] * gs / 2 + Math.random() * b[2] * gs), sy(cy - b[3] * gs / 2 + Math.random() * b[3] * gs), (Math.random() - 0.5) * 0.25, -0.1 - 0.25 * Math.random(), 450 + Math.random() * 250, 4 + 8 * Math.random()) })
+      }
       else if (kit === 'sea') {
         // Banga eina iš kairės į dešinę: kadrai nunešami tada, kai ji juos pasiekia.
         const d = Math.max(0, (cx / 100 + 0.1) / 1.35 * 520 - 30)
@@ -408,6 +433,7 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
       for (let i = 0; i < (low ? 10 : 30); i++) parts.push({ x: Math.random() * VW, y: VH * (0.3 + 0.7 * Math.random()), vx: 0, vy: -(0.15 + 0.2 * Math.random()) * SW / 1000, l: 0, m: 700 + Math.random() * 500, r: (1 + 2 * Math.random()) * SW / 1000 })
     }
     if (kit === 'inferno') { at(170, () => { flash(0.32, 240); S.hit(70, 0.8) }) }
+    if (kit === 'stone') { shake(16); S.hit(70, 0.9); at(300, () => { shake(22); S.hit(50, 1) }) }
     if (kit === 'sea') { waves.push({ t0: T, dur: 520 }); S.whoosh(); at(120, () => S.hit(60, 0.7)) }
     if (kit === 'storm') { flash(0.5, 220); S.zap(); bolts.push({ a: [VW * 0.5, -10], b: [VW * 0.5, OY + SH * 0.72], t0: T, life: 280, w: 3, n: 9 }) }
     tw(D, { a: 0 }, 300, lin, 40)
@@ -510,6 +536,17 @@ export function playComic(root: HTMLElement, spec: ComicSpec, onDone: () => void
         const al = p < 0.15 ? p / 0.15 : 1 - (p - 0.15) / 0.85, w = SW * (0.11 - 0.04 * p)
         c.fillStyle = `rgba(${rgb},${0.16 * al})`; c.fillRect(q.x - w, 0, w * 2, q.y); c.fillStyle = `rgba(${rgb},${0.22 * al})`; c.fillRect(q.x - w * 0.5, 0, w, q.y); c.fillStyle = `rgba(255,255,255,${0.3 * al})`; c.fillRect(q.x - w * 0.14, 0, w * 0.28, q.y) }
       c.globalCompositeOperation = 'source-over' }
+    for (let i = cracks.length - 1; i >= 0; i--) { const k = cracks[i], p = (T - k.t0) / k.dur; if (p >= 1) { cracks.splice(i, 1); continue }
+      const grow = Math.min(1, p * 6), al = p < 0.5 ? 1 : 1 - (p - 0.5) / 0.5, n = Math.max(1, Math.round((k.pts.length - 1) * grow))
+      c.beginPath(); c.moveTo(k.pts[0][0], k.pts[0][1]); for (let j = 1; j <= n; j++) c.lineTo(k.pts[j][0], k.pts[j][1]); c.lineJoin = 'miter'; c.lineCap = 'butt'
+      c.strokeStyle = `rgba(${rgb},${0.5 * al})`; c.lineWidth = SW * 0.012; c.stroke(); c.strokeStyle = `rgba(245,252,255,${al})`; c.lineWidth = SW * 0.0035; c.stroke() }
+    for (let i = rocks.length - 1; i >= 0; i--) { const q = rocks[i]; q.l += dt; if (q.l >= q.m) { rocks[i] = rocks[rocks.length - 1]; rocks.pop(); continue }
+      q.vy += 0.0016 * SW / 1000 * dt; q.x += q.vx * dt; q.y += q.vy * dt; q.rot += q.vr * dt
+      const r = rnd(q.n), al = Math.min(1, (1 - q.l / q.m) * 4)
+      c.save(); c.translate(q.x, q.y); c.rotate(q.rot); c.globalAlpha = al; c.beginPath()
+      for (let j = 0; j < 5; j++) { const a = j / 5 * 6.283, rr = q.s * (0.6 + 0.5 * r()); if (j) c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); else c.moveTo(Math.cos(a) * rr, Math.sin(a) * rr) }
+      c.closePath(); c.fillStyle = '#26282d'; c.fill(); c.strokeStyle = 'rgba(165,172,182,0.7)'; c.lineWidth = 1; c.stroke(); c.restore() }
+    c.globalAlpha = 1
     if (rain.length) {
       // Įstrižas lietus: trumpi šviesūs brūkšniai.
       c.strokeStyle = 'rgba(210,235,240,0.5)'; c.lineWidth = Math.max(1, SW * 0.0012); c.beginPath()
