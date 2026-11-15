@@ -14,7 +14,7 @@ import {
   getFactionIdMap, getLeaderboard, type ReportMatchInput,
 } from '@/lib/ranked/client'
 import type { RankedProfile, RankedSeason, MatchReportResult, PlayerMatchStats, LeaderboardRow } from '@/lib/ranked/types'
-import { rankView, medalLabel, toRoman, rankDisplay } from '@/lib/ranked/rank'
+import { rankView, medalLabel, toRoman, rankDisplay, seasonTitle } from '@/lib/ranked/rank'
 import { seasonTimer, formatTimeLeft } from '@/lib/ranked/season'
 import { RANKED_BOT_BY_SLUG } from '@/lib/ranked/bots'
 import { strategyWeights } from '@/lib/ranked/aiStrategy'
@@ -217,7 +217,7 @@ export function RankedClient() {
 
   // Desktop: sub-view navigacija su tekstu (ne 26 px ikonėlės be pavadinimų)
   const NAV: [View, string, string][] = [['leaderboard', '🏆', t('ranked.sections.top')], ['history', '📜', t('ranked.sections.history')], ['achievements', '🏅', t('ranked.sections.achievements')], ['season', '📅', t('ranked.sections.seasonHistory')], ['rewards', '🎁', t('ranked.sections.rewards')]]
-  const seasonLabel = `${season?.name ? (/sezonas|season/i.test(season.name) ? season.name : `${t('home.season')} ${season.name}`) : t('ranked.season')}${timer ? ` · ${formatTimeLeft(timer)}` : ''}`
+  const seasonLabel = `${season?.name ? seasonTitle(season.name) : t('ranked.season')}${timer ? ` · ${formatTimeLeft(timer)}` : ''}`
   const statBox = (val: React.ReactNode, color: string, label: string) => (
     <div style={{ flex: 1, minWidth: 0, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '12px 8px', textAlign: 'center' }}>
       <div style={{ font: `700 20px var(--ravenof-font-display)`, color }}>{val}</div>
@@ -357,7 +357,7 @@ export function RankedClient() {
               <button key={v} onClick={() => { playUiClick(); setView(v) }} className="ravenof-press" style={{ width: 26, height: 26, fontSize: 12, background: 'none', border: '1px solid var(--ravenof-border-hairline)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{ic}</button>
             ))}
             <div style={{ font: '400 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>
-              {season?.name ? (/sezonas|season/i.test(season.name) ? season.name : `${t('home.season')} ${season.name}`) : t('ranked.season')}{timer ? ` · ${formatTimeLeft(timer)}` : ''}
+              {season?.name ? seasonTitle(season.name) : t('ranked.season')}{timer ? ` · ${formatTimeLeft(timer)}` : ''}
             </div>
           </div>
 

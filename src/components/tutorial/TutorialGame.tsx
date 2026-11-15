@@ -104,6 +104,7 @@ import { reportMatchStats } from '@/lib/progression/client'
 import { ReactionChainLayer, type ReactionChainHandle, type ReactionChainVariant } from './ReactionChainLayer'
 import { DECKS_VISIBLE_OR } from '@/lib/game/hiddenFactions'
 import { getLocale } from '@/lib/i18n/core'
+import { tContent } from '@/lib/i18n/content'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean; /** server-authoritative: abu klientai – „svečiai“ prie apps/server (žr. lib/pvp/serverChannel) */ server?: boolean
   /** Turnyro stebėjimas: tik skaito host'o būseną (A pusės perspektyva), jokių veiksmų, pokalbio, presence, atlygių. */
@@ -6007,7 +6008,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                           {!sk.unlocked && <span className="rvn-skill-lock">🔒</span>}
                         </span>
                         <span className="text-xs font-bold" style={{ color: sk.unlocked ? 'var(--gold)' : 'var(--text-muted)' }}>
-                          {sk.name}
+                          {tContent('champion_skill', `${ch.card.id}:${i}`, 'name', sk.name)}
                           {sk.goldCost > 0 && (
                             <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px]" style={{ background: 'rgba(240,180,41,0.15)', border: '1px solid rgba(240,180,41,0.4)', color: cantAfford ? '#f87171' : 'var(--gold)' }}>
                               💰{sk.goldCost}

@@ -5,6 +5,7 @@
 // Params reikšmė su `$t:` prefiksu = įdėtas vertimo raktas (pvz. statuso vardas).
 import { t as tGlobal, type TParams } from '@/lib/i18n/core'
 import type { GameEvent } from './engine'
+import { tContent } from '@/lib/i18n/content'
 
 type TFn = (key: string, params?: TParams) => string
 
@@ -14,8 +15,11 @@ export function ltext(key: string | undefined, rawParams?: Record<string, string
   if (!rawParams) return t(key)
   const params: TParams = {}
   for (const [k, v] of Object.entries(rawParams)) {
+    if (k === 'skillRef') continue
     params[k] = typeof v === 'string' && v.startsWith('$t:') ? t(v.slice(3)) : v
   }
+  // Čempiono gebėjimo pavadinimas – DB turinys (content_translations: champion_skill / <cardId>:<index> / name)
+  if (typeof rawParams.skillRef === 'string' && typeof params.skill === 'string') params.skill = tContent('champion_skill', rawParams.skillRef, 'name', params.skill)
   return t(key, params)
 }
 

@@ -18,6 +18,7 @@ import { LiveEventsLayer } from '@/components/digital/LiveEventsLayer'
 import { GlobalChatLayer } from '@/components/digital/GlobalChatLayer'
 import { GamepadLayer } from '@/components/digital/gamepad/GamepadLayer'
 import { BugReportLayer, requestOpenBugReport } from '@/components/digital/BugReportModal'
+import { NoNativeTooltips } from '@/components/digital/ui/NoNativeTooltips'
 import { installBugConsoleCapture } from '@/lib/digital/bugReport'
 import { isTesterRole } from '@/lib/digital/accountStore'
 import { ShopModal } from '@/components/digital/ShopModal'
@@ -330,6 +331,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
       <GlobalChatLayer />
       <GamepadLayer />
       <BugReportLayer />
+      <NoNativeTooltips />
 
       {settingsOpen && <SettingsModal profile={profile} onClose={() => setSettingsOpen(false)} />}
       {notifOpen && <NotificationsModal onClose={() => setNotifOpen(false)} onRead={() => {

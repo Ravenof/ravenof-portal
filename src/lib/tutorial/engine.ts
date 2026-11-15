@@ -3993,11 +3993,11 @@ export function useChampionAbility(g: GameState, s: Side, skillIndex = 0, opts?:
   ch.abilityUsed = true
   if (skill.goldCost > 0) {
     p.gold -= skill.goldCost
-    log(g, { t: 'gold', side: s, value: -skill.goldCost, key: `battleLog.skillGoldCost.${SK(s)}`, params: { gold: skill.goldCost, skill: skill.name } })
+    log(g, { t: 'gold', side: s, value: -skill.goldCost, key: `battleLog.skillGoldCost.${SK(s)}`, params: { gold: skill.goldCost, skill: skill.name, skillRef: `${ch.card.id}:${skillIndex}` } })
   }
   g.rollContext = { kind: 'spell', actor: s, spellType: ch.card.gameplay?.spellType }
   log(g, {
-    t: 'ability', side: s, cardName: ch.card.name, key: 'battleLog.championSkill', params: { card: ch.card.name, skill: skill.name, phase: ch.phase },
+    t: 'ability', side: s, cardName: ch.card.name, key: 'battleLog.championSkill', params: { card: ch.card.name, skill: skill.name, skillRef: `${ch.card.id}:${skillIndex}`, phase: ch.phase },
     skillIndex,
     src: { side: s, uid: ch.uid }, tgt: opts?.target ? { ...opts.target } : undefined,
     projectile: skill.mappings[0]?.projectile ?? projectileForCard(ch.card), sound: 'championSkill',

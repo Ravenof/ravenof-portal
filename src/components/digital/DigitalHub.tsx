@@ -20,7 +20,7 @@ import {
 import { getStarterDecks } from '@/lib/starterDecks'
 import { getNoviceState, type NoviceState } from '@/lib/digital/novice'
 import { getActiveSeason, ensureProfile } from '@/lib/ranked/client'
-import { rankDisplay } from '@/lib/ranked/rank'
+import { rankDisplay, seasonTitle } from '@/lib/ranked/rank'
 import { RAVENOF_ASSET, RavenofToast } from './ui/RavenofKit'
 import { useT } from '@/lib/i18n/react'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
@@ -222,7 +222,7 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
         <ClassicBadge style={{ position: 'absolute', top: px(10), right: px(12), zIndex: 2 }} />
         <div className="relative" style={{ padding: `${px(12)}px ${px(14)}px` }}>
           <div style={{ font: `500 ${fs(10)}px var(--ravenof-font-body)`, letterSpacing: 2.5, color: 'var(--ravenof-gold)', textTransform: 'uppercase' }}>
-            {seasonMeta ? <>{/^\s*(sezonas|season)\b/i.test(seasonMeta.name) ? seasonMeta.name : `${t('home.season')} ${seasonMeta.name}`} · {seasonMeta.daysLeft} {t('home.daysShort')}</> : t('home.seasonProgress')}
+            {seasonMeta ? <>{seasonTitle(seasonMeta.name)} · {seasonMeta.daysLeft} {t('home.daysShort')}</> : t('home.seasonProgress')}
           </div>
           <div style={{ font: `700 ${fs(19)}px var(--ravenof-font-display)`, letterSpacing: '.5px', color: 'var(--ravenof-text-primary)', textShadow: '0 2px 10px rgba(0,0,0,.9)', marginTop: 2 }}>{t('home.rankedTitle')}{classic ? ` · ${t('home.format.classic')}` : ''}</div>
         </div>

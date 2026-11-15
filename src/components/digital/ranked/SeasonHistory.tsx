@@ -3,7 +3,7 @@
 // ── Sezono istorija — praėjusių sezonų rezultatai. ───────────────────────────
 import { useEffect, useState } from 'react'
 import { getSeasonHistory, type SeasonHistoryRow } from '@/lib/ranked/client'
-import { formatRank } from '@/lib/ranked/rank'
+import { formatRank, seasonTitle } from '@/lib/ranked/rank'
 import { useT } from '@/lib/i18n/react'
 
 export function SeasonHistory() {
@@ -19,7 +19,7 @@ export function SeasonHistory() {
       {rows.map((r) => (
         <div key={r.season_id} className="px-3 py-3 rounded-lg" style={{ background: 'rgba(10,8,16,0.55)', border: '1px solid rgba(240,180,41,0.25)' }}>
           <div className="flex items-center justify-between">
-            <p className="text-sm font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{r.season_name}</p>
+            <p className="text-sm font-bold" style={{ color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}>{seasonTitle(r.season_name)}</p>
             {r.leaderboard_position != null && <span className="text-[11px] px-2 py-0.5 rounded-full" style={{ background: 'rgba(240,180,41,0.15)', color: 'var(--gold)' }}>#{r.leaderboard_position}</span>}
           </div>
           <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-[11px]" style={{ color: 'var(--text-secondary)' }}>

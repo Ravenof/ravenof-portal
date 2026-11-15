@@ -1,4 +1,5 @@
-import { t } from '@/lib/i18n/core'
+import { t, getLocale } from '@/lib/i18n/core'
+import { RANK_NAME_EN } from '@/lib/profile/rankNamesEn'
 import { rankDef, rankBadgeSrc, rankFrameSrc } from '@/lib/profile/ranks'
 // ── Ravenof Reitingo kova — rangų (rankStep) modelis ─────────────────────────
 // 150 žingsnių (rankStep 0–149). 50 rango numerių × 3 medalių pakopos.
@@ -106,7 +107,7 @@ export function rankDisplay(step: number): RankDisplay {
   const medal = medalLabel(medalTier)
   const roman = toRoman(rankNumber)
   const def = rankDef(rankNumber)
-  const name = def?.nameLt ?? ''
+  const name = (getLocale() === 'en' ? RANK_NAME_EN[rankNumber] : undefined) ?? def?.nameLt ?? ''
   const isMax = isMaxRank(s)
   return {
     step: s,
@@ -216,4 +217,10 @@ export function formatKD(kills: number, deaths: number): string {
 export function kdRatio(kills: number, deaths: number): number {
   if (deaths > 0) return kills / deaths
   return kills
+}
+
+/** Sezono pavadinimas dabartine kalba: DB laiko „Sezonas 2026-06“ – EN rodome „Season 2026-06“. */
+export function seasonTitle(name: string | null | undefined): string {
+  const rest = (name ?? '').replace(/^\s*(sezonas|season)\b\s*/i, '').trim()
+  return rest ? `${t('home.season')} ${rest}` : t('home.season')
 }
