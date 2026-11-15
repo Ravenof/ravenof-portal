@@ -103,6 +103,7 @@ import { ZmkSpecial, ZmkReshuffleFlash, type ZmkSpecialKind } from '@/components
 import { reportMatchStats } from '@/lib/progression/client'
 import { ReactionChainLayer, type ReactionChainHandle, type ReactionChainVariant } from './ReactionChainLayer'
 import { DECKS_VISIBLE_OR } from '@/lib/game/hiddenFactions'
+import { getLocale } from '@/lib/i18n/core'
 
 export type PvPNet = { isHost: boolean; mySide: Side; matchId: string; opponentId?: string; resume?: boolean; /** server-authoritative: abu klientai – „svečiai“ prie apps/server (žr. lib/pvp/serverChannel) */ server?: boolean
   /** Turnyro stebėjimas: tik skaito host'o būseną (A pusės perspektyva), jokių veiksmų, pokalbio, presence, atlygių. */
@@ -3431,7 +3432,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // ── Kovos atlygis + level-up šventė (config-driven v2; bot/unranked; ne demo/ranked/campaign) ──
   // Ranked atlygis skiriamas RankedClient. Bot/unranked eina per rvn_report_match_v2
   // (config reikšmės, validumas, dienos cap, level rewards) — vienas šaltinis.
-  const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; seasonXp: number; before: number; after: number; valid: boolean; levelRewards: LevelRewardEntry[] } | null>(null)
+  const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; seasonXp: number; before: number; after: number; valid: boolean; levelRewards: LevelRewardEntry[]; eventTitle?: string | null } | null>(null)
   // Po kovos įvykdyti pasiekimai — VIENA tvarkinga santrauka (ne keli popup'ai).
   // Užsipildo TIK po serverio patvirtinimo (rvn_get_recent_achievements).
   const [matchAchievements, setMatchAchievements] = useState<RecentAchievement[]>([])
@@ -3481,6 +3482,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       setMatchReward({
         gold: r.rewards?.silver ?? 0, xp: r.rewards?.account_xp ?? 0, seasonXp: r.rewards?.season_xp ?? 0,
         before, after, valid: !!r.valid, levelRewards: r.levelRewards ?? [],
+        eventTitle: r.event ? ((getLocale() === 'en' && r.event.titleEn) ? r.event.titleEn : r.event.titleLt) : null,
       })
       if (r.valid && getLevelForXp(after) > getLevelForXp(before)) { try { playSuccess() } catch { /* fx niekada nelaužia UI */ } }
       // Dienos užduočių telemetrija (kortos/žala/kill'ai/…): matches eilutė jau egzistuoja.
@@ -7066,6 +7068,13 @@ doAction({ t: 'endTurn', actor: 'you' })
                   </div>
                 )
               })()}
+
+              {/* ── Gyvo evento premija (atlygis jau padaugintas) ── */}
+              {matchReward && matchReward.valid && matchReward.eventTitle && (
+                <div className="rvn-cele-extra" data-testid="match-event-bonus" style={{ ['--cta' as string]: extraDelay, font: `700 ${dk ? 13 : 10}px var(--ravenof-font-display)`, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold-bright)', border: '1px solid rgba(212,163,59,.5)', padding: dk ? '5px 12px' : '3px 8px', background: 'rgba(7,6,10,.6)' }}>
+                  {matchReward.eventTitle}
+                </div>
+              )}
 
               {/* ── Lygio progresas ── */}
               {matchReward && matchReward.valid && prog && (

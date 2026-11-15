@@ -14,6 +14,7 @@ import { SettingsModal } from '@/components/digital/SettingsModal'
 import { NotificationsModal } from '@/components/digital/NotificationsModal'
 import { ContentDownloadGate } from '@/components/digital/ContentDownloadGate'
 import { RewardCelebrationHost } from '@/components/digital/progression/RewardCelebration'
+import { LiveEventsLayer } from '@/components/digital/LiveEventsLayer'
 import { GlobalChatLayer } from '@/components/digital/GlobalChatLayer'
 import { GamepadLayer } from '@/components/digital/gamepad/GamepadLayer'
 import { BugReportLayer, requestOpenBugReport } from '@/components/digital/BugReportModal'
@@ -325,6 +326,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
 
       <ContentDownloadGate />
       <RewardCelebrationHost />
+      <LiveEventsLayer enabled={account.loaded && !!profile} />
       <GlobalChatLayer />
       <GamepadLayer />
       <BugReportLayer />

@@ -26,6 +26,7 @@ import { useT } from '@/lib/i18n/react'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { celebrateRewards, rewardItems } from '@/components/digital/progression/RewardCelebration'
 import { AdminOnlineBar } from '@/components/digital/AdminOnlineBar'
+import { LiveEventBanner } from '@/components/digital/LiveEventsLayer'
 import { ClassicBadge } from '@/components/digital/ui/FormatSwitch'
 import { useBattleFormat, CLASSIC_ACCENT } from '@/lib/game/format'
 
@@ -288,6 +289,9 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
           </button>
         </div>
 
+        {/* Live eventas: telefone – plona juosta virš užduočių */}
+        {!desktop && loggedIn && <LiveEventBanner desktop={false} />}
+
         {/* Dienos užduotys */}
         <button onClick={() => { playUiClick(); router.push('/digital/quests') }} className="flex items-baseline justify-between shrink-0 text-left" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
           <span style={{ font: `700 ${desktop ? 17 : 11}px var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-text-primary)', textTransform: 'uppercase' }}>{t('home.dailyQuests')}</span>
@@ -343,6 +347,8 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
             </div>
           )}
         </div>
+        {/* Live eventas: kompiuteryje – baneris laisvoje vietoje po užduotimis */}
+        {desktop && loggedIn && <LiveEventBanner desktop />}
       </div>
 
       </div>
