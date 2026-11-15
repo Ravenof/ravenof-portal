@@ -12,6 +12,7 @@
 //     blokuojamas (busy).
 // ══════════════════════════════════════════════════════════════════════════════
 import { create } from 'zustand'
+import { t } from '@/lib/i18n/core'
 import { createClient } from '@/lib/supabase/client'
 import { getCosmetics, type Cosmetic, type CosmeticsState } from '@/lib/cosmetics'
 import { registerCosmeticLookup } from '@/lib/rewards/rewardVisuals'
@@ -169,7 +170,7 @@ export function activeAvatarVisual(state: Pick<CosmeticsStore, 'items' | 'active
 /** Aktyvi nugarėlė — pasirinkta → cb_default → statinis /card-backs kelias. */
 export function activeCardBackVisual(state: Pick<CosmeticsStore, 'items' | 'active' | 'defaults'>): CosmeticVisual {
   const def = visualOf(cosmeticById(state, state.defaults.cardBack), {
-    id: DEFAULT_CARD_BACK_ID, name: 'Ravenof nugarėlė', url: DEFAULT_CARD_BACK_SRC, css: null, emoji: null,
+    id: DEFAULT_CARD_BACK_ID, name: t('common.defaultCardBack'), url: DEFAULT_CARD_BACK_SRC, css: null, emoji: null,
   })
   const v = visualOf(cosmeticById(state, state.active.cardBack), def)
   // nugarėlė visada turi turėti piešiamą vizualą

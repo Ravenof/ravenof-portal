@@ -73,7 +73,7 @@
     "enemyTurn": "Enemy turn…",
     "enemyTurnShort": "Enemy\nturn",
     "enemyUnits": "Enemy creatures",
-    "enemyZmk": "Enemy ZMK",
+    "enemyZmk": "Enemy DMD",
     "errDeck": "Failed to load the deck cards",
     "errTutorialDeck": "Failed to load the tutorial deck cards",
     "eventLog": "Event log",
@@ -195,13 +195,13 @@
     "victoryText": "Great! Now you know how to play Ravenof. Time for a real battle!",
     "vsName": "vs {{name}}",
     "you": "You",
-    "yourZmk": "Your ZMK",
-    "zmk": "ZMK",
+    "yourZmk": "Your DMD",
+    "zmk": "DMD",
     "kwBattlecry": "BATTLECRY",
     "kwLastwish": "LAST WISH",
     "kwTrigger": "TRIGGER",
     "zmkCritTitle": "Critical hit",
-    "zmkDrawTitle": "ZMK draw ({{side}} damage)",
+    "zmkDrawTitle": "DMD draw ({{side}} damage)",
     "zmkFizzleTitle": "Total failure",
     "zmkReshuffled": "DMD deck reshuffled",
     "zmkSideAi": "the opponent's",
@@ -283,7 +283,7 @@
       "fx": {
         "fire": {
           "name": "Fire",
-          "tip": "Fire damage or the Burning status (1 damage + ŽMK each turn)."
+          "tip": "Fire damage or the Burning status (1 damage + DMD each turn)."
         },
         "ice": {
           "name": "Ice",
@@ -311,7 +311,7 @@
         },
         "poison": {
           "name": "Poison",
-          "tip": "Poisoned – 1 damage + ŽMK each turn, attacks unfavorably."
+          "tip": "Poisoned – 1 damage + DMD each turn, attacks unfavorably."
         },
         "artifact": {
           "name": "Artifact",
@@ -382,8 +382,8 @@
     "botChat_lossGg_1": "gg",
     "botChat_lossGg_2": "gg wp",
     "botChat_lossGg_3": "ok gg",
-    "classicBadge": "CLASSIC · NO ŽMK",
-    "classicHint": "Classic format: damage equals card values, no ŽMK draw"
+    "classicBadge": "CLASSIC · NO DMD",
+    "classicHint": "Classic format: damage equals card values, no DMD draw"
   },
   "guided": {
     "discard-gold-tip": {
@@ -395,7 +395,7 @@
       "title": "End your turn"
     },
     "free-play": {
-      "text": "From now on, play freely. I'll explain new mechanics the first time you meet them. Good luck – may the ZMK be in your favour!",
+      "text": "From now on, play freely. I'll explain new mechanics the first time you meet them. Good luck – may the DMD be in your favour!",
       "title": "It's all yours now! 🎴"
     },
     "goal": {
@@ -415,7 +415,7 @@
       "title": "Summon a creature!"
     },
     "turn2-attack": {
-      "text": "Your creature can attack now: tap YOUR creature, then choose a target – an enemy creature or the opponent. When attacking a creature both sides draw a ZMK card and deal damage simultaneously!",
+      "text": "Your creature can attack now: tap YOUR creature, then choose a target – an enemy creature or the opponent. When attacking a creature both sides draw a DMD card and deal damage simultaneously!",
       "title": "Time to attack! ⚔"
     },
     "watch-ai": {
@@ -427,8 +427,8 @@
       "title": "Welcome to Ravenof! 🐦‍⬛"
     },
     "zmk-intro": {
-      "text": "Every time damage is dealt, a ZMK card is drawn: +0, +1, −1, +2, −2, ×2 or ×0. Your 4 ATK hit can become 5... or 0! This is Ravenof's die of fate.",
-      "title": "ZMK – the damage modifier deck"
+      "text": "Every time damage is dealt, a DMD card is drawn: +0, +1, −1, +2, −2, ×2 or ×0. Your 4 ATK hit can become 5... or 0! This is Ravenof's die of fate.",
+      "title": "DMD – the damage modifier deck"
     },
     "zones": {
       "text": "Below is your side: hand, creature zone (5 slots), artifacts (2), reactions (3). Above is the opponent's. In the middle is the shared field card zone.",
@@ -644,7 +644,7 @@
       "title": "⭐ Artifact"
     },
     "battlecry": {
-      "text": "The effect triggers immediately when the card is summoned onto the board. If it deals damage, a ZMK card is drawn.",
+      "text": "The effect triggers immediately when the card is summoned onto the board. If it deals damage, a DMD card is drawn.",
       "title": "📣 Battlecry"
     },
     "champion": {
@@ -680,7 +680,7 @@
       "title": "⚡ Reaction"
     },
     "shield": {
-      "text": "The shield negates the NEXT damage this target would take – no ZMK is even drawn. Then the shield disappears.",
+      "text": "The shield negates the NEXT damage this target would take – no DMD is even drawn. Then the shield disappears.",
       "title": "✦★ Magic Shield"
     },
     "sprint": {
@@ -688,7 +688,7 @@
       "title": "▶ Sprint"
     },
     "status-burning": {
-      "text": "At the start of each of its turns the creature takes 1 base damage (+ZMK). It burns until it dies or the status is removed by an effect.",
+      "text": "At the start of each of its turns the creature takes 1 base damage (+DMD). It burns until it dies or the status is removed by an effect.",
       "title": "🔥 Burning"
     },
     "status-frozen": {
@@ -696,7 +696,7 @@
       "title": "❄ Frozen"
     },
     "status-poisoned": {
-      "text": "Like Burning (1 damage per turn + ZMK), but it also attacks at DISADVANTAGE: it draws 2 ZMK cards and takes the worse one.",
+      "text": "Like Burning (1 damage per turn + DMD), but it also attacks at DISADVANTAGE: it draws 2 DMD cards and takes the worse one.",
       "title": "☠ Poisoned"
     },
     "status-silenced": {
@@ -716,17 +716,17 @@
       "title": "⊙ Taunt"
     },
     "unfavorable": {
-      "text": "2 ZMK cards are drawn and the WORSE result for the acting player is used. This is how poisoned creatures attack.",
+      "text": "2 DMD cards are drawn and the WORSE result for the acting player is used. This is how poisoned creatures attack.",
       "title": "Disadvantage"
     },
     "zmk-special": {
-      "text": "A special ZMK card was drawn! ×2 doubles the damage, ×0 negates it. Afterwards the whole ZMK deck and its discard pile are reshuffled.",
-      "title": "ZMK ×2 / ×0!"
+      "text": "A special DMD card was drawn! ×2 doubles the damage, ×0 negates it. Afterwards the whole DMD deck and its discard pile are reshuffled.",
+      "title": "DMD ×2 / ×0!"
     }
   },
   "tutorial": {
     "button": "🎓 Teach me to play",
-    "buttonHint": "Tutorial battle vs AI: the board, gold, ZMK, tokens and step-by-step tips"
+    "buttonHint": "Tutorial battle vs AI: the board, gold, DMD, tokens and step-by-step tips"
   },
   "crossFormat": {
     "title": "Player found in the other format",
@@ -756,7 +756,7 @@
     "emptySeat": "Open seat",
     "fillBots": "Fill with bots",
     "formatClassic": "Classic",
-    "formatZmk": "ŽMK",
+    "formatZmk": "DMD",
     "formatNote": "Format: {{format}} (change it at the top). Decks lock at start, 60 s per turn.",
     "gfReset": "Final · reset",
     "grandFinal": "Grand final",

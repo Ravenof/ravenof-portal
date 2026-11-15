@@ -22,7 +22,7 @@ import { useCosmetics, preloadActiveCosmetics } from '@/lib/digital/cosmeticsSto
 import { DECK_MIN, DECK_MAX, formatDeckCount } from '@/lib/deck-validation'
 import { getStarterDecks } from '@/lib/starterDecks'
 import { useT, useContent, useGameContent, useLocale } from '@/lib/i18n/react'
-import { RavenofBannerButton, battleModeAsset, type BattleMode } from '@/components/digital/ui/RavenofKit'
+import { RavenofBannerButton, battleModeAsset, ravenofFactionIcon, type BattleMode } from '@/components/digital/ui/RavenofKit'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { FormatSwitch } from '@/components/digital/ui/FormatSwitch'
 import { useBattleFormat } from '@/lib/game/format'
@@ -32,7 +32,7 @@ import { DECKS_VISIBLE_OR, withoutHiddenFactions } from '@/lib/game/hiddenFactio
 const TutorialGame = dynamic(() => import('@/components/tutorial/TutorialGame').then((m) => m.TutorialGame), { ssr: false })
 
 type Deck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; missing: number }
-type Faction = { id: number; name: string; icon_url: string | null; color_hex: string | null }
+type Faction = { id: number; name: string; slug?: string | null; icon_url: string | null; color_hex: string | null }
 type PublicDeck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null; factionId: number | null; author: string; score: number; cardCount: number }
 type Mode = 'random' | 'faction' | 'public'
 type PveLevel = 'rookie' | 'veteran'
@@ -104,7 +104,7 @@ export function DigitalPvE() {
       setDecks(ds)
       const first = ds.find((d) => d.missing === 0); if (first) setSel(first.id)
     })
-    supabase.from('factions').select('id, name, icon_url, color_hex').order('sort_order').limit(20).then(({ data }) => setFactions(withoutHiddenFactions((data as Faction[]) ?? []).filter((f) => f.name !== 'Universalus')))
+    supabase.from('factions').select('id, name, slug, icon_url, color_hex').order('sort_order').limit(20).then(({ data }) => setFactions(withoutHiddenFactions((data as Faction[]) ?? []).filter((f) => f.name !== 'Universalus')))
     // DI varžovu gali būti TIK galiojančio dydžio (30–40 kortų) vieša kaladė —
     // netinkamos (pvz., 58/60 kortų) iš pasirinkimo pašalinamos visai.
     supabase.from('decks').select('id, name, user_id, score, card_count, faction:factions ( id, name, icon_url, color_hex )').eq('visibility', 'public').or(DECKS_VISIBLE_OR)
@@ -360,7 +360,7 @@ export function DigitalPvE() {
               <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll grid grid-cols-2 content-start" data-testid="faction-picker" style={{ padding: desktop ? 14 : 8, gap: desktop ? 12 : 6 }}>
                 {factions.map((f) => { const s = f.id === oppFaction; return (
                   <button key={f.id} onClick={() => { playUiClick(); setOppFaction(f.id) }} className="ravenof-press flex items-center text-left" style={{ gap: desktop ? 14 : 8, padding: desktop ? '12px 14px' : '6px 8px', cursor: 'pointer', border: s ? '1.5px solid var(--ravenof-gold)' : '1px solid var(--ravenof-border-hairline)', background: s ? 'linear-gradient(135deg, rgba(212,163,59,0.14), var(--ravenof-bg-surface-2))' : 'var(--ravenof-bg-surface-2)' }}>
-                    <span className="shrink-0 flex items-center justify-center overflow-hidden" style={{ width: desktop ? 52 : 32, height: desktop ? 52 : 32, background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (f.color_hex ? f.color_hex + '88' : 'var(--ravenof-border-gold)') }}>{f.icon_url ? <img src={f.icon_url} alt="" width={desktop ? 52 : 32} height={desktop ? 52 : 32} className="w-full h-full object-cover" /> : <span>⚔</span>}</span>
+                    <span className="shrink-0 flex items-center justify-center overflow-hidden" style={{ width: desktop ? 52 : 32, height: desktop ? 52 : 32, background: 'rgba(0,0,0,0.4)', border: '1px solid ' + (f.color_hex ? f.color_hex + '88' : 'var(--ravenof-border-gold)') }}>{(f.slug || f.icon_url) ? <img src={f.slug ? ravenofFactionIcon(f.slug) : f.icon_url!} alt="" width={desktop ? 52 : 32} height={desktop ? 52 : 32} className={f.slug ? 'w-full h-full object-contain p-1' : 'w-full h-full object-cover'} /> : <span>⚔</span>}</span>
                     <span className="min-w-0"><span className="block truncate" style={{ font: `700 ${desktop ? 17 : 12}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)' }}>{tc('faction', f.id, 'name', f.name)}</span><span className="block truncate" style={{ font: `400 ${desktop ? 13 : 9}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{(() => { const k = `battle.factionDesc.${f.name}`; const v = t(k); return v === k ? t('battle.pve.aiDeck') : v })()}</span></span>
                   </button>
                 ) })}

@@ -1,7 +1,7 @@
 {
   "shield": {
     "name": "Magic Shield",
-    "tooltip": "Negates ALL damage from one attack or effect, then disappears. No ZMK draw."
+    "tooltip": "Negates ALL damage from one attack or effect, then disappears. No DMD draw."
   },
   "frozen": {
     "name": "Frozen",
@@ -17,7 +17,7 @@
   },
   "poisoned": {
     "name": "Poisoned",
-    "tooltip": "Takes 1 base damage at the start of the owner's turn; attacks at disadvantage (ZMK). Persists until removed by an effect."
+    "tooltip": "Takes 1 base damage at the start of the owner's turn; attacks at disadvantage (DMD). Persists until removed by an effect."
   },
   "silenced": {
     "name": "Silenced",
@@ -25,7 +25,7 @@
   },
   "blessed": {
     "name": "Blessed",
-    "tooltip": "This creature's next attack has advantage — 2 ZMK are drawn and the better one is used. Consumed on attack."
+    "tooltip": "This creature's next attack has advantage — 2 DMD are drawn and the better one is used. Consumed on attack."
   },
   "stealth": {
     "name": "Stealth",

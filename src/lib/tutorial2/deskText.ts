@@ -1,3 +1,5 @@
+import { TUTORIAL_EN } from '@/data/tutorialLessons/lessonsEn'
+
 // Mokymų tekstai parašyti telefonui („pirštu", „bakstelėk"). Kompiuteryje (pelė) rodomą
 // tekstą pakeičiam pelės variantu – pamokų turinio (DB) ir Korvo balso nekeičiant.
 const RULES: [RegExp, string][] = [
@@ -21,4 +23,28 @@ export function deskText<T extends string | null | undefined>(s: T, desktop: boo
   let out: string = s
   for (const [re, to] of RULES) out = out.replace(re, to)
   return out as T
+}
+
+// ── EN: pamokos tekstas pagal kalbą (LT → EN žodynas) + pelės variantas ──────
+const RULES_EN: [RegExp, string][] = [
+  [/Don't tap — HOLD your finger \(or the mouse button\) on the card\./g, 'RIGHT-click the card (or hold the left button).'],
+  [/Hold your finger on the card/g, 'Right-click the card'],
+  [/Hold your finger on a card/g, 'Right-click a card'],
+  [/Pick up the card with your finger/g, 'Pick up the card with the mouse'],
+  [/\bTap\b/g, 'Click'],
+  [/\btap\b/g, 'click'],
+]
+
+/** Pamokos tekstas rodymui: EN režime – vertimas iš TUTORIAL_EN (jei yra), kitaip LT; kompiuteryje – pelės variantas. */
+export function lessonText<T extends string | null | undefined>(s: T, locale: string, desktop: boolean): T {
+  if (!s) return s
+  if (locale === 'en') {
+    const en = TUTORIAL_EN[s.trim()]
+    if (en) {
+      let out = en
+      if (desktop) for (const [re, to] of RULES_EN) out = out.replace(re, to)
+      return out as T
+    }
+  }
+  return deskText(s, desktop)
 }

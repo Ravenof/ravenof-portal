@@ -18,7 +18,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { deskText, isPointerFine } from '@/lib/tutorial2/deskText'
+import { lessonText, isPointerFine } from '@/lib/tutorial2/deskText'
 import { createPortal } from 'react-dom'
 import { TutorialGame, DEMO_DECK_ID, type TutorialHooks, type TutorialGameApi } from '@/components/tutorial/TutorialGame'
 import { applyNetAction, beginTurn, endTurn, recomputeAuras, P, PERMANENT, type GameState, type GameEvent, type NetAction, type TargetRef, type Side, type BoardArtifact, type TutCard, type TutStatus } from '@/lib/tutorial/engine'
@@ -35,7 +35,7 @@ import { TutorialOverlay, type OverlayDialogue } from './TutorialOverlay'
 import { CelebrationStyles, CelebrationFx, CelebrationTiles, celebrationCtaDelay, type CelebrationItem } from '@/components/digital/progression/RewardCelebration'
 import type { GrantedReward } from '@/lib/progression/types'
 import { WRONG_VOICE_IDS, GOOD_VOICE_IDS } from '@/data/tutorialLessons/systemVoice'
-import { useT } from '@/lib/i18n/react'
+import { useT, useLocale } from '@/lib/i18n/react'
 
 const ANCHOR_TUT: Record<string, string> = {
   hand: 'hand', gold: 'gold', 'hp-you': 'hp', 'hp-ai': 'hp-ai', 'deck-you': 'deck', 'deck-ai': 'ai-area',
@@ -57,6 +57,7 @@ const RECHECK_MS = 1200
 
 export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit: (completed: boolean) => void }) {
   const t = useT()
+  const locale = useLocale()
   const [pool, setPool] = useState<CardPool | null>(null)
   // Kol pool'as kraunasi (phase='loading') – originalus config'as; užsikrovus – TUT kortų vardai
   // perrašyti tikrų kolekcijos kortų vardais (žr. CardPool.rewriteLesson).
@@ -450,7 +451,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
         wrongVoiceAt.current = now
         void playTutorialVoice(WRONG_VOICES[Math.floor(Math.random() * WRONG_VOICES.length)])
       }
-      return { ok: false, hint: deskText(s?.wrongHint, isPointerFine()) ?? t('onboarding.tutorial.wrongAction') }
+      return { ok: false, hint: lessonText(s?.wrongHint, locale, isPointerFine()) ?? t('onboarding.tutorial.wrongAction') }
     },
     enemyTurn: (g) => {
       const s = steps[stepIdxRef.current]
@@ -465,20 +466,20 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
       endTurn(g); if (!g.winner) beginTurn(g); enemyDone.current = true
     },
     onEvents: (fresh, g) => { gameRef.current = g; checkComplete(fresh, g) },
-  }), [applySetup, steps, matchAction, runScripted, checkComplete, onInspect, onInspectEnd, cfg.matchStartFlow, cfg.enemyAi, t])
+  }), [applySetup, steps, matchAction, runScripted, checkComplete, onInspect, onInspectEnd, cfg.matchStartFlow, cfg.enemyAi, t, locale])
 
   // ── overlay data ──
   const pointerFine = useMemo(() => isPointerFine(), [])
   const objective = useMemo(() => {
     // Paskutinis (atsisveikinimo) žingsnis be savo tikslo – seno tikslo neberodom
     if (stepIdx === steps.length - 1 && !steps[stepIdx]?.objective) return null
-    for (let i = stepIdx; i >= 0; i--) if (steps[i]?.objective) return deskText(steps[i].objective!, pointerFine)
+    for (let i = stepIdx; i >= 0; i--) if (steps[i]?.objective) return lessonText(steps[i].objective!, locale, pointerFine)
     return null
-  }, [stepIdx, steps, pointerFine])
+  }, [stepIdx, steps, pointerFine, locale])
 
   const curLine = step?.dialogue?.[dialogueIdx]
   const curDialogue: OverlayDialogue | null = curLine
-    ? { name: curLine.name ?? cfg.guideName, text: deskText(curLine.text, pointerFine), speaker: curLine.speaker, subtitle: null }
+    ? { name: lessonText(curLine.name ?? cfg.guideName, locale, false), text: lessonText(curLine.text, locale, pointerFine), speaker: curLine.speaker, subtitle: null }
     : null
 
   const resolveSel = useCallback((tg: HighlightTarget): string | null => {
@@ -530,7 +531,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
 
   return (
     <>
-      <TutorialGame deckId={DEMO_DECK_ID} deckName={lesson.title} onClose={() => { stopTutorialVoice(); onExit(false) }} tutorial={hooks} />
+      <TutorialGame deckId={DEMO_DECK_ID} deckName={lessonText(lesson.title, locale, false)} onClose={() => { stopTutorialVoice(); onExit(false) }} tutorial={hooks} />
       {phase === 'play' && (
         <TutorialOverlay
           labels={{
@@ -563,7 +564,7 @@ export function TutorialDirector({ lesson, onExit }: { lesson: LessonRow; onExit
           onExit={() => { stopTutorialVoice(); onExit(false) }}
         />
       )}
-      {phase === 'reward' && <RewardScreen title={lesson.title} subtitle={lesson.subtitle} reward={reward} onDone={() => onExit(true)} />}
+      {phase === 'reward' && <RewardScreen title={lessonText(lesson.title, locale, false)} subtitle={lessonText(lesson.subtitle, locale, false)} reward={reward} onDone={() => onExit(true)} />}
     </>
   )
 }

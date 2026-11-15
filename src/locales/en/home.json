@@ -63,10 +63,10 @@
   "format": {
     "aria": "Battle format",
     "classic": "Classic",
-    "classicHint": "Classic: damage always equals card values – no ŽMK draw, ×2 or ×0. Separate rating and queues.",
-    "classicTag": "NO ŽMK",
+    "classicHint": "Classic: damage always equals card values – no DMD draw, ×2 or ×0. Separate rating and queues.",
+    "classicTag": "NO DMD",
     "modeSubClassic": "No modifiers",
-    "zmk": "ŽMK battles",
-    "zmkTag": "ŽMK"
+    "zmk": "DMD battles",
+    "zmkTag": "DMD"
   }
 }

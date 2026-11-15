@@ -20,7 +20,8 @@ import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/start
 import { playstyleFor } from '@/components/digital/StarterOnboarding'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { RavenofBannerButton } from '@/components/digital/ui/RavenofKit'
-import { useT } from '@/lib/i18n/react'
+import { useT, useLocale } from '@/lib/i18n/react'
+import { lessonText } from '@/lib/tutorial2/deskText'
 import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { loadTutorialState, isLessonUnlocked, type TutorialState } from '@/lib/tutorial2/lessonLoader'
 import type { LessonRow } from '@/lib/tutorial2/lessonTypes'
@@ -33,6 +34,7 @@ const isCore = (l: LessonRow) => CORE_LESSON_KEYS.includes(l.seed_key ?? '')
 
 export function TutorialHub() {
   const t = useT()
+  const locale = useLocale()
   const router = useRouter()
   const [starters, setStarters] = useState<StarterDeck[] | null>(null)
   const [state, setState] = useState<TutorialState | null>(null)
@@ -118,9 +120,10 @@ export function TutorialHub() {
 
   const lessonRow = (l: LessonRow, unlocked: boolean) => {
     const done = !!progress[l.id]?.completed
-    const mNum = /^(\d+)\.\s*(.+)$/.exec(l.title ?? '')
+    const lTitle = lessonText(l.title, locale, false)
+    const mNum = /^(\d+)\.\s*(.+)$/.exec(lTitle ?? '')
     const num = mNum ? mNum[1] : null
-    const titleText = mNum ? mNum[2] : l.title
+    const titleText = mNum ? mNum[2] : lTitle
     return (
       <button key={l.id} disabled={!unlocked} onClick={() => { if (!unlocked) return; playUiClick(); setLesson(l) }}
         className="ravenof-press text-left flex items-center disabled:opacity-45"
@@ -132,7 +135,7 @@ export function TutorialHub() {
         </span>
         <span className="flex-1 min-w-0 flex flex-col" style={{ gap: desktop ? 4 : 2 }}>
           <span style={{ font: `700 ${desktop ? 17 : 13.5}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-primary)', lineHeight: desktop ? 1.25 : undefined }}>{titleText}</span>
-          <span style={{ font: `400 ${desktop ? 14.5 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', lineHeight: 1.35 }}>{l.subtitle ?? l.description}</span>
+          <span style={{ font: `400 ${desktop ? 14.5 : 11}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', lineHeight: 1.35 }}>{lessonText(l.subtitle ?? l.description, locale, false)}</span>
         </span>
         <span className="shrink-0 flex flex-col items-end" style={{ gap: desktop ? 5 : 3 }}>
           <span style={{ font: `400 ${desktop ? 13 : 10}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('onboarding.tutorial.minutesShort', { n: l.est_minutes ?? 5 })}</span>

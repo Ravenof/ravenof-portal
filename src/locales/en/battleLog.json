@@ -20,7 +20,7 @@
     "ai": "⚔ \"{{card}}\" attacks the opponent directly!",
     "you": "⚔ \"{{card}}\" attacks you directly!"
   },
-  "attackUnit": "⚔ \"{{card}}\" ({{atk}} ATK) attacks \"{{target}}\" – both draw a ZMK!",
+  "attackUnit": "⚔ \"{{card}}\" ({{atk}} ATK) attacks \"{{target}}\" – both draw a DMD!",
   "auraDoublePlayerDmg": "☠×2 An aura doubles the damage to the player: {{dmg}}.",
   "auraReduceDmg": "🛡 An aura reduces damage by −{{pct}}%: \"{{card}}\" {{before}} → {{dmg}}.",
   "battlecry": "📣 \"{{card}}\" Battlecry!",
@@ -339,7 +339,7 @@
   "sacrificeUnit": "\"{{card}}\" is sacrificed to the Champion.",
   "shieldNullify": "✦★ Magic Shield negates the damage to \"{{card}}\".",
   "shieldNullifyBack": "✦★ Magic Shield negates the counter damage to \"{{card}}\".",
-  "shieldNullifyNoZmk": "✦★ Magic Shield negates the damage to \"{{card}}\" – no ZMK is drawn.",
+  "shieldNullifyNoZmk": "✦★ Magic Shield negates the damage to \"{{card}}\" – no DMD is drawn.",
   "side": {
     "ai": "The opponent",
     "you": "You"
@@ -422,20 +422,20 @@
   "winTeam": "Team {{loser}} HP = 0. Team {{winner}} wins! 🏆",
   "winYou": "The opponent's HP dropped to 0. YOU WIN! 🏆",
   "zmkBias": {
-    "adv": "Advantage: ZMK {{a}} and {{b}} – the better one is used.",
-    "dis": "Disadvantage: ZMK {{a}} and {{b}} – the worse one is used."
+    "adv": "Advantage: DMD {{a}} and {{b}} – the better one is used.",
+    "dis": "Disadvantage: DMD {{a}} and {{b}} – the worse one is used."
   },
-  "zmkDisabled": "ZMK is disabled – damage stays at base: {{dmg}}.",
-  "zmkDraw": "ZMK draw: {{zmk}}.",
-  "zmkNoneRemoved": "No \"{{card}}\" cards left in the ZMK deck – nothing removed.",
-  "zmkRemap": "ZMK {{from}} now acts as {{to}} ({{src}})",
-  "zmkRemoved": "{{n}}× \"{{card}}\" card removed from {{owner}} ZMK deck (for the rest of the game).",
+  "zmkDisabled": "DMD is disabled – damage stays at base: {{dmg}}.",
+  "zmkDraw": "DMD draw: {{zmk}}.",
+  "zmkNoneRemoved": "No \"{{card}}\" cards left in the DMD deck – nothing removed.",
+  "zmkRemap": "DMD {{from}} now acts as {{to}} ({{src}})",
+  "zmkRemoved": "{{n}}× \"{{card}}\" card removed from {{owner}} DMD deck (for the rest of the game).",
   "zmkReshuffle": {
-    "ai": "The opponent reshuffles the ZMK deck.",
-    "you": "You reshuffle the ZMK deck."
+    "ai": "The opponent reshuffles the DMD deck.",
+    "you": "You reshuffle the DMD deck."
   },
-  "zmkRoll": "ZMK: {{zmk}} → base damage {{base}} becomes {{dmg}}.",
-  "zmkSpecialReshuffle": "Drew {{value}} – the ZMK deck is reshuffled.",
+  "zmkRoll": "DMD: {{zmk}} → base damage {{base}} becomes {{dmg}}.",
+  "zmkSpecialReshuffle": "Drew {{value}} – the DMD deck is reshuffled.",
   "zone": {
     "deck": "in the deck",
     "discard": "in the graveyard",

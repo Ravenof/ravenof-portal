@@ -15,7 +15,7 @@ import type { TutCard, GameEvent, Side } from '@/lib/tutorial/engine'
 import { STATUS_META, type TutStatus } from '@/lib/tutorial/engine'
 import { eventText } from '@/lib/tutorial/logText'
 import { groupLog, lastActions, type LogHit, type LogTarget, type LogKeyword } from '@/lib/game/logGroups'
-import type { TParams } from '@/lib/i18n/core'
+import { t as tCore, type TParams } from '@/lib/i18n/core'
 
 export type LogFilter = 'all' | 'important'
 type TFn = (key: string, params?: TParams) => string
@@ -61,7 +61,7 @@ const zmkTag = (v: string): { text: string; color: string } => {
   if (v === 'x2') return { text: '×2', color: '#ff6a3d' }
   if (v === 'x0') return { text: '×0', color: '#9aa0ad' }
   const col = v === '+0' ? '#8e84ab' : v.startsWith('+') ? YOU : AI
-  return { text: 'ŽMK ' + v.replace('-', '−'), color: col }
+  return { text: tCore('battle.game.zmk') + ' ' + v.replace('-', '−'), color: col }
 }
 
 function Chip({ kind, children, tag, tagColor, title }: { kind?: 'dmg' | 'heal' | 'gold' | 'dead' | 'zero' | 'buff' | 'debuff' | 'status' | 'plain'; children: ReactNode; tag?: string; tagColor?: string; title?: string }) {
