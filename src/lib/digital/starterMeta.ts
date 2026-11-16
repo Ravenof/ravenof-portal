@@ -56,7 +56,7 @@ const META: Record<number, MetaEntry> = {
       },
       en: {
         label: 'Traps and heists',
-        intro: 'The Night of Thieves lives in the shadows — a strike from ambush always cuts deeper.',
+        intro: 'The Night of Plunder lives in the shadows — a strike from ambush always cuts deeper.',
         playstyle: 'Fast tempo: hit first, gather gold and lay traps for unexpected turns.',
         strengths: ['Fast attacks', 'Extra gold', 'Surprise traps'],
         weaknesses: ['Long, slow battles', 'Mass board clears'],

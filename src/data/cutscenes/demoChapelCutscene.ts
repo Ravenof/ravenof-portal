@@ -126,7 +126,7 @@ export const demoChapelCutscene: MotionComicDef = {
       speakerId: 'hero',
       text: {
         lt: 'Šviesos pulke... jie jau čia.',
-        en: 'By the Legion of Light... they are already here.',
+        en: 'By the Regiment of Light... they are already here.',
       },
       voiceUrl: null,
       holdMs: 500,
