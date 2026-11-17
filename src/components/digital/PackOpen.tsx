@@ -5,6 +5,7 @@
 // skyla į dvi puses, kortos iššauna vėduokle ir susirenka į kaladę; verčiant –
 // spinduliai/dalelės pagal retumą. Pabaigoje – ta pati karuselė ore.
 // Dalelės – vienas canvas (be DOM node'ų kiekvienai kibirkščiai).
+import { RavenofBannerButton } from '@/components/digital/ui/RavenofKit'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { animate, motion, useMotionValue, useTransform, type MotionValue } from 'framer-motion'
@@ -163,26 +164,37 @@ function useParticles() {
 }
 
 // ── Pakuotės menas (viršus/apačia dalinasi tuo pačiu vaizdu) ─────────────────
+/** CSS kaukė pagal pakuotės paveikslėlio siluetą (permatomas fonas) – sluoksniai nebeišlenda už pakuotės. */
+function artMask(packImage?: string | null): React.CSSProperties {
+  if (!packImage) return {}
+  const u = `url("${packImage}")`
+  return { WebkitMaskImage: u, maskImage: u, WebkitMaskSize: 'contain', maskSize: 'contain', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat', WebkitMaskPosition: 'center', maskPosition: 'center' }
+}
+
 function PackArt({ packImage, packName, bad, onBad, offsetY = 0, showName, shimmer }: { packImage?: string | null; packName: string; bad: boolean; onBad?: () => void; offsetY?: number; showName?: boolean; shimmer?: boolean }) {
+  const art = !!packImage && !bad
   return (
-    <span className="absolute inset-0 block overflow-hidden" style={{ background: 'radial-gradient(60% 40% at 50% 38%, rgba(240,180,41,.3), transparent 70%), linear-gradient(160deg,#3a2560 0%,#1b1230 45%,#0d0915 100%)' }}>
-      {packImage && !bad ? (
+    <span className="absolute inset-0 block overflow-hidden" style={{ background: art ? 'transparent' : 'radial-gradient(60% 40% at 50% 38%, rgba(240,180,41,.3), transparent 70%), linear-gradient(160deg,#3a2560 0%,#1b1230 45%,#0d0915 100%)' }}>
+      {art ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={packImage} alt={packName} onError={onBad} draggable={false} className="absolute left-0 object-cover" style={{ top: offsetY, width: PACK_W, height: PACK_H }} />
+        <img src={packImage as string} alt={packName} onError={onBad} draggable={false} className="absolute left-0 object-contain" style={{ top: offsetY, width: PACK_W, height: PACK_H }} />
       ) : (
         <span className="absolute left-0 flex flex-col items-center justify-center gap-2" style={{ top: offsetY, width: PACK_W, height: PACK_H }}>
           <span className="text-5xl" style={{ filter: 'drop-shadow(0 0 10px rgba(240,180,41,0.5))' }}>🎴</span>
           <span style={{ font: '900 15px var(--ravenof-font-display)', letterSpacing: 5, color: '#ffd97a', textShadow: '0 0 12px rgba(240,180,41,.6)' }}>RAVENOF</span>
         </span>
       )}
-      {showName && (
+      {showName && !art && (
         <span className="absolute left-0 right-0 bottom-0 px-2 py-1.5 text-center" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.9), transparent)' }}>
           <span style={{ font: '700 10px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', letterSpacing: '0.14em' }}>{packName}</span>
         </span>
       )}
-      {/* folijos blizgesys – TIK pagrindiniam korpusui (kopijose kainuoja per daug) */}
-      {shimmer && <span aria-hidden className="absolute pointer-events-none" style={{ inset: '-40%', mixBlendMode: 'screen', willChange: 'transform', background: 'linear-gradient(115deg,transparent 40%,rgba(255,255,255,.2) 48%,rgba(255,240,200,.42) 50%,rgba(255,255,255,.2) 52%,transparent 60%)', animation: 'rvnPackShimmer 4.2s ease-in-out infinite' }} />}
-      <span aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.08), transparent 55%)' }} />
+      {/* blizgesys ir atspindys – pakuotės dydžio sluoksnyje, apkirpti pagal jos siluetą */}
+      <span aria-hidden className="absolute left-0 overflow-hidden pointer-events-none" style={{ top: offsetY, width: PACK_W, height: PACK_H, ...(art ? artMask(packImage) : {}) }}>
+        {/* folijos blizgesys – TIK pagrindiniam korpusui (kopijose kainuoja per daug) */}
+        {shimmer && <span aria-hidden className="absolute pointer-events-none" style={{ inset: '-40%', mixBlendMode: 'screen', willChange: 'transform', background: 'linear-gradient(115deg,transparent 40%,rgba(255,255,255,.2) 48%,rgba(255,240,200,.42) 50%,rgba(255,255,255,.2) 52%,transparent 60%)', animation: 'rvnPackShimmer 4.2s ease-in-out infinite' }} />}
+        <span aria-hidden className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.08), transparent 55%)' }} />
+      </span>
     </span>
   )
 }
@@ -402,6 +414,9 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
 
   const regionClip = drag.dir > 0 ? `inset(0 ${PACK_W - drag.fx}px 0 0)` : `inset(0 0 0 ${drag.fx}px)`
   const fired = phase !== 'sealed'
+  // Pakuotė su paveikslėliu rodoma BE fono stačiakampio: tik pats siluetas su švytėjimu (kaip starter dėžutės)
+  const hasArt = !!packImage && !packImgBad
+  const silhouette: React.CSSProperties = hasArt ? artMask(packImage) : {}
   const revealing = phase === 'reveal' && !!cards && revealIdx < cards.length
   const current = cards && revealing ? cards[revealIdx] : null
 
@@ -460,16 +475,20 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
 
             <div style={{ position: 'absolute', inset: 0, transformStyle: 'preserve-3d', transition: fired ? 'transform .35s cubic-bezier(.3,1.6,.6,1)' : 'transform .12s ease-out', transform: fired ? 'scale(1.06)' : `rotateZ(${drag.dir * drag.t * 4}deg) rotateY(${drag.dir * drag.t * 10}deg) translateX(${jit}px)` }}>
               {/* pakuotės korpusas */}
-              <div className="absolute inset-0 overflow-hidden" style={{ clipPath: OCT, opacity: burst ? 0 : 1, boxShadow: '0 22px 50px rgba(0,0,0,.75)' }}>
+              <div className="absolute inset-0 overflow-hidden" style={hasArt
+                ? { opacity: burst ? 0 : 1, filter: 'drop-shadow(0 22px 24px rgba(0,0,0,.8)) drop-shadow(0 0 26px rgba(240,180,41,.55))' }
+                : { clipPath: OCT, opacity: burst ? 0 : 1, boxShadow: '0 22px 50px rgba(0,0,0,.75)' }}>
                 <PackArt packImage={packImage} packName={packName} bad={packImgBad} onBad={() => setPackImgBad(true)} showName shimmer />
                 {/* siūlė */}
-                <div className="absolute pointer-events-none" style={{ left: 10, right: 10, top: STRIP_H, height: 2, background: 'linear-gradient(90deg,transparent,rgba(240,180,41,.9),transparent)', boxShadow: '0 0 10px rgba(240,180,41,.8)', animation: 'rvnPackSeam 1.6s ease-in-out infinite', opacity: Math.max(0, 1 - drag.t * 2.2) }} />
+                <div className="absolute inset-0 pointer-events-none" style={silhouette}><div className="absolute pointer-events-none" style={{ left: 10, right: 10, top: STRIP_H, height: 2, background: 'linear-gradient(90deg,transparent,rgba(240,180,41,.9),transparent)', boxShadow: '0 0 10px rgba(240,180,41,.8)', animation: 'rvnPackSeam 1.6s ease-in-out infinite', opacity: Math.max(0, 1 - drag.t * 2.2) }} /></div>
               </div>
 
               {/* VIDUS – atsiveria po nuplėšta folija */}
               <div className="absolute left-0 right-0 pointer-events-none overflow-hidden" style={{ top: 0, height: STRIP_H, clipPath: regionClip, zIndex: 2, opacity: burst ? 0 : 1 }}>
-                <div className="absolute inset-0" style={{ clipPath: JAG_IN, background: 'linear-gradient(180deg,#040308,#120c1c 60%,#22183a)', boxShadow: 'inset 0 -8px 12px rgba(0,0,0,0.85)' }} />
-                <div className="absolute inset-0" style={{ clipPath: JAG_IN, opacity: 0.2 + drag.t * 0.8, background: 'radial-gradient(70% 100% at 50% 100%, rgba(255,205,90,.9), rgba(240,120,30,.35) 55%, transparent 80%)' }} />
+                <div className="absolute left-0 top-0" style={{ width: PACK_W, height: PACK_H, ...silhouette }}>
+                <div className="absolute left-0 right-0 top-0" style={{ height: STRIP_H, clipPath: JAG_IN, background: 'linear-gradient(180deg,#040308,#120c1c 60%,#22183a)', boxShadow: 'inset 0 -8px 12px rgba(0,0,0,0.85)' }} />
+                <div className="absolute left-0 right-0 top-0" style={{ height: STRIP_H, clipPath: JAG_IN, opacity: 0.2 + drag.t * 0.8, background: 'radial-gradient(70% 100% at 50% 100%, rgba(255,205,90,.9), rgba(240,120,30,.35) 55%, transparent 80%)' }} />
+                </div>
               </div>
 
               {/* NUPLĖŠAMA FOLIJA – kyla, riečiasi 3D ir sukasi nuo plėšimo krašto */}
@@ -498,7 +517,7 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
                   animate={{ x: s * 150, y: 140, rotate: s * 38, scale: 0.9, opacity: 0 }}
                   transition={{ x: { duration: 0.9, ease: [0.2, 0.6, 0.3, 1] }, y: { duration: 0.9, ease: [0.2, 0.6, 0.3, 1] }, rotate: { duration: 0.9 }, scale: { duration: 0.9 }, opacity: { duration: 0.6, delay: 0.35 } }}
                   className="absolute inset-0 overflow-hidden pointer-events-none" style={{ clipPath: clip }}>
-                  <div className="absolute inset-0" style={{ clipPath: OCT }}><PackArt packImage={packImage} packName={packName} bad={packImgBad} /></div>
+                  <div className="absolute inset-0" style={{ clipPath: hasArt ? undefined : OCT }}><PackArt packImage={packImage} packName={packName} bad={packImgBad} /></div>
                 </motion.div>
               ))}
             </div>
@@ -509,7 +528,7 @@ export function PackOpen({ packId, packName, packImage, onClose, onOpened }: {
                 className="absolute pointer-events-none" style={{ left: '50%', top: '50%', width: 240, height: 320, marginLeft: -120, marginTop: -160, borderRadius: 24, border: '3px solid #ffd97a', boxShadow: '0 0 30px rgba(240,180,41,.9), inset 0 0 30px rgba(240,180,41,.6)' }} />
             ))}
           </div>
-          {!fired && <button onClick={doOpen} className="ravenof-press px-7 py-3" style={{ font: '800 13px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, clipPath: 'polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%)' }}>{t('collection.pack.openCta')}</button>}
+          {!fired && <RavenofBannerButton onClick={doOpen} style={{ minWidth: 220, padding: '12px 40px', whiteSpace: 'nowrap', marginTop: 6 }}>{t('collection.pack.openCta')}</RavenofBannerButton>}
           {fired && <p style={{ font: '700 12px var(--ravenof-font-display)', color: 'var(--ravenof-gold)', letterSpacing: 2, textTransform: 'uppercase', margin: 0 }}>{t('collection.pack.opening')}</p>}
           {error && <p className="text-xs text-center max-w-[260px]" style={{ color: '#fca5a5' }}>{error}</p>}
         </div>
@@ -690,7 +709,7 @@ function CardCarousel({ cards, onClose }: { cards: OpenedCard[]; onClose: () => 
         </p>
       </div>
 
-      <button onClick={onClose} className="ravenof-press px-7 py-3" style={{ font: '800 13px var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', background: 'var(--ravenof-grad-gold)', color: 'var(--ravenof-on-gold)', border: 0, cursor: 'pointer', clipPath: 'polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%)', boxShadow: 'var(--ravenof-shadow-gold-btn)' }}>{t('collection.pack.toCollection')}</button>
+      <RavenofBannerButton onClick={onClose} style={{ minWidth: 220, padding: '12px 40px', whiteSpace: 'nowrap' }}>{t('collection.pack.toCollection')}</RavenofBannerButton>
 
       {/* priartinta korta */}
       {zoom != null && cards[zoom] && (
