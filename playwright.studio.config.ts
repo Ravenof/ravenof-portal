@@ -18,11 +18,13 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     baseURL: BASE,
     headless: false,
+    // Tikras Chrome (ne Playwright Chromium) – kad veiktų prisijungimas per Google
+    channel: 'chrome',
     viewport: SIZE,
     deviceScaleFactor: 1,
     video: { mode: 'on', size: SIZE },
     screenshot: 'off',
     trace: 'off',
-    launchOptions: { args: ['--force-device-scale-factor=1', '--autoplay-policy=no-user-gesture-required', '--window-position=0,0'] },
+    launchOptions: { ignoreDefaultArgs: ['--enable-automation'], args: ['--disable-blink-features=AutomationControlled', '--force-device-scale-factor=1', '--autoplay-policy=no-user-gesture-required', '--window-position=0,0'] },
   },
 })

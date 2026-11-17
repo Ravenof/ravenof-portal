@@ -27,13 +27,37 @@ async function dismissGates(page: Page) {
   }
 }
 
-async function login(page: Page) {
+const AUTH = path.join(OUT, '_auth.json')
+type Saved = { cookies: Parameters<import('@playwright/test').BrowserContext['addCookies']>[0]; origins: { origin: string; localStorage: { name: string; value: string }[] }[] }
+
+/** Prisijungimas VIENĄ kartą: jei nėra E2E_TEST_EMAIL/PASSWORD – langas laukia, kol prisijungsi pats
+ *  (el. paštu arba per Google). Sesija išsaugoma store-media/_auth.json ir naudojama kitiems scenarijams. */
+async function loginOnce(page: Page) {
+  fs.mkdirSync(OUT, { recursive: true })
   await page.goto('/digital/login')
-  await page.locator('#rvn-email').fill(EMAIL)
-  await page.locator('#rvn-pw').fill(PASSWORD)
-  await page.locator('#rvn-pw').press('Enter')
-  await page.waitForURL((u) => !u.pathname.includes('/digital/login'), { timeout: 40_000 })
-  await page.waitForTimeout(2500)
+  if (EMAIL && PASSWORD) {
+    await page.locator('#rvn-email').fill(EMAIL)
+    await page.locator('#rvn-pw').fill(PASSWORD)
+    await page.locator('#rvn-pw').press('Enter')
+  } else {
+    console.log('\n>>> PRISIJUNK ATSIDARIUSIAME LANGE (el. paštu arba per Google). Laukiu iki 10 min. <<<\n')
+  }
+  await page.waitForURL((u) => u.pathname.startsWith('/digital') && !/\/digital\/(login|register|auth|forgot)/.test(u.pathname), { timeout: 10 * 60_000 })
+  await page.waitForTimeout(3000)
+  await page.context().storageState({ path: AUTH })
+}
+
+/** Atkuria išsaugotą sesiją (slapukai + localStorage) prieš pirmą puslapį. */
+async function login(page: Page) {
+  const saved = JSON.parse(fs.readFileSync(AUTH, 'utf8')) as Saved
+  await page.context().addCookies(saved.cookies)
+  const ls = saved.origins.flatMap((o) => o.localStorage).filter((e) => e.name !== 'rvn_locale')
+  await page.addInitScript((items) => {
+    for (const it of items) { try { if (window.localStorage.getItem(it.name) == null) window.localStorage.setItem(it.name, it.value) } catch { /* */ } }
+  }, ls)
+  await page.goto('/digital')
+  await page.waitForTimeout(3000)
+  if (page.url().includes('/digital/login')) throw new Error('Sesija negalioja – ištrink store-media/_auth.json ir paleisk iš naujo.')
   await dismissGates(page)
 }
 
@@ -155,9 +179,15 @@ async function battle(page: Page, loc: Loc) {
   await shot(page, loc, 'battle-end')
 }
 
+test('prisijungimas', async ({ page }) => {
+  if (fs.existsSync(AUTH) && !process.env.STUDIO_RELOGIN) { await page.close(); return }
+  await loginOnce(page)
+  await page.close()
+})
+
 for (const loc of ['lt', 'en'] as Loc[]) {
   test(`${loc}: meniu ekranai`, async ({ page }) => {
-    test.skip(!EMAIL || !PASSWORD, 'reikia E2E_TEST_EMAIL / E2E_TEST_PASSWORD')
+    test.skip(!fs.existsSync(AUTH), 'nepavyko prisijungti')
     counter = 0
     await presetLocale(page, loc)
     await login(page)
@@ -182,7 +212,7 @@ for (const loc of ['lt', 'en'] as Loc[]) {
   })
 
   test(`${loc}: kova su DI`, async ({ page }) => {
-    test.skip(!EMAIL || !PASSWORD, 'reikia E2E_TEST_EMAIL / E2E_TEST_PASSWORD')
+    test.skip(!fs.existsSync(AUTH), 'nepavyko prisijungti')
     counter = 50
     await presetLocale(page, loc)
     await login(page)
