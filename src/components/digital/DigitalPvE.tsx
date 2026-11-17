@@ -195,7 +195,7 @@ export function DigitalPvE() {
       opponentFaction={mode !== 'public' && oppFaction && !(level === 'rookie' && starters[Number(oppFaction)]) ? Number(oppFaction) : null}
       onPracticeResult={onPracticeResult}
       opponentDeck={level}
-      opponentName={mode === 'public' ? (selDeckObj?.name ?? t('battle.pve.enemy')) : (selFactionObj?.name ?? t('battle.pve.enemy'))}
+      opponentName={mode === 'public' ? (selDeckObj?.name ?? t('battle.pve.enemy')) : (selFactionObj ? tc('faction', selFactionObj.id, 'name', selFactionObj.name) : t('battle.pve.enemy'))}
       difficulty={difficulty}
       onClose={() => setStarted(false)} />
   }

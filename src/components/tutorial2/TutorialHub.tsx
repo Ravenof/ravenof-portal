@@ -27,6 +27,7 @@ import { loadTutorialState, isLessonUnlocked, type TutorialState } from '@/lib/t
 import type { LessonRow } from '@/lib/tutorial2/lessonTypes'
 import { CORE_LESSON_KEYS } from '@/data/tutorialLessons/lessonSeeds'
 import { TutorialDirector } from './TutorialDirector'
+import { starterFactionName } from '@/lib/digital/starterMeta'
 
 type Match = { deckId: string; deckName: string; enemyStarterId: string | null; enemyFaction: number | null; enemyName: string }
 
@@ -55,7 +56,7 @@ export function TutorialHub() {
   const launch = (deckId: string, deckName: string, chosen: StarterDeck) => {
     const pool = (starters ?? []).filter((x) => x.id !== chosen.id)
     const foe = pool.length ? pool[Math.floor(Math.random() * pool.length)] : null
-    setMatch({ deckId, deckName, enemyStarterId: foe?.id ?? null, enemyFaction: foe?.factionId ?? null, enemyName: foe ? (foe.faction ?? foe.name) : t('battle.pve.enemy') })
+    setMatch({ deckId, deckName, enemyStarterId: foe?.id ?? null, enemyFaction: foe?.factionId ?? null, enemyName: foe ? (starterFactionName(foe.factionId, foe.faction) || foe.name) : t('battle.pve.enemy') })
   }
 
   const claimedDeck = (starters ?? []).find((d) => d.claimed && d.deckId) ?? null

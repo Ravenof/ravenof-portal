@@ -43,7 +43,7 @@ import { setBugGameContext } from '@/lib/digital/bugReport'
 import type { AvatarEmotion, AvatarEmotions } from '@/lib/cosmetics'
 import { BugReportModal } from '@/components/digital/BugReportModal'
 import { ensureCardTranslations, localizeTutCard } from '@/lib/cards/i18n'
-import { useT } from '@/lib/i18n/react'
+import { useT, useContent } from '@/lib/i18n/react'
 import { t as tGlobal } from '@/lib/i18n/core'
 import { statusName, statusTooltip } from '@/lib/game/statusVfx'
 import { cardLegend } from '@/lib/cards/legend'
@@ -1043,6 +1043,7 @@ function BattleChatHead({ chatLog, chatInput, setChatInput, sendBattleChat, open
 
 export function TutorialGame({ deckId, deckName, onClose, practice = false, botChat, rewardMode, opponentAvatar = null, opponentDeckId = null, opponentStarterId = null, opponentFaction = null, opponentName, difficulty = 'normal', onPracticeResult, opponentDeck, net , ranked = false, onRankedResult, aiStrategy, onCampaignResult, onCampaignEvent, campaignPaused, onCampaignApi, tutorial, sandbox, format = 'zmk', turnSeconds, onMatchEnd, guided = false }: Props) {
   const t = useT()
+  const tc = useContent()
   const [game, setGame] = useState<GameState | null>(null)
   // Klaidų pranešimo kontekstas: režimas, ėjimas, paskutiniai 40 žurnalo įrašų (žr. lib/digital/bugReport)
   const [bugOpen, setBugOpen] = useState(false)
@@ -7050,7 +7051,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                     <div style={{ display: 'grid', gridTemplateColumns: shown.length > 1 ? '1fr 1fr' : '1fr', gap: 6 }}>
                       {shown.map((a) => (
                         <div key={a.code} className="flex items-center" style={{ gap: 8, background: 'rgba(21,17,28,0.9)', border: '1px solid rgba(212,163,59,0.35)', padding: dk ? '8px 12px' : '6px 9px', textAlign: 'left', minWidth: 0 }}>
-                          <span className="flex-1 min-w-0 truncate" style={{ font: `700 ${dk ? 13 : 11}px var(--ravenof-font-body)`, color: '#f3ead3' }}>{a.name}</span>
+                          <span className="flex-1 min-w-0 truncate" style={{ font: `700 ${dk ? 13 : 11}px var(--ravenof-font-body)`, color: '#f3ead3' }}>{tc('achievement', a.code, 'name', a.name)}</span>
                           <span className="shrink-0 flex items-center" style={{ gap: 5 }}>
                             {(a.rewards ?? []).slice(0, 2).map((r, i) => {
                               const v = resolveRewardVisualV2(r as { type?: string; amount?: number })
