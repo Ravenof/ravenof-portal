@@ -17,6 +17,7 @@ import { formatDeckCount } from '@/lib/deck-validation'
 import { HorizontalFocusCarousel } from '@/components/digital/ui/HorizontalFocusCarousel'
 import { getCosmetics, type Cosmetic } from '@/lib/cosmetics'
 import { SmartImg } from '@/components/ui/SmartImg'
+import { ravenofFactionIconByName } from '@/components/digital/ui/RavenofKit'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
 import { useT, useGameContent } from '@/lib/i18n/react'
@@ -38,7 +39,7 @@ function DeckTile({ d, active, focused, pending, desk = false }: { d: ActiveDeck
       boxShadow: pending ? `0 10px 30px rgba(0,0,0,0.7), 0 0 22px rgba(74,222,128,0.5), inset 0 0 0 1.5px rgba(74,222,128,0.8)` : focused ? `0 10px 30px rgba(0,0,0,0.7), 0 0 22px ${col}55` : '0 6px 18px rgba(0,0,0,0.55)',
       background: `linear-gradient(165deg, ${col}22, #0d0a14 70%)` }}>
       <div className="absolute inset-0 flex items-center justify-center" style={{ opacity: 0.5 }}>
-        {d.factionIcon ? <SmartImg src={d.factionIcon} width={140} alt="" style={{ width: '52%', objectFit: 'contain' }} /> : <span style={{ fontSize: 40 }}>🎴</span>}
+        {(ravenofFactionIconByName(d.faction) ?? d.factionIcon) ? <SmartImg src={(ravenofFactionIconByName(d.faction) ?? d.factionIcon) as string} width={140} alt="" style={{ width: '52%', objectFit: 'contain' }} /> : <span style={{ fontSize: 40 }}>🎴</span>}
       </div>
       {active && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full font-bold" style={{ fontSize: desk ? DT.fs.label : 8.5, background: 'rgba(52,211,153,0.92)', color: '#06281c' }}>{t('decks.active.badge')}</span>}
       {pending && !active && <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full font-bold" style={{ fontSize: desk ? DT.fs.label : 8.5, background: 'rgba(74,222,128,0.25)', border: '1px solid rgba(74,222,128,0.8)', color: '#4ade80' }}>{t('decks.active.picked')}</span>}

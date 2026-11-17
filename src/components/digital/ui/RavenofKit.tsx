@@ -32,6 +32,16 @@ export function ravenofFactionIcon(slug?: string | null): string {
   return `${RAVENOF_ASSET}/factions/${s ?? 'universalus'}.png`
 }
 
+const RAVENOF_FACTION_SLUGS = ['demonu-orda', 'inkvizicijos-legionas', 'mirties-marsas', 'mistikos-melodija', 'plesiku-naktis', 'rytu-vejas', 'sviesos-pulkas', 'vryhioko-gauja', 'universalus']
+
+/** Tikras frakcijos ženklas pagal LT pavadinimą (DB icon_url gali būti senas) – null, jei frakcija neatpažinta. */
+export function ravenofFactionIconByName(name?: string | null): string | null {
+  if (!name) return null
+  const slug = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['’`]/g, '').trim().replace(/\s+/g, '-')
+  const s = slug === 'neutralus' ? 'universalus' : slug
+  return RAVENOF_FACTION_SLUGS.includes(s) ? ravenofFactionIcon(s) : null
+}
+
 /** Retumo spalva pagal patvirtintus tokenus (LT/EN pavadinimas → hex). */
 export function ravenofRarityColor(name?: string | null): string {
   const s = (name || '').toLowerCase()

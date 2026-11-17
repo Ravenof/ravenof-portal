@@ -20,6 +20,9 @@ export default defineConfig({
     ...devices['Desktop Chrome'],
     baseURL: BASE,
     headless: false,
+    // Be šių ribų vienas neprieinamas mygtukas pakabina visą scenarijų iki testo timeout'o
+    actionTimeout: 4000,
+    navigationTimeout: 45_000,
     // Tikras Chrome (ne Playwright Chromium) – kad veiktų prisijungimas per Google
     channel: 'chrome',
     viewport: VIEW,

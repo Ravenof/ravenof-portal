@@ -10,6 +10,8 @@ const EMAIL = process.env.E2E_TEST_EMAIL ?? ''
 const PASSWORD = process.env.E2E_TEST_PASSWORD ?? ''
 const OUT = path.resolve('store-media')
 const TURNS = Number(process.env.STUDIO_TURNS ?? 7)
+const BASE = process.env.E2E_BASE_URL ?? 'https://ravenof-portal-v1g9.vercel.app'
+const BATTLE_MS = 8 * 60_000   // ilgiausia vienos kovos trukmė – po jos įrašas išsaugomas, kad ir kas nutiktų
 
 type Loc = 'lt' | 'en'
 
@@ -27,9 +29,9 @@ async function dismissGates(page: Page) {
   }
   // Laukiantys atlygių pasirinkimai / kiti modalai – uždarom, kad neužstotų ekrano
   for (let i = 0; i < 4; i++) {
-    const dlg = page.locator('[role="dialog"]').last()
+    const dlg = page.locator('[role="dialog"]:visible').last()
     if (!(await dlg.isVisible().catch(() => false))) break
-    const x = dlg.locator('button[aria-label*="daryti" i], button[aria-label*="close" i], button:has(svg.lucide-x)').first()
+    const x = dlg.locator('button[aria-label]:visible, button:has(svg.lucide-x):visible').first()
     if (await x.isVisible().catch(() => false)) await x.click().catch(() => {})
     else await page.keyboard.press('Escape').catch(() => {})
     await page.waitForTimeout(600)
@@ -57,9 +59,11 @@ async function loginOnce(page: Page) {
 }
 
 /** Atkuria išsaugotą sesiją (slapukai + localStorage) prieš pirmą puslapį. */
-async function login(page: Page) {
+async function login(page: Page, loc: Loc) {
   const saved = JSON.parse(fs.readFileSync(AUTH, 'utf8')) as Saved
-  await page.context().addCookies(saved.cookies)
+  // išsaugotoje sesijoje yra ir kalbos slapukas – jį pakeičiam scenarijaus kalba (kitaip EN nuotraukos išeina lietuviškos)
+  await page.context().addCookies(saved.cookies.filter((c) => c.name !== 'rvn_locale'))
+  await page.context().addCookies([{ name: 'rvn_locale', value: loc, url: BASE }])
   const ls = saved.origins.flatMap((o) => o.localStorage).filter((e) => e.name !== 'rvn_locale')
   await page.addInitScript((items) => {
     for (const it of items) { try { if (window.localStorage.getItem(it.name) == null) window.localStorage.setItem(it.name, it.value) } catch { /* */ } }
@@ -172,18 +176,29 @@ async function battle(page: Page, loc: Loc) {
   }
   await page.waitForTimeout(2500)
   await shot(page, loc, 'battle-start')
-  for (let t = 0; t < TURNS; t++) {
+  const t0 = Date.now()
+  const late = () => Date.now() - t0 > BATTLE_MS
+  for (let t = 0; t < TURNS && !late(); t++) {
     if (await page.getByText(/Pergalė!|Pralaimėjai|VICTORY|DEFEAT/i).first().isVisible().catch(() => false)) break
     // laukiam savo ėjimo
-    for (let i = 0; i < 90; i++) {
+    for (let i = 0; i < 90 && !late(); i++) {
       await clearPrompts(page)
       if (await endTurn.isEnabled().catch(() => false)) break
       await page.waitForTimeout(1000)
     }
     await playTurn(page)
     await shot(page, loc, `battle-turn${t + 1}`)
-    if (await endTurn.isEnabled().catch(() => false)) await endTurn.click().catch(() => {})
-    await page.waitForTimeout(3500)
+    // ėjimo pabaiga: force – jei lentą dengia taikinio pasirinkimas; nepavykus – spustelim tuščią lentos vietą ir bandom dar
+    for (let k = 0; k < 3; k++) {
+      if (!(await endTurn.isEnabled().catch(() => false))) break
+      await endTurn.click({ force: true, timeout: 3000 }).catch(() => {})
+      await page.waitForTimeout(1500)
+      if (!(await endTurn.isEnabled().catch(() => false))) break
+      const vp = page.viewportSize()
+      if (vp) await page.mouse.click(vp.width * 0.5, vp.height * 0.5).catch(() => {})
+      await clearPrompts(page)
+    }
+    await page.waitForTimeout(2500)
     await shot(page, loc, `battle-enemy${t + 1}`)
   }
   await page.waitForTimeout(3000)
@@ -201,7 +216,7 @@ for (const loc of ['lt', 'en'] as Loc[]) {
     test.skip(!fs.existsSync(AUTH), 'nepavyko prisijungti')
     counter = 0
     await presetLocale(page, loc)
-    await login(page)
+    await login(page, loc)
     for (const s of SCREENS) {
       try {
         await page.goto(s.route)
@@ -226,7 +241,7 @@ for (const loc of ['lt', 'en'] as Loc[]) {
     test.skip(!fs.existsSync(AUTH), 'nepavyko prisijungti')
     counter = 50
     await presetLocale(page, loc)
-    await login(page)
+    await login(page, loc)
     try { await battle(page, loc) } finally { await saveVideo(page, `battle-${loc}`) }
   })
 

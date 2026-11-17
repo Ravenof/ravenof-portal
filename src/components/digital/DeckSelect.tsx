@@ -13,14 +13,16 @@ import { playUiClick, playSuccess } from '@/lib/ui-sound'
 import { getCosmetics, equipCosmetic, type Cosmetic } from '@/lib/cosmetics'
 import { getLastDeck, setLastDeck, getDeckAvatar, setDeckAvatar, type BattleMode } from '@/lib/deck-prefs'
 import { useT, useGameContent } from '@/lib/i18n/react'
+import { ravenofFactionIconByName } from '@/components/digital/ui/RavenofKit'
 
 export type SelectDeck = { id: string; name: string; faction: string | null; factionIcon: string | null; factionColor: string | null }
 
 function FactionIcon({ d, size = 26 }: { d: SelectDeck; size?: number }) {
   const [bad, setBad] = useState(false)
-  if (d.factionIcon && !bad) {
+  const icon = ravenofFactionIconByName(d.faction) ?? d.factionIcon
+  if (icon && !bad) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={d.factionIcon} alt="" onError={() => setBad(true)} draggable={false} style={{ width: size, height: size, objectFit: 'contain' }} />
+    return <img src={icon} alt="" onError={() => setBad(true)} draggable={false} style={{ width: size, height: size, objectFit: 'contain' }} />
   }
   return <span className="rounded-full inline-block" style={{ width: size * 0.55, height: size * 0.55, background: d.factionColor ?? 'var(--gold)' }} />
 }
