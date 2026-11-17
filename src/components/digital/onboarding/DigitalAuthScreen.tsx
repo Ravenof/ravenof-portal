@@ -23,6 +23,7 @@ import { useLocale, setLocale } from '@/lib/i18n/react'
 import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
 import { RavenofTextField, RavenofBannerButton, RAVENOF_ASSET } from '@/components/digital/ui/RavenofKit'
 import { OAuthButtons } from './OAuthButtons'
+import { signInAsGuest } from '@/lib/digital/guest'
 
 // Slapyvardi galima rasyti su didziosiomis — registras islaikomas display_name,
 // o `username` (URL/unikalumas) visada mazosiomis.
@@ -51,6 +52,7 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [needsConfirm, setNeedsConfirm] = useState(false)
+  const [guestBusy, setGuestBusy] = useState(false)
   // next iš URL — state'e, kad po hydration nuorodos persirenderintų (SSR window nėra)
   const [nextPath, setNextPath] = useState<string | null>(null)
   useEffect(() => { setNextPath(currentNext()) }, [])
@@ -66,6 +68,23 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
     // onboarding pirmiau; baigusiems — prašytas /digital kelias arba home
     router.replace(st === 'done' ? (currentNext() ?? nextPath ?? '/digital') : '/digital/onboarding')
     router.refresh()
+  }
+
+  // „Žaisti kaip svečias" – anoniminė paskyra be el. pašto (žr. lib/digital/guest.ts)
+  const playGuest = async () => {
+    if (loading || guestBusy) return
+    playUiClick()
+    setError(null)
+    setGuestBusy(true)
+    const r = await signInAsGuest()
+    setGuestBusy(false)
+    if (!r.ok) {
+      playError()
+      setError(t(r.reason === 'disabled' ? 'auth.guest.errDisabled' : r.reason === 'network' ? 'auth.err.network' : 'auth.guest.errFailed'))
+      return
+    }
+    playSuccess()
+    await afterAuth()
   }
 
   const submit = async (e: React.FormEvent) => {
@@ -182,6 +201,12 @@ export function DigitalAuthScreen({ mode }: { mode: 'register' | 'login' }) {
                 </button>
               </form>
               <OAuthButtons next={nextPath} onDone={afterAuth} onError={setError} />
+              <button type="button" onClick={playGuest} disabled={loading || guestBusy} className="ravenof-press w-full" title={t('auth.guest.hint')} style={{
+                height: 36, flex: 'none', border: '1px solid var(--ravenof-border-strong)', background: 'transparent', color: 'var(--ravenof-text-secondary)',
+                font: '700 11px var(--ravenof-font-display)', letterSpacing: 1.5, textTransform: 'uppercase', cursor: 'pointer', opacity: guestBusy ? .7 : 1,
+              }}>
+                {guestBusy ? t('auth.guest.starting') : t('auth.guest.play')}
+              </button>
               <div className="text-center" style={{ font: '400 11.5px var(--ravenof-font-body)', color: '#6b6474', marginTop: 2 }}>
                 {t('auth.noAccount')}{' '}
                 <Link href={withNext('/digital/register')} onClick={() => playUiClick()} className="ravenof-press" style={{ color: 'var(--ravenof-gold)', fontWeight: 700 }}>{t('auth.createAccount')}</Link>

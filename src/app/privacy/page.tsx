@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: 'Ravenof Digital ir ravenof.lt privatumo politika: kokius duomenis renkame, kam naudojame ir kaip juos ištrinti.',
 }
 
-const UPDATED = '2026-09-17'
+const UPDATED = '2026-11-17'
 
 const H = ({ children }: { children: React.ReactNode }) => (
   <h2 className="text-lg font-bold mt-8 mb-2" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>{children}</h2>
@@ -28,11 +28,11 @@ export default function PrivacyPage() {
         <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>Ravenof Digital (Android, Windows) ir ravenof.lt · Atnaujinta {UPDATED} · <a href="#en" style={{ color: 'var(--gold)' }}>English version below</a></p>
 
         <H>1. Kas mes</H>
-        <P>Duomenų valdytojas – <b>Kaukas Games</b> (Lietuva), Ravenof kortų žaidimo kūrėjas. Klausimais dėl duomenų rašykite <a href="mailto:info@ravenof.lt" style={{ color: 'var(--gold)' }}>info@ravenof.lt</a>.</P>
+        <P>Duomenų valdytojas – <b>MB „Daiktų dėžutė“</b> (įmonės kodas 305271827, Šiaurės pr. 87, LT-49245 Kaunas, Lietuva), veikianti su prekių ženklu <b>Kaukas Games</b> ir kurianti Ravenof kortų žaidimą. Klausimais dėl duomenų rašykite <a href="mailto:info@ravenof.lt" style={{ color: 'var(--gold)' }}>info@ravenof.lt</a>.</P>
 
         <H>2. Kokius duomenis renkame</H>
         <ul className="list-disc pl-5 mb-3">
-          <Li><b>Paskyros duomenys:</b> el. pašto adresas, slapyvardis, rodomas vardas, avataras, slaptažodžio maiša (jei registruojatės el. paštu). Prisijungiant per Google gauname jūsų Google paskyros el. paštą ir vardą.</Li>
+          <Li><b>Paskyros duomenys:</b> el. pašto adresas, slapyvardis, rodomas vardas, avataras, slaptažodžio maiša (jei registruojatės el. paštu). Prisijungiant per Google gauname jūsų Google paskyros el. paštą ir vardą. Žaidžiant kaip svečiui el. paštas nerenkamas – sukuriama anoniminė paskyra su atsitiktiniu slapyvardžiu; ją vėliau galite paversti nuolatine nustatymuose.</Li>
           <Li><b>Žaidimo duomenys:</b> kortų kolekcija, kaladės, kovų istorija ir rezultatai, reitingas, pasiekimai, lygis, užduotys, žaidimo valiuta, pirkiniai ir kosmetika, kampanijos ir mokymo progresas, nustatymai.</Li>
           <Li><b>Socialiniai duomenys:</b> draugų sąrašas, kvietimai, žinutės draugams, mainai, blokavimai.</Li>
           <Li><b>Techniniai duomenys:</b> programėlės versija, platforma, paskutinio aktyvumo laikas; klaidų pranešimuose – įrenginio modelis, OS versija, ekrano dydis, paskutinės konsolės klaidos ir jūsų savanoriškai pridėta ekrano nuotrauka.</Li>
@@ -72,11 +72,11 @@ export default function PrivacyPage() {
         <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>Ravenof Digital (Android, Windows) and ravenof.lt · Updated {UPDATED}</p>
 
         <H>1. Who we are</H>
-        <P>The data controller is <b>Kaukas Games</b> (Lithuania), developer of the Ravenof card game. Contact: <a href="mailto:info@ravenof.lt" style={{ color: 'var(--gold)' }}>info@ravenof.lt</a>.</P>
+        <P>The data controller is <b>MB „Daiktų dėžutė“</b> (company code 305271827, Šiaurės pr. 87, LT-49245 Kaunas, Lithuania), operating under the <b>Kaukas Games</b> brand and developing the Ravenof card game. Contact: <a href="mailto:info@ravenof.lt" style={{ color: 'var(--gold)' }}>info@ravenof.lt</a>.</P>
 
         <H>2. Data we collect</H>
         <ul className="list-disc pl-5 mb-3">
-          <Li><b>Account data:</b> email address, username, display name, avatar, password hash (if you register with email). With Google Sign-In we receive your Google account email and name.</Li>
+          <Li><b>Account data:</b> email address, username, display name, avatar, password hash (if you register with email). With Google Sign-In we receive your Google account email and name. If you play as a guest, no email is collected – an anonymous account with a random username is created, which you can later turn into a permanent one in Settings.</Li>
           <Li><b>Game data:</b> card collection, decks, match history and results, rating, achievements, level, quests, in-game currency, purchases and cosmetics, campaign and tutorial progress, settings.</Li>
           <Li><b>Social data:</b> friends list, challenges, messages to friends, trades, blocks.</Li>
           <Li><b>Technical data:</b> app version, platform, last activity time; in bug reports – device model, OS version, screen size, recent console errors and a screenshot you attach voluntarily.</Li>

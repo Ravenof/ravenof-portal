@@ -25,6 +25,7 @@ import { createClient } from '@/lib/supabase/client'
 import { APP_VERSION } from '@/lib/version'
 import { requestOpenBugReport } from '@/components/digital/BugReportModal'
 import { DeleteAccountModal } from '@/components/digital/DeleteAccountModal'
+import { GuestUpgradeCard } from '@/components/digital/GuestUpgradeCard'
 import { useEscClose } from '@/lib/useEscClose'
 import { useT, useLocale, setLocale } from '@/lib/i18n/react'
 import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
@@ -142,6 +143,9 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const [sceneFx, setSceneFx] = useState(true)
   const [email, setEmail] = useState<string | null>(null)
   const [emailVerified, setEmailVerified] = useState(false)
+  // Svečio (anoniminė) paskyra – rodom „išsaugok progresą" kortelę ir saugom atsijungimą
+  const [isGuest, setIsGuest] = useState(false)
+  const [guestOutArm, setGuestOutArm] = useState(false)
 
   useEffect(() => {
     setMusic(getMusicVolume()); setSfx(getSfxVolume()); setSummon(isSummonFxEnabled()); setSoundOn(isUiSoundEnabled())
@@ -152,6 +156,7 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
     createClient().auth.getUser().then(({ data }) => {
       setEmail(data.user?.email ?? null)
       setEmailVerified(!!data.user?.email_confirmed_at)
+      setIsGuest(!!data.user?.is_anonymous)
     })
     return subscribeUiSound(setSoundOn)
   }, [])
@@ -188,6 +193,8 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
   const deskRef = useDialogFocus<HTMLDivElement>(onClose, desktop && !delOpen)
   const doLogout = async () => {
     playUiClick()
+    // Svečias atsijungęs paskyros nebeatgaus – pirmas paspaudimas tik įspėja
+    if (isGuest && !guestOutArm) { setGuestOutArm(true); return }
     try { await createClient().auth.signOut() } catch { /* ignore */ }
     onClose()
     router.push('/digital/login')
@@ -317,11 +324,12 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
             <section style={panel}>
               <SectionLabel>{t('settings.account')}</SectionLabel>
               <div className="flex items-center" style={{ gap: DT.sp.md, minHeight: 52, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: `${DT.sp.sm}px ${DT.sp.lg}px` }}>
-                <span className="flex-1 min-w-0 truncate" style={{ font: `500 ${DT.fs.body}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{email ?? (profile?.name || '—')}</span>
+                <span className="flex-1 min-w-0 truncate" style={{ font: `500 ${DT.fs.body}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)' }}>{isGuest ? t('auth.guest.label') : (email ?? (profile?.name || '—'))}</span>
                 {emailVerified && <span className="shrink-0" style={{ font: `600 ${DT.fs.help}px var(--ravenof-font-body)`, color: 'var(--ravenof-success)' }}>{t('settings.verified')}</span>}
               </div>
+              {isGuest && <GuestUpgradeCard onDone={(em) => { setIsGuest(false); setGuestOutArm(false); setEmail(em); setEmailVerified(true) }} />}
               <div className="flex items-center flex-wrap" style={{ gap: DT.sp.md, marginTop: DT.sp.xs }}>
-                <button onClick={doLogout} className="rvn-d-btn rvn-d-btn-ghost">{t('more.logout')}</button>
+                <button onClick={doLogout} className="rvn-d-btn rvn-d-btn-ghost">{guestOutArm ? t('auth.guest.logoutConfirm') : t('more.logout')}</button>
                 <button onClick={() => { playUiClick(); setDelOpen(true) }} className="rvn-d-btn rvn-d-btn-danger">{t('settings.deleteAccount.button')}</button>
               </div>
               <p className="rvn-d-help" style={{ margin: 0 }}>{t('settings.deleteAccount.buttonHint')}</p>
@@ -401,10 +409,11 @@ export function SettingsModal({ onClose, profile }: { onClose: () => void; profi
             <div style={{ height: 4 }} />
             <SectionLabel>{t('settings.account')}</SectionLabel>
             <div className="flex items-center shrink-0" style={{ gap: 10, background: 'var(--ravenof-bg-surface-2)', border: '1px solid var(--ravenof-border-hairline)', padding: '10px 12px' }}>
-              <span className="flex-1 truncate" style={{ font: '500 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{email ?? (profile?.name || '—')}</span>
+              <span className="flex-1 truncate" style={{ font: '500 12.5px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>{isGuest ? t('auth.guest.label') : (email ?? (profile?.name || '—'))}</span>
               {emailVerified && <span className="shrink-0" style={{ font: '400 10.5px var(--ravenof-font-body)', color: 'var(--ravenof-success)' }}>{t('settings.verified')}</span>}
             </div>
-            {/* Paskyros ištrynimas – Google Play „Account deletion" reikalavimas */}
+{isGuest && <GuestUpgradeCard onDone={(em) => { setIsGuest(false); setGuestOutArm(false); setEmail(em); setEmailVerified(true) }} />}
+                        {/* Paskyros ištrynimas – Google Play „Account deletion" reikalavimas */}
             <button onClick={() => { playUiClick(); setDelOpen(true) }} className="ravenof-btn ravenof-btn-destructive shrink-0" style={{ marginTop: 6, minHeight: 34, fontSize: 10, padding: '7px 10px', alignSelf: 'flex-start' }}>{t('settings.deleteAccount.button')}</button>
             <p style={{ font: '400 10px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 2 }}>{t('settings.deleteAccount.buttonHint')}</p>
             {delOpen && <DeleteAccountModal onClose={() => setDelOpen(false)} />}

@@ -2,7 +2,7 @@
 
 // ── Ravenof Digital — „Daugiau" (landscape): 3 sekcijų stulpeliai su didelėmis
 //    kortelėmis (Žaidimas / Bendruomenė / Paskyra) — viskas telpa be scroll.
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Settings, ClipboardList, Award, Gift, Users, LogOut, Power, ChevronRight, Bug } from 'lucide-react'
 import { requestOpenBugReport } from '@/components/digital/BugReportModal'
@@ -27,9 +27,14 @@ export function MoreScreen() {
   const [confirmExit, setConfirmExit] = useState(false)
   const [exitMsg, setExitMsg] = useState<string | null>(null)
   const [loggingOut, setLoggingOut] = useState(false)
+  // Svečias atsijungęs paskyros nebeatgaus – pirmas paspaudimas tik įspėja
+  const [isGuest, setIsGuest] = useState(false)
+  const [guestOutArm, setGuestOutArm] = useState(false)
+  useEffect(() => { createClient().auth.getUser().then(({ data }) => setIsGuest(!!data.user?.is_anonymous)).catch(() => {}) }, [])
 
   const doLogout = async () => {
     if (loggingOut) return
+    if (isGuest && !guestOutArm) { playUiClick(); setGuestOutArm(true); return }
     setLoggingOut(true); playUiClick()
     try { await createClient().auth.signOut() } catch { /* ignore */ }
     router.push('/digital/login')
@@ -64,7 +69,7 @@ export function MoreScreen() {
   ]
 
   const accountRows: Row[] = [
-    { key: 'logout', label: t('more.logout'), sub: t('more.logoutSub'), icon: LogOut, accent: '96,165,250', onClick: doLogout },
+    { key: 'logout', label: guestOutArm ? t('auth.guest.logoutConfirm') : t('more.logout'), sub: isGuest ? t('auth.guest.logoutWarn') : t('more.logoutSub'), icon: LogOut, accent: '96,165,250', onClick: doLogout },
     { key: 'exit', label: t('more.exit'), sub: t('more.exitSub'), icon: Power, accent: '239,68,68', onClick: () => { playUiClick(); setConfirmExit(true) } },
   ]
 
