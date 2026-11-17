@@ -52,6 +52,16 @@ export async function purchaseShopItemBulk(id: number, currency: 'silver' | 'rub
 }
 
 // label pakeistas labelKey (i18n): tekstas — locales shop.sections.*
+// Pirkimai už tikrus pinigus (rubinų paketai). IŠJUNGTA, kol neprijungtas Google Play Billing / Steam:
+// parduotuvėje nerodoma rubinų sekcija ir prekės, kurių vienintelė kaina – tikri pinigai.
+// Rubinai kaip valiuta (atlygiai, kainos rubinais) lieka. Įjungti: true.
+export const REAL_MONEY_SHOP_ENABLED = false
+
+/** Ar prekė perkama TIK už tikrus pinigus (nei sidabro, nei rubinų kainos). */
+export function isRealMoneyOnly(it: { itemType: string; prices: { silver?: number | null; rubies?: number | null; real_money?: number | null } }): boolean {
+  return it.itemType === 'rubies_bundle' || (it.prices.real_money != null && it.prices.silver == null && it.prices.rubies == null)
+}
+
 export const SHOP_SECTIONS: { key: string; labelKey: string; types: string[] }[] = [
   { key: 'packs',   labelKey: 'shop.sections.packs',   types: ['pack'] },
   { key: 'backs',   labelKey: 'shop.sections.backs',   types: ['card_back'] },

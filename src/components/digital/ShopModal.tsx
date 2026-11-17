@@ -17,7 +17,7 @@ import { getPackInventory, getActivePacks } from '@/lib/economy'
 import { useAccount } from '@/lib/digital/accountStore'
 import { useCosmetics } from '@/lib/digital/cosmeticsStore'
 import { formatNumber } from '@/lib/i18n/core'
-import { getShop, purchaseShopItem, purchaseShopItemBulk, isStackable, SHOP_SECTIONS, PURCHASE_ERR_KEY, type ShopItem } from '@/lib/gamification/shop'
+import { getShop, purchaseShopItem, purchaseShopItemBulk, isStackable, SHOP_SECTIONS, PURCHASE_ERR_KEY, REAL_MONEY_SHOP_ENABLED, isRealMoneyOnly, type ShopItem } from '@/lib/gamification/shop'
 import { useT, useContent } from '@/lib/i18n/react'
 import { getDailyDeal, buyDailyDealCard, type DealCard } from '@/lib/cosmetics'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
@@ -34,7 +34,7 @@ type Section = { key: string; labelKey: string }
 // 'decks' DB sekcija pašalinta (faction_deck prekių niekada nebuvo — tuščia
 // kategorija klaidino; kalades parduoda Starter sekcija žemiau)
 const ALL_SECTIONS: Section[] = [
-  ...SHOP_SECTIONS.filter((s) => s.key !== 'decks').map((s) => ({ key: s.key, labelKey: s.labelKey })),
+  ...SHOP_SECTIONS.filter((s) => s.key !== 'decks' && (REAL_MONEY_SHOP_ENABLED || s.key !== 'rubies')).map((s) => ({ key: s.key, labelKey: s.labelKey })),
   { key: 'daily', labelKey: 'shop.sections.daily' },
   { key: 'starter', labelKey: 'shop.sections.starter' },
 ]
@@ -163,7 +163,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
 
   const shopShown = useMemo(() => {
     const types = SHOP_SECTIONS.find((s) => s.key === section)?.types ?? []
-    return items.filter((i) => types.includes(i.itemType))
+    return items.filter((i) => types.includes(i.itemType) && (REAL_MONEY_SHOP_ENABLED || !isRealMoneyOnly(i)))
   }, [items, section])
 
   const selShop = sel?.t === 'shop' ? items.find((i) => i.id === sel.id) ?? null : null
