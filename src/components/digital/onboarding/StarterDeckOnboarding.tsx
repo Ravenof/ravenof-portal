@@ -22,9 +22,9 @@ import { X } from 'lucide-react'
 import { getStarterDecks, claimStarterDeck, type StarterDeck } from '@/lib/starterDecks'
 import { getStarterDeckCards, getFactions, type StarterCard, type FactionInfo } from '@/lib/digital/onboarding'
 import { getCosmetics, equipCosmetic, type Cosmetic, type CosmeticsState } from '@/lib/cosmetics'
-import { starterMetaFor, complexityLabel } from '@/lib/digital/starterMeta'
+import { starterMetaFor, complexityLabel, starterFactionName } from '@/lib/digital/starterMeta'
 import { useT } from '@/lib/i18n/react'
-import { useLocale, setLocale } from '@/lib/i18n/react'
+import { useLocale, setLocale, useContent } from '@/lib/i18n/react'
 import { LANGUAGE_OPTIONS } from '@/lib/i18n/config'
 import { playUiClick, playSuccess, playError, playCardPick, playImpact, playDiscovery } from '@/lib/ui-sound'
 import { SmartImg } from '@/components/ui/SmartImg'
@@ -152,18 +152,18 @@ function ObArrow({ dir, onClick, disabled, label }: { dir: -1 | 1; onClick: () =
 const CSS = `
 .rvn-ob .ob-box{position:absolute;bottom:0;cursor:pointer;transition:transform .45s cubic-bezier(.2,.8,.2,1),filter .45s,opacity .45s;will-change:transform}
 .rvn-ob .ob-b3d{position:absolute;inset:0;transition:transform .45s cubic-bezier(.2,.8,.2,1)}
-.rvn-ob .ob-front{position:absolute;inset:0;border-radius:6px;overflow:hidden;border:2px solid rgba(212,163,59,.55);background:#0d0a14;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),6px 6px 0 -1px #1a120a,10px 10px 0 -2px #120c08,0 20px 40px rgba(0,0,0,.7)}
-.rvn-ob .ob-front:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 70%,rgba(0,0,0,.7))}
-.rvn-ob .ob-lid{position:absolute;inset:0;border-radius:6px;overflow:hidden;opacity:0;pointer-events:none}
+.rvn-ob .ob-front{position:absolute;inset:0}
+.rvn-ob .ob-front img.ob-art,.rvn-ob .ob-lid img.ob-art{object-fit:contain;object-position:50% 50%;filter:drop-shadow(0 18px 22px rgba(0,0,0,.75));transition:filter .45s}
+.rvn-ob .ob-lid{position:absolute;inset:0;opacity:0;pointer-events:none}
 .rvn-ob .ob-disc{position:absolute;left:-30px;right:-30px;bottom:-22px;height:44px;border-radius:50%;background:radial-gradient(ellipse,var(--c) 0%,transparent 70%);opacity:0;filter:blur(6px);transition:opacity .45s}
 .rvn-ob .ob-box.foc{z-index:3;animation:ob-float 3.2s ease-in-out infinite}
-.rvn-ob .ob-box.foc .ob-front{border-color:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 30px 50px rgba(0,0,0,.75),0 0 40px color-mix(in srgb,var(--c) 55%,transparent)}
+.rvn-ob .ob-box.foc .ob-front img.ob-art{filter:drop-shadow(0 26px 30px rgba(0,0,0,.8)) drop-shadow(0 0 22px color-mix(in srgb,var(--c) 70%,transparent))}
 .rvn-ob .ob-box.foc .ob-disc{opacity:.9}
 .rvn-ob .ob-box.n1{filter:brightness(.55)}
 .rvn-ob .ob-box.n2{filter:brightness(.3);opacity:.7}
 .rvn-ob .ob-box.shake{animation:ob-shake .35s linear 2}
 .rvn-ob .ob-box.burst .ob-lid{opacity:1;animation:ob-lid .7s cubic-bezier(.2,.7,.2,1) forwards}
-.rvn-ob .ob-box.burst .ob-front img{filter:brightness(2.2)}
+.rvn-ob .ob-box.burst .ob-front img.ob-art{filter:brightness(2.2) drop-shadow(0 0 26px var(--c))}
 @keyframes ob-float{0%,100%{transform:translate(var(--tx),-26px) scale(1.14)}50%{transform:translate(var(--tx),-32px) scale(1.14)}}
 @keyframes ob-shake{0%,100%{transform:translate(var(--tx),-26px) scale(1.14) rotate(0)}25%{transform:translate(var(--tx),-26px) scale(1.14) rotate(-2deg)}75%{transform:translate(var(--tx),-26px) scale(1.14) rotate(2deg)}}
 @keyframes ob-lid{to{transform:translateY(-260px) rotateX(70deg);opacity:0}}
@@ -193,6 +193,7 @@ export function StarterDeckOnboarding() {
   const t = useT()
   const rm = useReducedMotion()
   const locale = useLocale()
+  const tc = useContent()
   const toggleLang = () => { playUiClick(); const other = LANGUAGE_OPTIONS.find((o) => o.locale !== locale) ?? LANGUAGE_OPTIONS[0]; void setLocale(other.locale) }
   const [step, setStep] = useState<'deck' | 'avatar'>('deck')
   const [starters, setStarters] = useState<StarterDeck[] | null | 'error'>(null)
@@ -260,6 +261,15 @@ export function StarterDeckOnboarding() {
   const curMeta = cur ? starterMetaFor(cur.factionId, cur.faction ?? cur.name) : null
   const curFac = cur?.factionId != null ? factions[cur.factionId] : undefined
   const accent = curFac?.colorHex ?? GOLD
+  // Rodomi pavadinimai aktyvia kalba: frakcija – iš starterMeta žodyno, kaladė – iš content_translations
+  // (jei EN vertimo nėra – „<Frakcija> Starter Deck", kad neliktų lietuviško pavadinimo).
+  const curFactionName = cur ? starterFactionName(cur.factionId, cur.faction) : ''
+  const curDeckName = (() => {
+    if (!cur) return ''
+    const tr = tc('starter_deck', cur.id, 'name', cur.name)
+    if (locale === 'en' && tr === cur.name && curFactionName) return `${curFactionName} Starter Deck`
+    return tr
+  })()
 
   // kortų turinys (raktinės kortos + detalių modalas)
   const ensureCards = useCallback((id: string) => {
@@ -507,7 +517,7 @@ export function StarterDeckOnboarding() {
                     <div className="ob-b3d">
                       <div className="ob-front">
                         {d.imageUrl
-                          ? <SmartImg src={d.imageUrl} width={440} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 20%' }} />
+                          ? <SmartImg src={d.imageUrl} width={440} alt="" className="ob-art absolute inset-0 w-full h-full" />
                           : <span className="absolute inset-0 flex items-center justify-center text-4xl" aria-hidden>🎴</span>}
                         <span className="absolute flex items-center justify-center rounded-full" style={{ left: '50%', bottom: 12, transform: 'translateX(-50%)', width: 44, height: 44, zIndex: 2, background: 'radial-gradient(circle,#1a1325,#0a0810)', border: `2px solid ${col}`, boxShadow: `0 0 16px ${col}` }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -515,7 +525,7 @@ export function StarterDeckOnboarding() {
                         </span>
                         {(d.claimed || claimedId === d.id) && <span className="absolute left-0 right-0 text-center" style={{ bottom: 10, zIndex: 2, font: '800 8px var(--ravenof-font-body)', letterSpacing: '0.2em', color: '#7bd389' }}>{t('shop.owned')}</span>}
                       </div>
-                      <div className="ob-lid">{d.imageUrl && <SmartImg src={d.imageUrl} width={440} alt="" className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: '50% 20%' }} />}</div>
+                      <div className="ob-lid">{d.imageUrl && <SmartImg src={d.imageUrl} width={440} alt="" className="ob-art absolute inset-0 w-full h-full" />}</div>
                     </div>
                     <div className="ob-disc" />
                   </div>
@@ -530,8 +540,8 @@ export function StarterDeckOnboarding() {
           <div className="relative flex flex-col justify-center min-w-0" style={{ flex: portrait ? '1 1 auto' : '0 0 38%', padding: portrait ? '4px 16px 6px' : '8px max(16px, env(safe-area-inset-right, 0px)) 8px 8px', textAlign: portrait ? 'center' : 'left', gap: shortVp ? 4 : 6 }}>
             {cur && curMeta && (
               <>
-                <div style={{ font: '700 10.5px var(--ravenof-font-body)', letterSpacing: 3, textTransform: 'uppercase', color: accent }}>{cur.faction ?? ''}</div>
-                <div style={{ font: `700 ${shortVp ? '16px' : 'clamp(16px, 3.6vh, 22px)'} var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-text-primary)', textShadow: '0 2px 10px #000', lineHeight: 1.15 }}>{cur.name}</div>
+                <div style={{ font: '700 10.5px var(--ravenof-font-body)', letterSpacing: 3, textTransform: 'uppercase', color: accent }}>{curFactionName}</div>
+                <div style={{ font: `700 ${shortVp ? '16px' : 'clamp(16px, 3.6vh, 22px)'} var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-text-primary)', textShadow: '0 2px 10px #000', lineHeight: 1.15 }}>{curDeckName}</div>
                 <div className="flex items-center flex-wrap gap-1.5" style={{ justifyContent: portrait ? 'center' : 'flex-start' }}>
                   {chips.map((c) => <span key={c} style={{ font: '700 9px var(--ravenof-font-body)', letterSpacing: '0.08em', textTransform: 'uppercase', padding: '2px 8px', borderRadius: 999, border: `1px solid ${accent}`, color: accent, background: 'rgba(0,0,0,0.5)' }}>{c}</span>)}
                 </div>
@@ -590,7 +600,7 @@ export function StarterDeckOnboarding() {
                         </span>
                         <span className="absolute inset-0 pointer-events-none" style={{ background: `url('${AVATAR_FRAME}') center / contain no-repeat` }} />
                       </span>
-                      <span className="block" style={{ font: '700 clamp(15px, 3.2vh, 20px) var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 6, color: 'var(--ravenof-text-primary)', textShadow: '0 2px 8px #000' }}>{c.name}</span>
+                      <span className="block" style={{ font: '700 clamp(15px, 3.2vh, 20px) var(--ravenof-font-display)', letterSpacing: 2, textTransform: 'uppercase', marginTop: 6, color: 'var(--ravenof-text-primary)', textShadow: '0 2px 8px #000' }}>{tc('cosmetic', c.id, 'name', c.name)}</span>
                       {c.description && <span className="block" style={{ font: '400 clamp(10px, 2vh, 11.5px) var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginTop: 4, lineHeight: 1.4 }}>{c.description}</span>}
                     </button>
                   )
@@ -620,7 +630,7 @@ export function StarterDeckOnboarding() {
         {onDeck ? (
           <span style={{ width: 92 }} aria-hidden />
         ) : (
-          <RavenofBannerButton onClick={finish} disabled={busy || (pickable.length > 0 && !chosenAv)} style={{ width: 'clamp(200px, 26vw, 268px)', padding: '12px 16px' }}>
+          <RavenofBannerButton onClick={finish} disabled={busy || (pickable.length > 0 && !chosenAv)} style={{ minWidth: 'clamp(200px, 26vw, 268px)', padding: '12px 40px', whiteSpace: 'nowrap', letterSpacing: 2 }}>
             {busy ? t('onboarding.saving') : t('onboarding.ob.toTutorial')}
           </RavenofBannerButton>
         )}
@@ -629,12 +639,12 @@ export function StarterDeckOnboarding() {
       {/* ── Kaladės detalės modalas (lore + kortų sąrašas) ── */}
       {detailOpen && cur && curMeta && createPortal(
         <div className="ravenof-body fixed inset-0 z-[420] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.88)', backdropFilter: 'blur(3px)' }}
-          onClick={() => setDetailOpen(false)} role="dialog" aria-modal="true" aria-label={cur.name}>
+          onClick={() => setDetailOpen(false)} role="dialog" aria-modal="true" aria-label={curDeckName}>
           <div onClick={(e) => e.stopPropagation()} className="w-[min(620px,96vw)] flex flex-col overflow-hidden" style={{ maxHeight: 'calc(100dvh - 40px)', background: 'var(--ravenof-bg-surface)', border: `1px solid ${accent}`, boxShadow: '0 20px 60px rgba(0,0,0,0.8)' }}>
             <div className="shrink-0 px-4 pt-3 pb-2.5" style={{ borderBottom: `1px solid ${accent}44` }}>
               <div className="flex items-center gap-2">
                 {curFac?.iconUrl && <SmartImg src={curFac.iconUrl} width={40} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />}
-                <p style={{ font: '700 15px var(--ravenof-font-display)', color: accent, letterSpacing: 1, margin: 0 }}>{cur.faction ?? cur.name}</p>
+                <p style={{ font: '700 15px var(--ravenof-font-display)', color: accent, letterSpacing: 1, margin: 0 }}>{curFactionName || curDeckName}</p>
                 <span className="ml-auto flex items-center gap-1" aria-label={t('onboarding.complexityAria', { label: complexityLabel(curMeta.complexity) })}>
                   {[1, 2, 3].map((n) => <span key={n} className="rounded-full" style={{ width: 6, height: 6, background: n <= curMeta.complexity ? accent : 'rgba(255,255,255,0.18)' }} />)}
                   <span style={{ font: '400 9px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)', marginLeft: 3 }}>{complexityLabel(curMeta.complexity)}</span>

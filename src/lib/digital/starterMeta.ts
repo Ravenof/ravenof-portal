@@ -222,6 +222,18 @@ export function starterMetaFor(factionId: number | null, name?: string | null): 
   return { ...(FALLBACK[getLocale()] ?? FALLBACK.lt), complexity: 1 }
 }
 
+// EN frakcijų pavadinimai (raktas = factions.id). LT pavadinimas ateina iš DB.
+const FACTION_NAME_EN: Record<number, string> = {
+  6: 'Death March', 7: 'Night of Plunder', 8: 'Vryhiok Gang', 9: 'Demon Horde',
+  10: 'Inquisition Legion', 11: 'Regiment of Light', 12: 'Melody of Mysticism', 13: 'East Wind',
+}
+
+/** Frakcijos pavadinimas aktyvia kalba (EN – iš vietinio žodyno, kitaip DB reikšmė). */
+export function starterFactionName(factionId: number | null | undefined, fallback: string | null | undefined): string {
+  if (getLocale() === 'en' && factionId != null && FACTION_NAME_EN[factionId]) return FACTION_NAME_EN[factionId]
+  return fallback ?? ''
+}
+
 export function complexityLabel(c: 1 | 2 | 3): string {
   const L: Record<SupportedLocale, Record<1 | 2 | 3, string>> = {
     lt: { 1: 'Paprasta', 2: 'Vidutinė', 3: 'Sudėtinga' },

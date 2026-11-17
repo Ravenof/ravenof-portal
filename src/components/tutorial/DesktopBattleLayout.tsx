@@ -141,7 +141,7 @@ export default function DesktopBattleLayout(props: DesktopBattleLayoutProps) {
             {railTitle(t('battle.opponentFallback'))}
             <div className="flex justify-center gap-1.5 w-full">
               {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', w: s.pileW })}
-              {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: s.pileW })}
+              {renderPile(t('battle.game.zoneGrave'), game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: s.pileW })}
               {renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', w: s.pileW, pileKey: 'zmk-ai' })}
             </div>
           </RailBox>
@@ -159,7 +159,7 @@ export default function DesktopBattleLayout(props: DesktopBattleLayoutProps) {
             {railTitle(t('battle.player'))}
             <div className="flex justify-center gap-1.5 w-full">
               {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: s.pileW })}
-              {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: s.pileW })}
+              {renderPile(t('battle.game.zoneGrave'), game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: s.pileW })}
               {renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: s.pileW, pileKey: 'zmk-you' })}
             </div>
           </RailBox>

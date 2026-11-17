@@ -5458,7 +5458,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div className="flex items-end gap-2">
                 <OppHandFan count={game.ai.hand.length} />
                 {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain' })}
-                {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
+                {renderPile(t('battle.game.zoneGrave'), game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai' })}
                 {game.format !== 'classic' && renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', pileKey: 'zmk-ai' })}
               </div>
             </div>
@@ -5501,7 +5501,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div className="flex flex-col items-center gap-1 justify-end">
                 <div className="flex items-end gap-1.5">
                   {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain' })}
-                  {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
+                  {renderPile(t('battle.game.zoneGrave'), game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you' })}
                   {game.format !== 'classic' && renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', pileKey: 'zmk-you' })}
                 </div>
               </div>
@@ -5564,7 +5564,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div className="rounded-xl px-1.5 py-3 flex justify-center gap-1.5" style={RAIL_PANEL}>
                 {renderPile(t('battle.game.deck'), game.you.deck.length, { tut: 'deck', pileKey: 'deck-you', back: 'plain', w: 66 })}
                 {game.format !== 'classic' && renderPile(t('battle.game.zmk'), game.you.zmk.length, { tut: 'zmk', back: 'zmk', w: 66, pileKey: 'zmk-you' })}
-                {renderPile('Kapinynas', game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 66 })}
+                {renderPile(t('battle.game.zoneGrave'), game.you.discard.length, { tut: 'discard', faceUp: true, cards: game.you.discard, pileKey: 'discard-you', w: 66 })}
               </div>
               <div className="rounded-xl p-2 flex items-center justify-center gap-2 mt-auto" style={RAIL_PANEL}>
                 <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Efektai</span>
@@ -5603,7 +5603,7 @@ doAction({ t: 'endTurn', actor: 'you' })
               <div className="rounded-xl px-1.5 py-3 flex justify-center gap-1.5" style={RAIL_PANEL}>
                 {renderPile(t('battle.game.deck'), game.ai.deck.length, { pileKey: 'deck-ai', back: 'plain', w: 66 })}
                 {game.format !== 'classic' && renderPile(t('battle.game.zmk'), game.ai.zmk.length, { back: 'zmk', w: 66, pileKey: 'zmk-ai' })}
-                {renderPile('Kapinynas', game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: 66 })}
+                {renderPile(t('battle.game.zoneGrave'), game.ai.discard.length, { faceUp: true, cards: game.ai.discard, pileKey: 'discard-ai', w: 66 })}
               </div>
               <div className="rounded-xl p-2 flex-1 min-h-0 flex flex-col" style={RAIL_PANEL}>
                 <span className="text-[10px] uppercase tracking-widest mb-1 shrink-0" style={{ color: 'var(--gold)' }}>{t('battle.game.actionLog')}</span>
