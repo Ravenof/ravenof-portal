@@ -39,6 +39,8 @@
     "supabase/functions",
     "e2e",
     "playwright.config.ts",
+    "studio",
+    "playwright.studio.config.ts",
     "apps",
     "ravenof-godot"
   ]

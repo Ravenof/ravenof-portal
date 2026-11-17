@@ -72,3 +72,4 @@ build-apk-local.log
 # Release publikavimas (tools/publish-bundle.mjs)
 .env.publish.local
 tools/.publish-cache.json
+/store-media/
