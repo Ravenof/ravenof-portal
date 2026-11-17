@@ -99,3 +99,10 @@ app/src/main/assets/public
 app/src/main/assets/capacitor.config.json
 app/src/main/assets/capacitor.plugins.json
 app/src/main/res/xml/config.xml
+
+# Release pasirasymas ir AAB asset pack turinys (generuojama build'o metu)
+keystore.properties
+*.jks
+*.keystore
+media_pack/src/
+media_pack/build/

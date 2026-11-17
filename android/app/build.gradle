@@ -1,5 +1,17 @@
 apply plugin: 'com.android.application'
 
+def rvnAppVersion() {
+    def f = rootProject.file('../src/lib/version.ts')
+    def m = (f.text =~ /APP_VERSION\s*=\s*'(\d+)'/)
+    return m.find() ? m.group(1).toInteger() : 1
+}
+
+// Release pasirasymas: android/keystore.properties (NE git'e) su storeFile/storePassword/keyAlias/keyPassword.
+// Jei failo nera - release build'as lieka nepasirasytas (debug build'ams tai nesvarbu).
+def rvnKsFile = rootProject.file('keystore.properties')
+def rvnKs = new Properties()
+if (rvnKsFile.exists()) { rvnKsFile.withInputStream { rvnKs.load(it) } }
+
 android {
     namespace = "app.ravenof.game"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +19,10 @@ android {
         applicationId "app.ravenof.game"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        // versionCode/versionName imami iš src/lib/version.ts (APP_VERSION) – Play Store
+        // reikalauja kaskart didesnio versionCode; vienas šaltinis abiem platformoms.
+        versionCode rvnAppVersion()
+        versionName "1.0." + rvnAppVersion()
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +30,22 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // Google Play: bazinis modulis ribojamas 200 MB, todel didieji failai (media, cards, sounds, rules)
+    // AAB build'e iskeliami i install-time asset pack'a (build-aab.bat). Jie lieka pasiekiami tuo paciu keliu.
+    assetPacks = [":media_pack"]
+    signingConfigs {
+        release {
+            if (rvnKsFile.exists()) {
+                storeFile rootProject.file(rvnKs['storeFile'])
+                storePassword rvnKs['storePassword']
+                keyAlias rvnKs['keyAlias']
+                keyPassword rvnKs['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            if (rvnKsFile.exists()) { signingConfig signingConfigs.release }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

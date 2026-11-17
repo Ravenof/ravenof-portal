@@ -1,0 +1,12 @@
+// Install-time asset pack'as: didieji zaidimo failai (media, cards, sounds, rules).
+// Turinys cia perkeliamas TIK AAB build'o metu (build-aab.bat) is app/src/main/assets/public.
+plugins {
+    id 'com.android.asset-pack'
+}
+
+assetPack {
+    packName = "media_pack"
+    dynamicDelivery {
+        deliveryType = "install-time"
+    }
+}
