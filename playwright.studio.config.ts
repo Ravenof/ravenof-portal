@@ -4,6 +4,8 @@ import { defineConfig, devices } from '@playwright/test'
 // Paleidimas: run-studio.bat  →  rezultatai aplanke store-media/
 // 1920×1080, rodomas langas (GPU animacijoms), vaizdo įrašas kiekvienam scenarijui.
 const BASE = process.env.E2E_BASE_URL ?? 'https://ravenof-portal-v1g9.vercel.app'
+// Vaizdas 1440×810 su 4/3 masteliu = lygiai 1920×1080 pikselių: sąsaja didesnė ir įskaitomesnė nei tikrame 1920 pločio lange.
+const VIEW = { width: 1440, height: 810 }
 const SIZE = { width: 1920, height: 1080 }
 
 export default defineConfig({
@@ -20,11 +22,11 @@ export default defineConfig({
     headless: false,
     // Tikras Chrome (ne Playwright Chromium) – kad veiktų prisijungimas per Google
     channel: 'chrome',
-    viewport: SIZE,
-    deviceScaleFactor: 1,
+    viewport: VIEW,
+    deviceScaleFactor: 4 / 3,
     video: { mode: 'on', size: SIZE },
     screenshot: 'off',
     trace: 'off',
-    launchOptions: { ignoreDefaultArgs: ['--enable-automation'], args: ['--disable-blink-features=AutomationControlled', '--force-device-scale-factor=1', '--autoplay-policy=no-user-gesture-required', '--window-position=0,0'] },
+    launchOptions: { ignoreDefaultArgs: ['--enable-automation'], args: ['--disable-blink-features=AutomationControlled', '--autoplay-policy=no-user-gesture-required', '--window-position=0,0'] },
   },
 })

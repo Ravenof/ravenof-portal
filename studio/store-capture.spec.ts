@@ -25,6 +25,15 @@ async function dismissGates(page: Page) {
     const b = page.getByRole('button', { name: new RegExp(label, 'i') }).first()
     if (await b.isVisible().catch(() => false)) await b.click().catch(() => {})
   }
+  // Laukiantys atlygių pasirinkimai / kiti modalai – uždarom, kad neužstotų ekrano
+  for (let i = 0; i < 4; i++) {
+    const dlg = page.locator('[role="dialog"]').last()
+    if (!(await dlg.isVisible().catch(() => false))) break
+    const x = dlg.locator('button[aria-label*="daryti" i], button[aria-label*="close" i], button:has(svg.lucide-x)').first()
+    if (await x.isVisible().catch(() => false)) await x.click().catch(() => {})
+    else await page.keyboard.press('Escape').catch(() => {})
+    await page.waitForTimeout(600)
+  }
 }
 
 const AUTH = path.join(OUT, '_auth.json')
@@ -67,6 +76,9 @@ async function shot(page: Page, loc: Loc, name: string) {
   fs.mkdirSync(dir, { recursive: true })
   counter += 1
   const file = path.join(dir, `${String(counter).padStart(2, '0')}-${name}.png`)
+  // pelę patraukiam į kampą, kad nuotraukoje neliktų užvestos kortos peržiūros
+  await page.mouse.move(3, 3).catch(() => {})
+  await page.waitForTimeout(600)
   await page.screenshot({ path: file, type: 'png' }).catch(() => {})
 }
 
@@ -89,7 +101,6 @@ const SCREENS: { route: string; name: string }[] = [
   { route: '/digital/season', name: 'season' },
   { route: '/digital/quests', name: 'quests' },
   { route: '/digital/rewards', name: 'rewards' },
-  { route: '/digital/album', name: 'album' },
   { route: '/digital/profile', name: 'profile' },
 ]
 
@@ -231,7 +242,7 @@ for (const loc of ['lt', 'en'] as Loc[]) {
     await page.waitForTimeout(6000)
     await shot(page, loc, 'choose-deck')
     for (let i = 0; i < 3; i++) {
-      await page.keyboard.press('ArrowRight')
+      await page.getByRole('button', { name: /Kita kalad|Next deck/i }).first().click().catch(async () => { await page.locator('.ob-box.n1').last().click().catch(() => {}) })
       await page.waitForTimeout(1800)
       await shot(page, loc, `choose-deck-${i + 2}`)
     }
