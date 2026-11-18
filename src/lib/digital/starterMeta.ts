@@ -8,6 +8,7 @@
 
 import { getLocale } from '@/lib/i18n/core'
 import type { SupportedLocale } from '@/lib/i18n/config'
+import { tContent } from '@/lib/i18n/content'
 
 export type StarterMeta = {
   label: string            // trumpas žaidimo stiliaus šūkis (uždarytai dėžei)
@@ -35,7 +36,7 @@ const META: Record<number, MetaEntry> = {
       },
       en: {
         label: 'Death and resurrection',
-        intro: 'The necromancers of the Death March know: a fallen warrior is merely a warrior at rest.',
+        intro: 'The necromancers of the March of Death know: a fallen warrior is merely a warrior at rest.',
         playstyle: 'A slow, resilient style — your creatures return from the graveyard while the enemy exhausts itself destroying them.',
         strengths: ['Creatures return from the graveyard', 'Long battles', 'Value from destroyed creatures'],
         weaknesses: ['Fast early pressure', 'Graveyard disruption'],
@@ -77,7 +78,7 @@ const META: Record<number, MetaEntry> = {
       },
       en: {
         label: 'Aggressive swarm',
-        intro: "The Vryhiok Gang never asks how many enemies there are — only whether there'll be enough for everyone.",
+        intro: "The Vryhiok Pack never asks how many enemies there are — only whether there'll be enough for everyone.",
         playstyle: 'Fill the board with cheap creatures and overwhelm the enemy with numbers before they can recover.',
         strengths: ['Many cheap creatures', 'Early pressure', 'Easy to learn'],
         weaknesses: ['Mass damage to all', 'Late, powerful cards'],
@@ -161,7 +162,7 @@ const META: Record<number, MetaEntry> = {
       },
       en: {
         label: 'Spell combos',
-        intro: 'To the Melody of Mysticism, battle is a musical score: every spell must ring out on time.',
+        intro: 'To the Melody of Mystics, battle is a musical score: every spell must ring out on time.',
         playstyle: 'Chain spells one after another — the right sequence can flip the whole battle in a single turn.',
         strengths: ['Powerful spells', 'Combo explosions', 'Flexibility'],
         weaknesses: ['Weak creatures', 'Spell silencing'],
@@ -224,13 +225,14 @@ export function starterMetaFor(factionId: number | null, name?: string | null): 
 
 // EN frakcijų pavadinimai (raktas = factions.id). LT pavadinimas ateina iš DB.
 const FACTION_NAME_EN: Record<number, string> = {
-  6: 'Death March', 7: 'Night of Plunder', 8: 'Vryhiok Gang', 9: 'Demon Horde',
-  10: 'Inquisition Legion', 11: 'Regiment of Light', 12: 'Melody of Mysticism', 13: 'East Wind',
+  6: 'March of Death', 7: 'Night of Plunder', 8: 'Vryhiok Pack', 9: 'Demon Horde',
+  10: 'Inquisition Legion', 11: 'Regiment of Light', 12: 'Melody of Mystics', 13: 'East Wind',
 }
 
 /** Frakcijos pavadinimas aktyvia kalba (EN – iš vietinio žodyno, kitaip DB reikšmė). */
 export function starterFactionName(factionId: number | null | undefined, fallback: string | null | undefined): string {
-  if (getLocale() === 'en' && factionId != null && FACTION_NAME_EN[factionId]) return FACTION_NAME_EN[factionId]
+  // Vienas šaltinis su meniu: DB vertimas (content_translations: faction / <id> / name); vietinis žodynas – tik atsarginis.
+  if (getLocale() === 'en' && factionId != null) return tContent('faction', factionId, 'name', FACTION_NAME_EN[factionId] ?? fallback ?? '')
   return fallback ?? ''
 }
 

@@ -14,6 +14,7 @@ import {
   isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isReducedMotionEnabled,
 } from '@/lib/settings'
 import { comicTimes, comicExitMs, type ComicSpec, type ComicLevel } from './comicStage'
+import { tContent } from '@/lib/i18n/content'
 
 export type PremiumCinematicType = 'summon' | 'championSkill'
 
@@ -251,16 +252,18 @@ export function buildSkillCinematic(
   if (skillIndex < 0) return null
 
   const skill = card.gameplay?.championSkillConfig?.skills?.[skillIndex]
+  // Gebėjimo pavadinimas aktyvia kalba (content_translations: champion_skill / <cardId>:<index> / name; LT – be pakeitimų).
+  const locSkill = (n: string) => (n ? tContent('champion_skill', `${card.id}:${skillIndex}`, 'name', n) : n)
   // Komikso intarpas turi pirmenybę prieš video. Sumažinto judesio režime intarpo nerodom (balsas skamba vis tiek).
   if (skill?.comic?.enabled && skill.comic.image) {
     if (isReducedMotionEnabled()) return null
-    return buildSkillComic(card, skillIndex, (skill.name ?? '').trim() || ctx.skillNameFromEngine?.trim() || card.name)
+    return buildSkillComic(card, skillIndex, locSkill((skill.name ?? '').trim()) || ctx.skillNameFromEngine?.trim() || card.name)
   }
   const cine: SkillCinematic | undefined = skill?.cinematic
   if (!cine || !cine.enabled) return null
 
   const skillName = (cine.titleOverride ?? '').trim()
-    || (skill?.name ?? '').trim()
+    || locSkill((skill?.name ?? '').trim())
     || ctx.skillNameFromEngine?.trim()
     || `${card.name} skill`
   const theme: CinematicFrameTheme = cine.frameTheme ?? factionTheme(card.factionName)
