@@ -4,7 +4,7 @@ import Link from 'next/link'
 // ── Privatumo politika (Google Play / App Store reikalavimas) ─────────────────
 // Viešas puslapis be prisijungimo. Nuoroda nurodoma Play Console „Privacy policy".
 export const metadata: Metadata = {
-  title: 'Privatumo politika | Ravenof',
+  title: 'Privacy Policy | Ravenof',
   description: 'Ravenof Digital ir ravenof.lt privatumo politika: kokius duomenis renkame, kam naudojame ir kaip juos ištrinti.',
 }
 
@@ -24,52 +24,8 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen" style={{ background: 'var(--bg-base)' }}>
       <div className="max-w-2xl mx-auto px-4 py-10">
-        <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>Privatumo politika</h1>
-        <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>Ravenof Digital (Android, Windows) ir ravenof.lt · Atnaujinta {UPDATED} · <a href="#en" style={{ color: 'var(--gold)' }}>English version below</a></p>
-
-        <H>1. Kas mes</H>
-        <P>Duomenų valdytojas – <b>MB „Daiktų dėžutė“</b> (įmonės kodas 305271827, Šiaurės pr. 87, LT-49245 Kaunas, Lietuva), veikianti su prekių ženklu <b>Kaukas Games</b> ir kurianti Ravenof kortų žaidimą. Klausimais dėl duomenų rašykite <a href="mailto:info@ravenof.lt" style={{ color: 'var(--gold)' }}>info@ravenof.lt</a>.</P>
-
-        <H>2. Kokius duomenis renkame</H>
-        <ul className="list-disc pl-5 mb-3">
-          <Li><b>Paskyros duomenys:</b> el. pašto adresas, slapyvardis, rodomas vardas, avataras, slaptažodžio maiša (jei registruojatės el. paštu). Prisijungiant per Google gauname jūsų Google paskyros el. paštą ir vardą. Žaidžiant kaip svečiui el. paštas nerenkamas – sukuriama anoniminė paskyra su atsitiktiniu slapyvardžiu; ją vėliau galite paversti nuolatine nustatymuose.</Li>
-          <Li><b>Žaidimo duomenys:</b> kortų kolekcija, kaladės, kovų istorija ir rezultatai, reitingas, pasiekimai, lygis, užduotys, žaidimo valiuta, pirkiniai ir kosmetika, kampanijos ir mokymo progresas, nustatymai.</Li>
-          <Li><b>Socialiniai duomenys:</b> draugų sąrašas, kvietimai, žinutės draugams, mainai, blokavimai.</Li>
-          <Li><b>Techniniai duomenys:</b> programėlės versija, platforma, paskutinio aktyvumo laikas; klaidų pranešimuose – įrenginio modelis, OS versija, ekrano dydis, paskutinės konsolės klaidos ir jūsų savanoriškai pridėta ekrano nuotrauka.</Li>
-        </ul>
-        <P>Nerenkame tikslios buvimo vietos, kontaktų, nuotraukų galerijos ar kitų įrenginio failų. Programėlėje nėra reklamos ir trečiųjų šalių analitikos ar sekimo SDK.</P>
-
-        <H>3. Kam naudojame</H>
-        <ul className="list-disc pl-5 mb-3">
-          <Li>Paskyrai sukurti, prisijungti ir sinchronizuoti progresą tarp įrenginių.</Li>
-          <Li>Žaidimo funkcijoms: kovoms su kitais žaidėjais, reitingams, lyderių lentelėms, draugams, mainams.</Li>
-          <Li>Klaidoms taisyti ir sukčiavimui užkardyti.</Li>
-          <Li>Vietiniams priminimams telefone (tik jei įjungiate nustatymuose; jie neišeina iš įrenginio).</Li>
-        </ul>
-        <P>Teisinis pagrindas – sutarties vykdymas (žaidimo paslaugos teikimas) ir teisėtas interesas (saugumas, klaidų taisymas). Duomenų neparduodame ir nenaudojame reklamai.</P>
-
-        <H>4. Kur saugoma ir kas mato</H>
-        <P>Duomenys saugomi <b>Supabase</b> (duomenų bazė ir failų saugykla) Europos Sąjungos duomenų centre. Prisijungimui per Google naudojama Google tapatybės paslauga. Kiti žaidėjai mato jūsų slapyvardį, avatarą, lygį, reitingą ir viešai paskelbtas kalades; profilio nustatymuose galite riboti, kas rodoma. Administratoriai mato paskyros ir žaidimo duomenis moderavimo bei pagalbos tikslais.</P>
-
-        <H>5. Kiek laiko saugome</H>
-        <P>Kol turite paskyrą. Ištrynus paskyrą – visi su ja susieti duomenys ištrinami iš karto (žr. 6 p.). Anoniminė žaidimo statistika ir klaidų pranešimai be nuorodos į jus gali būti saugomi ilgiau.</P>
-
-        <H>6. Paskyros ir duomenų ištrynimas</H>
-        <P>Paskyrą galite ištrinti patys bet kada: programėlėje <b>Nustatymai → Paskyra → Ištrinti paskyrą</b>, arba svetainėje <Link href="/account/delete" style={{ color: 'var(--gold)' }}>ravenof.lt/account/delete</Link>. Ištrynimas negrįžtamas ir įvyksta iš karto. Taip pat galite prašyti ištrinti ar pateikti savo duomenų kopiją el. paštu info@ravenof.lt.</P>
-
-        <H>7. Jūsų teisės</H>
-        <P>Pagal BDAR turite teisę susipažinti su savo duomenimis, juos ištaisyti, ištrinti, apriboti tvarkymą, perkelti ir nesutikti. Skundą galite teikti Valstybinei duomenų apsaugos inspekcijai (vdai.lrv.lt).</P>
-
-        <H>8. Vaikai</H>
-        <P>Žaidimas skirtas 13 metų ir vyresniems. Jaunesnių nei 13 metų vaikų paskyrų sąmoningai nekuriame; sužinoję – jas ištriname.</P>
-
-        <H>9. Pakeitimai</H>
-        <P>Apie esminius pakeitimus pranešime programėlėje arba šiame puslapyje. Data viršuje rodo paskutinį atnaujinimą.</P>
-
-        <hr className="my-10" style={{ borderColor: 'var(--bg-border)' }} />
-
-        <h1 id="en" className="text-2xl font-bold mb-1" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>Privacy Policy</h1>
-        <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>Ravenof Digital (Android, Windows) and ravenof.lt · Updated {UPDATED}</p>
+        <h1 className="text-2xl font-bold mb-1" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>Privacy Policy</h1>
+        <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>Ravenof Digital (Android, Windows) and ravenof.lt · Updated {UPDATED} · <a href="#lt" style={{ color: 'var(--gold)' }}>Lietuviška versija žemiau</a></p>
 
         <H>1. Who we are</H>
         <P>The data controller is <b>MB „Daiktų dėžutė“</b> (company code 305271827, Šiaurės pr. 87, LT-49245 Kaunas, Lithuania), operating under the <b>Kaukas Games</b> brand and developing the Ravenof card game. Contact: <a href="mailto:info@ravenof.lt" style={{ color: 'var(--gold)' }}>info@ravenof.lt</a>.</P>
@@ -109,6 +65,50 @@ export default function PrivacyPage() {
 
         <H>9. Changes</H>
         <P>We will announce material changes in the app or on this page. The date above shows the last update.</P>
+
+        <hr className="my-10" style={{ borderColor: 'var(--bg-border)' }} />
+
+        <h1 id="lt" className="text-2xl font-bold mb-1" style={{ fontFamily: 'Cinzel, Georgia, serif', color: 'var(--text-primary)' }}>Privatumo politika</h1>
+        <p className="text-xs mb-6" style={{ color: 'var(--text-muted)' }}>Ravenof Digital (Android, Windows) ir ravenof.lt · Atnaujinta {UPDATED}</p>
+
+        <H>1. Kas mes</H>
+        <P>Duomenų valdytojas – <b>MB „Daiktų dėžutė“</b> (įmonės kodas 305271827, Šiaurės pr. 87, LT-49245 Kaunas, Lietuva), veikianti su prekių ženklu <b>Kaukas Games</b> ir kurianti Ravenof kortų žaidimą. Klausimais dėl duomenų rašykite <a href="mailto:info@ravenof.lt" style={{ color: 'var(--gold)' }}>info@ravenof.lt</a>.</P>
+
+        <H>2. Kokius duomenis renkame</H>
+        <ul className="list-disc pl-5 mb-3">
+          <Li><b>Paskyros duomenys:</b> el. pašto adresas, slapyvardis, rodomas vardas, avataras, slaptažodžio maiša (jei registruojatės el. paštu). Prisijungiant per Google gauname jūsų Google paskyros el. paštą ir vardą. Žaidžiant kaip svečiui el. paštas nerenkamas – sukuriama anoniminė paskyra su atsitiktiniu slapyvardžiu; ją vėliau galite paversti nuolatine nustatymuose.</Li>
+          <Li><b>Žaidimo duomenys:</b> kortų kolekcija, kaladės, kovų istorija ir rezultatai, reitingas, pasiekimai, lygis, užduotys, žaidimo valiuta, pirkiniai ir kosmetika, kampanijos ir mokymo progresas, nustatymai.</Li>
+          <Li><b>Socialiniai duomenys:</b> draugų sąrašas, kvietimai, žinutės draugams, mainai, blokavimai.</Li>
+          <Li><b>Techniniai duomenys:</b> programėlės versija, platforma, paskutinio aktyvumo laikas; klaidų pranešimuose – įrenginio modelis, OS versija, ekrano dydis, paskutinės konsolės klaidos ir jūsų savanoriškai pridėta ekrano nuotrauka.</Li>
+        </ul>
+        <P>Nerenkame tikslios buvimo vietos, kontaktų, nuotraukų galerijos ar kitų įrenginio failų. Programėlėje nėra reklamos ir trečiųjų šalių analitikos ar sekimo SDK.</P>
+
+        <H>3. Kam naudojame</H>
+        <ul className="list-disc pl-5 mb-3">
+          <Li>Paskyrai sukurti, prisijungti ir sinchronizuoti progresą tarp įrenginių.</Li>
+          <Li>Žaidimo funkcijoms: kovoms su kitais žaidėjais, reitingams, lyderių lentelėms, draugams, mainams.</Li>
+          <Li>Klaidoms taisyti ir sukčiavimui užkardyti.</Li>
+          <Li>Vietiniams priminimams telefone (tik jei įjungiate nustatymuose; jie neišeina iš įrenginio).</Li>
+        </ul>
+        <P>Teisinis pagrindas – sutarties vykdymas (žaidimo paslaugos teikimas) ir teisėtas interesas (saugumas, klaidų taisymas). Duomenų neparduodame ir nenaudojame reklamai.</P>
+
+        <H>4. Kur saugoma ir kas mato</H>
+        <P>Duomenys saugomi <b>Supabase</b> (duomenų bazė ir failų saugykla) Europos Sąjungos duomenų centre. Prisijungimui per Google naudojama Google tapatybės paslauga. Kiti žaidėjai mato jūsų slapyvardį, avatarą, lygį, reitingą ir viešai paskelbtas kalades; profilio nustatymuose galite riboti, kas rodoma. Administratoriai mato paskyros ir žaidimo duomenis moderavimo bei pagalbos tikslais.</P>
+
+        <H>5. Kiek laiko saugome</H>
+        <P>Kol turite paskyrą. Ištrynus paskyrą – visi su ja susieti duomenys ištrinami iš karto (žr. 6 p.). Anoniminė žaidimo statistika ir klaidų pranešimai be nuorodos į jus gali būti saugomi ilgiau.</P>
+
+        <H>6. Paskyros ir duomenų ištrynimas</H>
+        <P>Paskyrą galite ištrinti patys bet kada: programėlėje <b>Nustatymai → Paskyra → Ištrinti paskyrą</b>, arba svetainėje <Link href="/account/delete" style={{ color: 'var(--gold)' }}>ravenof.lt/account/delete</Link>. Ištrynimas negrįžtamas ir įvyksta iš karto. Taip pat galite prašyti ištrinti ar pateikti savo duomenų kopiją el. paštu info@ravenof.lt.</P>
+
+        <H>7. Jūsų teisės</H>
+        <P>Pagal BDAR turite teisę susipažinti su savo duomenimis, juos ištaisyti, ištrinti, apriboti tvarkymą, perkelti ir nesutikti. Skundą galite teikti Valstybinei duomenų apsaugos inspekcijai (vdai.lrv.lt).</P>
+
+        <H>8. Vaikai</H>
+        <P>Žaidimas skirtas 13 metų ir vyresniems. Jaunesnių nei 13 metų vaikų paskyrų sąmoningai nekuriame; sužinoję – jas ištriname.</P>
+
+        <H>9. Pakeitimai</H>
+        <P>Apie esminius pakeitimus pranešime programėlėje arba šiame puslapyje. Data viršuje rodo paskutinį atnaujinimą.</P>
       </div>
     </div>
   )
