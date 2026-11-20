@@ -63,7 +63,7 @@ export async function getEquippedBattleSkins(): Promise<BattleSkins> {
   // cb_default) → senas equippedCardBack → statinis default kelias.
   const backId = st?.active?.cardBack ?? st?.equippedCardBack ?? null
   const out: BattleSkins = {
-    cardBack: find(backId) ?? { url: '/card-backs/ravenof-default.webp', css: null },
+    cardBack: find(backId) ?? { url: '/card-backs/v2/cb-default.webp', css: null },
     board: find(st?.equippedBoard ?? null),
   }
   try { sessionStorage.setItem(SKINS_KEY, JSON.stringify(out)) } catch { /* */ }
@@ -158,25 +158,14 @@ export async function getAvatarFrame(userId?: string | null): Promise<string | n
 // iš viešų (public/card-backs) nugarėlių. Sąrašas statinis: jokio RPC kovos
 // starte, veikia ir offline.
 export const BOT_CARD_BACKS: string[] = [
-  '/card-backs/cb-basic.webp',
-  '/card-backs/cb-rare.webp',
-  '/card-backs/cb-premium.webp',
-  '/card-backs/cb-legendary.webp',
-  '/card-backs/cb-prestige.webp',
-  '/card-backs/cb-ember.webp',
-  '/card-backs/cb-frost.webp',
-  '/card-backs/cb-gold.webp',
-  '/card-backs/cb-void.webp',
-  '/card-backs/cb-demonu-orda.webp',
-  '/card-backs/cb-inkvizicijos-legionas.webp',
-  '/card-backs/cb-karmazino-karuna.webp',
-  '/card-backs/cb-mirties-marsas.webp',
-  '/card-backs/cb-mistikos-melodija.webp',
-  '/card-backs/cb-plesiku-naktis.webp',
-  '/card-backs/cb-rubino-infernas.webp',
-  '/card-backs/cb-rytu-vejas.webp',
-  '/card-backs/cb-sviesos-pulkas.webp',
-  '/card-backs/cb-vryhioko-gauja.webp',
+  '/card-backs/v2/cb-varnagrado-gelezis.webp',
+  '/card-backs/v2/cb-salcio-karuna.webp',
+  '/card-backs/v2/cb-zariju-kalve.webp',
+  '/card-backs/v2/cb-tustumos-ragai.webp',
+  '/card-backs/v2/cb-paauksuota-priesaika.webp',
+  '/card-backs/v2/cb-arkanos-antspaudas.webp',
+  '/card-backs/v2/cb-audros-smaigalys.webp',
+  '/card-backs/v2/cb-nuodu-erskeciai.webp',
 ].filter((u) => !HIDDEN_FACTION_SLUGS.some((sl) => u.includes('cb-' + sl + '.')))
 
 /** Atsitiktinė boto nugarėlė (nauja kiekvienai kovai). */

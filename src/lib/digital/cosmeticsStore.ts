@@ -20,7 +20,7 @@ import { registerCosmeticLookup } from '@/lib/rewards/rewardVisuals'
 export const DEFAULT_AVATAR_ID = 'av_nekronautas'
 export const DEFAULT_CARD_BACK_ID = 'cb_default'
 /** Statinis absoliutus fallback — naudojamas ir kai katalogas nepasiekiamas. */
-export const DEFAULT_CARD_BACK_SRC = '/card-backs/ravenof-default.webp'
+export const DEFAULT_CARD_BACK_SRC = '/card-backs/v2/cb-default.webp'
 /** Sena hardcoded nugarėlė — galutinis fallback, jei net default asset lūžtų. */
 export const LEGACY_CARD_BACK_SRC = '/card-backs/back.webp?v=2'
 

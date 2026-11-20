@@ -200,7 +200,7 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
               {activeVis.url && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={activeVis.url} alt={activeVis.name}
-                  onError={(e) => { const el = e.currentTarget; if (el.src.indexOf('back.webp') < 0) el.src = el.src.includes('ravenof-default') ? LEGACY_CARD_BACK_SRC : DEFAULT_CARD_BACK_SRC }}
+                  onError={(e) => { const el = e.currentTarget; if (el.src.indexOf('back.webp') < 0) el.src = el.src.includes('cb-default') ? LEGACY_CARD_BACK_SRC : DEFAULT_CARD_BACK_SRC }}
                   className="w-full h-full object-cover" draggable={false} />
               )}
             </span>
@@ -437,7 +437,7 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
                 {activeVis.url && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={activeVis.url} alt={activeVis.name}
-                    onError={(e) => { const el = e.currentTarget; if (el.src.indexOf('back.webp') < 0) el.src = el.src.includes('ravenof-default') ? LEGACY_CARD_BACK_SRC : DEFAULT_CARD_BACK_SRC }}
+                    onError={(e) => { const el = e.currentTarget; if (el.src.indexOf('back.webp') < 0) el.src = el.src.includes('cb-default') ? LEGACY_CARD_BACK_SRC : DEFAULT_CARD_BACK_SRC }}
                     className="w-full h-full object-cover" draggable={false} />
                 )}
               </span>

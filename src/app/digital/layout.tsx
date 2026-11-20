@@ -245,7 +245,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
           const style = { borderRight: `2px solid ${active ? '#F2C45A' : 'transparent'}` } as React.CSSProperties
           return it.action === 'store'
             ? <button key={it.key} onClick={() => { playUiClick(); setStoreOpen(true) }} className="w-full ravenof-press" data-gp-nav style={style} aria-current={active ? 'page' : undefined}>{inner}</button>
-            : <Link key={it.key} href={it.href!} onClick={() => playUiClick()} className="w-full ravenof-press" data-gp-nav style={style} aria-current={active ? 'page' : undefined}>{inner}</Link>
+            : <Link key={it.key} href={it.href!} onClick={() => { playUiClick(); setStoreOpen(false); setSettingsOpen(false) }} className="w-full ravenof-press" data-gp-nav style={style} aria-current={active ? 'page' : undefined}>{inner}</Link>
         })}
         {/* Testeriams/adminams: nuolat matoma „Klaida" ikona (bet kuriame ekrane, vienu paspaudimu) */}
         {isTesterRole(profile?.role) && (
