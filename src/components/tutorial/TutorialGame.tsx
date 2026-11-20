@@ -69,7 +69,7 @@ import { cachedBattleSkins, getEquippedBattleSkins, randomBotCardBack, type Skin
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { avatarMapFor, cardVoiceUrls, skillVoiceUrls, loadVoices } from '@/lib/game/audioI18n'
 import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCache'
-import { getCosmetics, getAvatarAudio } from '@/lib/cosmetics'
+import { getCosmetics, getAvatarAudio, getAvatarFrame } from '@/lib/cosmetics'
 import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio } from '@/lib/game/avatarAudio'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { isSummonFxEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isSceneFxEnabled } from '@/lib/settings'
@@ -323,18 +323,24 @@ const SUMMON_BY_EFFECT_KEYS = new Set([
 let OPP_BACK_KNOWN = false  // ar varžovas ATSIUNTĖ savo skin (skiriamas „nežinoma" nuo „neturi")
 export function setEquippedBack(v: SkinVisual | null) { EQUIPPED_BACK = v }
 export function setOppBack(v: SkinVisual | null, known = false) { OPP_BACK = v; OPP_BACK_KNOWN = known }
+/** ŽMK kortos nugarėlė skrydžio scenai = tos pusės kaladės nugarėlė. */
+function zmkBackUrl(side: Side | undefined): string {
+  const skin = side === 'you' ? EQUIPPED_BACK : (OPP_BACK_KNOWN ? OPP_BACK : null)
+  return skin?.url ?? CARD_BACK_SRC.plain
+}
 export function PileBack({ kind, owner = 'me' }: { kind: 'plain' | 'curse' | 'zmk'; owner?: 'me' | 'opp' }) {
   const [ok, setOk] = useState(false)
   const [customFailed, setCustomFailed] = useState(false)
   // opp: žinomas skin (arba žinomas „neturi" -> default). NEŽINOMA -> default
   // nugarėlė, o NE tavo: priešas niekada nerodo tavo kosmetikos.
   const skin = owner === 'me' ? EQUIPPED_BACK : (OPP_BACK_KNOWN ? OPP_BACK : null)
-  const custom = kind === 'plain' && !customFailed ? skin : null
+  // ŽMK krūvelė naudoja TĄ PAČIĄ nugarėlę kaip pagrindinė kaladė (tik prakeiksmai turi savo)
+  const custom = kind !== 'curse' && !customFailed ? skin : null
   // css-only nugarėlė (gradientas) — be <img>
   if (custom && !custom.url && custom.css) {
     return <div aria-hidden style={{ position: 'absolute', inset: 0, background: custom.css }} />
   }
-  const src = custom?.url ?? CARD_BACK_SRC[kind]
+  const src = custom?.url ?? CARD_BACK_SRC[kind === 'zmk' ? 'plain' : kind]
   return <img src={src} alt="" draggable={false} onLoad={() => setOk(true)}
     onError={() => { if (custom?.url) { setCustomFailed(true); setOk(false) } else setOk(false) }}
     style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: ok ? 1 : 0, transition: 'opacity .2s' }} />
@@ -530,7 +536,9 @@ const AVATAR_MOODS: Record<AvatarMood, { face: AvatarEmotion; hold: number; glow
 }
 
 /** Avatar – mūšio HP taikinys: kvadratinis ornate rėmas (frame.png), portretas/idle-video centre, HP ant skydo. */
-export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid, dead = false, mood = null }: {
+export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid, dead = false, mood = null, frameUrl = null }: {
+  /** Žaidėjo pasirinktas rėmelis (kosmetika); null → numatytasis rėmas pagal pusę. */
+  frameUrl?: string | null
   avatar: BattleAvatar | null
   hp: number; maxHp: number
   owner: 'player' | 'enemy'
@@ -545,7 +553,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
   // Combat UI Asset Pack v1.6: rėmas 120×140 (usagePx), portretas po permatomu rėmu
   const size = Math.round(120 * scale)
   const sizeH = Math.round(140 * scale)
-  const frameSrc = `/ravenof-ui/combat/avatars/frame-avatar-${owner === 'player' ? 'player' : 'enemy'}.png`
+  const frameSrc = frameUrl || `/ravenof-ui/combat/avatars/frame-avatar-${owner === 'player' ? 'player' : 'enemy'}.png`
   const glow = owner === 'player' ? 'rgba(74,222,128,0.4)' : 'rgba(239,68,68,0.4)'
   const crit = hp > 0 && hp <= maxHp * 0.25
   const videos = avatar?.videos ?? []
@@ -1243,6 +1251,14 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // ── Avatarai (mūšio HP taikiniai + balsai) ─────────────────────────────────
   const [youAvatar, setYouAvatar] = useState<BattleAvatar | null>(null)
   const [enemyAvatar, setEnemyAvatar] = useState<BattleAvatar | null>(null)
+  // Avataro rėmeliai (kosmetika): savo + PvP varžovo; botams ir svečiui lieka numatytasis
+  const [avatarFrames, setAvatarFrames] = useState<{ you: string | null; enemy: string | null }>({ you: null, enemy: null })
+  useEffect(() => {
+    let alive = true
+    void Promise.all([getAvatarFrame(), net?.opponentId ? getAvatarFrame(net.opponentId) : Promise.resolve(null)])
+      .then(([a, b]) => { if (alive) setAvatarFrames({ you: a, enemy: b }) })
+    return () => { alive = false }
+  }, [net?.opponentId])
   const [avatarFlash, setAvatarFlash] = useState<Partial<Record<Side, 'hit' | 'heal' | null>>>({})
   const [avatarDead, setAvatarDead] = useState<Side | null>(null)   // pralaimėjusiojo avataras subyrėjęs
   const [finalFocus, setFinalFocus] = useState<{ x: number; y: number } | null>(null)   // paskutinio smūgio „prožektorius"
@@ -1825,7 +1841,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     // Scenų FX vartai (ŽMK skrydis + Kovos šūksnis/Paskutinis noras/Trigeris): variklis
     // daro snapshot'us tik įjungus. Mokymuose (scripted žingsniai) — išjungta.
     setSceneGatesEnabled(isSceneFxEnabled() && !tutorial?.active)
-    preloadSceneImages([CARD_BACK_SRC.zmk, ...Object.values(ZMK_IMG)])
+    preloadSceneImages([zmkBackUrl('you'), ...Object.values(ZMK_IMG)])
     landedAtRef.current.clear()   // nauja kova — visi padarai vėl „nusileidžia" iš naujo
     clientMatchIdRef.current = (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`
     matchRewardRef.current = false
@@ -3261,7 +3277,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
               if (zmkDraws.length > 0) {
                 if (process.env.NODE_ENV !== 'production') console.debug(`[SceneFx] zmk draws=${zmkDraws.length}`)
                 { const now = Date.now(); for (let i = 0; i < draws.length; i++) zmkSceneCreditRef.current.push(now) }
-                await sceneRef.current.playZmk({ draws: zmkDraws, backUrl: CARD_BACK_SRC.zmk, reduced })
+                await sceneRef.current.playZmk({ draws: zmkDraws, backUrl: zmkBackUrl(draws[0]?.side), reduced })
               }
               if (holdUids.length) setHpHold((h) => { const n = { ...h }; for (const u of holdUids) delete n[u]; return n })
             } else {
@@ -4912,7 +4928,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           <img src="/ravenof-ui/combat/targeting/badge-target-selected.png" alt="" aria-hidden draggable={false}
             className="absolute -top-2 -right-2 z-30 pointer-events-none select-none" style={{ width: 24, height: 24, objectFit: 'contain' }} />
         )}
-        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} mood={avatarMood[side] ?? null} dead={avatarDead === side} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
+        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} mood={avatarMood[side] ?? null} dead={avatarDead === side} frameUrl={side === 'you' ? avatarFrames.you : avatarFrames.enemy} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
       </button>
     )
   }

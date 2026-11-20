@@ -57,6 +57,7 @@
   "purchasedN": "„{{name}}\" ×{{count}} nupirkta!",
   "purchasedShort": "✓ Nupirkta",
   "sections": {
+    "frames": "Avatarų rėmeliai",
     "avatars": "Žaidėjo avatarai",
     "backs": "Kortų nugarėlės",
     "daily": "🔥 Dienos kortos",

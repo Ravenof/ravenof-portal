@@ -14,7 +14,7 @@
 import { create } from 'zustand'
 import { t } from '@/lib/i18n/core'
 import { createClient } from '@/lib/supabase/client'
-import { getCosmetics, type Cosmetic, type CosmeticsState } from '@/lib/cosmetics'
+import { getCosmetics, getActiveAvatarFrame, DEFAULT_AVATAR_FRAME_ID, DEFAULT_AVATAR_FRAME_SRC, type Cosmetic, type CosmeticsState } from '@/lib/cosmetics'
 import { registerCosmeticLookup } from '@/lib/rewards/rewardVisuals'
 
 export const DEFAULT_AVATAR_ID = 'av_nekronautas'
@@ -42,10 +42,13 @@ type CosmeticsStore = {
   owned: string[]
   active: ActiveIds
   defaults: ActiveIds
+  /** Aktyvus avataro rėmelis (af_default = numatytasis). */
+  activeFrame: string
   busy: boolean
   refresh: (opts?: { force?: boolean }) => Promise<void>
   setActiveAvatar: (id: string) => Promise<{ ok: boolean; reason?: 'locked' | 'network' }>
   setActiveCardBack: (id: string) => Promise<{ ok: boolean; reason?: 'locked' | 'network' }>
+  setActiveAvatarFrame: (id: string) => Promise<{ ok: boolean; reason?: 'locked' | 'network' }>
 }
 
 let inflight: Promise<void> | null = null
@@ -65,6 +68,7 @@ export const useCosmetics = create<CosmeticsStore>((set, get) => ({
   owned: [],
   active: { avatar: null, cardBack: null },
   defaults: { avatar: DEFAULT_AVATAR_ID, cardBack: DEFAULT_CARD_BACK_ID },
+  activeFrame: DEFAULT_AVATAR_FRAME_ID,
   busy: false,
 
   refresh: async (opts) => {
@@ -73,10 +77,11 @@ export const useCosmetics = create<CosmeticsStore>((set, get) => ({
     set({ loading: true })
     inflight = (async () => {
       try {
-        const st = (await getCosmetics()) as ServerState | null
+        const [st, fr] = await Promise.all([getCosmetics() as Promise<ServerState | null>, getActiveAvatarFrame()])
         if (!st) { set({ loaded: true, loading: false, error: true }); return }
         set({
           loaded: true, loading: false, error: false,
+          activeFrame: fr?.id ?? DEFAULT_AVATAR_FRAME_ID,
           items: st.items ?? [],
           owned: st.owned ?? [],
           // serveris grąžina JAU validuotus aktyvius (fallback į default DB pusėje);
@@ -107,6 +112,23 @@ export const useCosmetics = create<CosmeticsStore>((set, get) => ({
 
   setActiveAvatar: (id) => setActive('avatar', id, set, get),
   setActiveCardBack: (id) => setActive('card_back', id, set, get),
+  setActiveAvatarFrame: async (id) => {
+    const st = get()
+    if (st.busy) return { ok: false, reason: 'network' }
+    const item = st.items.find((c) => c.id === id && c.kind === 'avatar_frame')
+    const owned = !!item && (st.owned.includes(id) || !!item.ownedByDefault)
+    if (!owned) return { ok: false, reason: 'locked' }
+    const prev = st.activeFrame
+    set({ busy: true, activeFrame: id }) // optimistinis
+    const { error } = await createClient().rpc('rvn_set_active_avatar_frame', { p_id: id })
+    if (error) {
+      set({ busy: false, activeFrame: prev }) // rollback
+      console.warn('[cosmetics] setActiveAvatarFrame:', error.message)
+      return { ok: false, reason: /cosmetic_locked|not owned/i.test(error.message) ? 'locked' : 'network' }
+    }
+    set({ busy: false })
+    return { ok: true }
+  },
 }))
 
 async function setActive(
@@ -176,6 +198,13 @@ export function activeCardBackVisual(state: Pick<CosmeticsStore, 'items' | 'acti
   // nugarėlė visada turi turėti piešiamą vizualą
   if (!v.url && !v.css) return { ...v, url: DEFAULT_CARD_BACK_SRC }
   return v
+}
+
+/** Aktyvus avataro rėmelis — pasirinktas → numatytasis (statinis rėmo PNG). */
+export function activeFrameVisual(state: Pick<CosmeticsStore, 'items' | 'activeFrame'>): CosmeticVisual {
+  const fb: CosmeticVisual = { id: DEFAULT_AVATAR_FRAME_ID, name: 'Ravenof', url: DEFAULT_AVATAR_FRAME_SRC, css: null, emoji: null }
+  const v = visualOf(cosmeticById(state, state.activeFrame), fb)
+  return v.url ? v : { ...v, url: DEFAULT_AVATAR_FRAME_SRC }
 }
 
 /** Bet kurio katalogo įrašo vizualas su saugiu fallback (Shop/Profilio grid'ams). */

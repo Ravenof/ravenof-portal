@@ -70,7 +70,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     for (const it of cosStore.items) if (it.ownedByDefault) set.add(it.id)
     return set
   }, [cosStore.items, cosStore.owned])
-  const equippedIds = useMemo(() => new Set([cosStore.active.avatar, cosStore.active.cardBack].filter(Boolean) as string[]), [cosStore.active])
+  const equippedIds = useMemo(() => new Set([cosStore.active.avatar, cosStore.active.cardBack, cosStore.activeFrame].filter(Boolean) as string[]), [cosStore.active, cosStore.activeFrame])
   // tikrų card_packs vaizdai (shop pack prekės su payload item_id = pako uuid)
   const [packImgs, setPackImgs] = useState<Record<string, string | null>>({})
   const [packInv, setPackInv] = useState(0)
@@ -172,7 +172,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
 
   // kosmetikos prekės vizualas pagal payload item_id
   const cosIdOf = (it: ShopItem): string | null => {
-    if (it.itemType !== 'card_back' && it.itemType !== 'player_avatar') return null
+    if (it.itemType !== 'card_back' && it.itemType !== 'player_avatar' && it.itemType !== 'avatar_frame') return null
     const pid = (it.payload[0] as { item_id?: string } | undefined)?.item_id
     return pid ?? null
   }
@@ -342,11 +342,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
         const equipped = !!cid && equippedIds.has(cid)
         if (equipped) {
           actions.push(stateBox('own', `★ ${t('profile.cosmetics.selectedBadge')}`, 'var(--ravenof-gold-bright)', 'var(--ravenof-border-gold)'))
-        } else if (cid && (selShop.itemType === 'card_back' || selShop.itemType === 'player_avatar')) {
+        } else if (cid && (selShop.itemType === 'card_back' || selShop.itemType === 'player_avatar' || selShop.itemType === 'avatar_frame')) {
           // TURIMA, bet neaktyvi → „NAUDOTI" — tas pats kanoninis kelias kaip Profilyje
           actions.push(buyBtn('use', t('shop.useCta'), true, () => {
             const st = useCosmetics.getState()
-            void (selShop.itemType === 'player_avatar' ? st.setActiveAvatar(cid) : st.setActiveCardBack(cid))
+            void (selShop.itemType === 'player_avatar' ? st.setActiveAvatar(cid) : selShop.itemType === 'avatar_frame' ? st.setActiveAvatarFrame(cid) : st.setActiveCardBack(cid))
               .then((r) => { if (r.ok) flash(t('profile.cosmetics.selectedToast', { name: shopName(selShop) })); else flash(t('profile.cosmetics.failedToast'), true) })
           }))
         } else {
@@ -421,7 +421,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
 
     if (D) {
       // Desktop: centruotas dialogas — header (pavadinimas + ×) · body (vaizdas | detalės) · footer (veiksmai pagal turinį)
-      const heroAspect = selShop?.itemType === 'player_avatar' ? '1 / 1' : '3 / 4'
+      const heroAspect = selShop?.itemType === 'player_avatar' ? '1 / 1' : selShop?.itemType === 'avatar_frame' ? '6 / 7' : '3 / 4'
       return (
         <>
           <div className="rvn-dlg-backdrop" style={{ zIndex: 85, position: 'absolute' }} onClick={close} />
@@ -599,7 +599,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                                 <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 64, height: 64, objectFit: 'contain', filter: 'drop-shadow(0 0 14px rgba(180,68,79,.55))' }} />
                               </span>
                             : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', fontSize: 28 }}>{vis?.emoji ?? '🛒'}</span>
-                    const aspect = it.itemType === 'player_avatar' ? '1 / 1' : it.itemType === 'rubies_bundle' ? '16 / 9' : it.itemType === 'card_back' ? '1044 / 1416' : '3 / 4'
+                    const aspect = it.itemType === 'player_avatar' ? '1 / 1' : it.itemType === 'avatar_frame' ? '6 / 7' : it.itemType === 'rubies_bundle' ? '16 / 9' : it.itemType === 'card_back' ? '1044 / 1416' : '3 / 4'
                     return tileFrame(it.id, () => { playUiClick(); setSel({ t: 'shop', id: it.id }); setToast(null) }, art,
                       shopName(it), shopDesc(it),
                       priceRow(owned ? null : it.prices.silver, owned ? null : it.prices.rubies,

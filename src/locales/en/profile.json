@@ -58,6 +58,7 @@
     "tabAvatar": "Avatar",
     "tabCardBack": "Card back",
     "title": "Edit profile",
+    "tabFrame": "Avatar frame",
     "tabDeckAvatars": "Deck avatars",
     "deckAvatarsHint": "Each deck can have its own avatar – in battles with that deck it replaces the global one. Without an assignment the global avatar is used.",
     "deckGlobal": "Global",

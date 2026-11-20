@@ -66,6 +66,7 @@ export const SHOP_SECTIONS: { key: string; labelKey: string; types: string[] }[]
   { key: 'packs',   labelKey: 'shop.sections.packs',   types: ['pack'] },
   { key: 'backs',   labelKey: 'shop.sections.backs',   types: ['card_back'] },
   { key: 'avatars', labelKey: 'shop.sections.avatars', types: ['player_avatar'] },
+  { key: 'frames',  labelKey: 'shop.sections.frames',  types: ['avatar_frame'] },
   { key: 'decks',   labelKey: 'shop.sections.decks',   types: ['faction_deck', 'bundle'] },
   { key: 'rubies',  labelKey: 'shop.sections.rubies',  types: ['rubies_bundle'] },
 ]

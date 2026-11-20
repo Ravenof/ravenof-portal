@@ -2,7 +2,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { HIDDEN_FACTION_SLUGS } from '@/lib/game/hiddenFactions'
 
-export type CosmeticKind = 'card_back' | 'board' | 'avatar'
+export type CosmeticKind = 'card_back' | 'board' | 'avatar' | 'avatar_frame'
 
 export type Cosmetic = {
   id: string
@@ -126,6 +126,31 @@ export async function getAvatarAudio(ids: (string | null | undefined)[]): Promis
   const { data, error } = await supabase.rpc('rvn_get_avatar_audio', { p_ids: clean })
   if (error) { console.warn('[avatar audio] get:', error.message); return {} }
   return (data as AvatarAudioMap) ?? {}
+}
+
+// ── Avataro rėmeliai (kovos HP rėmas aplink portretą) — migr. 20261120 ────────
+// Numatytasis rėmelis (af_default) = seni statiniai frame-avatar-player/enemy.png,
+// todėl jam grąžinam null ir kova piešia rėmą pagal pusę (žalias / raudonas).
+export const DEFAULT_AVATAR_FRAME_ID = 'af_default'
+export const DEFAULT_AVATAR_FRAME_SRC = '/ravenof-ui/combat/avatars/frame-avatar-player.png'
+export type AvatarFrameRef = { id: string; imageUrl: string | null }
+
+/** Serverio validuotas aktyvus rėmelis (savo arba nurodyto žaidėjo). Klaida / nėra migracijos → null. */
+export async function getActiveAvatarFrame(userId?: string | null): Promise<AvatarFrameRef | null> {
+  try {
+    const supabase = createClient()
+    const { data, error } = await supabase.rpc('rvn_get_avatar_frame', { p_user: userId ?? null })
+    if (error) return null
+    const d = data as { id?: string | null; imageUrl?: string | null } | null
+    return d && d.id ? { id: d.id, imageUrl: d.imageUrl ?? null } : null
+  } catch { return null }
+}
+
+/** Kovai: rėmelio paveikslėlio URL arba null (= numatytasis rėmas pagal pusę). */
+export async function getAvatarFrame(userId?: string | null): Promise<string | null> {
+  const f = await getActiveAvatarFrame(userId)
+  if (!f || f.id === DEFAULT_AVATAR_FRAME_ID) return null
+  return f.imageUrl ?? null
 }
 
 // ── Botų / nežinomo varžovo kortų nugarėlės ──────────────────────────────────

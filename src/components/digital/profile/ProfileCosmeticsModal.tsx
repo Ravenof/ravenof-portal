@@ -22,7 +22,7 @@ import { useEscClose } from '@/lib/useEscClose'
 import { useT, useContent } from '@/lib/i18n/react'
 import type { Cosmetic } from '@/lib/cosmetics'
 import {
-  useCosmetics, activeAvatarVisual, activeCardBackVisual,
+  useCosmetics, activeAvatarVisual, activeCardBackVisual, activeFrameVisual,
   DEFAULT_CARD_BACK_SRC, LEGACY_CARD_BACK_SRC,
 } from '@/lib/digital/cosmeticsStore'
 import { useAccount } from '@/lib/digital/accountStore'
@@ -34,7 +34,7 @@ import { DeskDialog } from '../ui/DeskKit'
 const GOLD = '240,180,41'
 const CARD_AR = '1044 / 1416' // kanoninis Ravenof kortos santykis (RavenofCardDetailModal)
 
-type Tab = 'avatar' | 'card_back' | 'deck_avatars'
+type Tab = 'avatar' | 'card_back' | 'avatar_frame' | 'deck_avatars'
 
 /** Kaip gaunamas užrakintas daiktas (be atsitiktinių spėjimų — žinomi šaltiniai). */
 function lockHintKey(c: Cosmetic): { key: string; params?: Record<string, string | number> } {
@@ -44,8 +44,22 @@ function lockHintKey(c: Cosmetic): { key: string; params?: Record<string, string
   return { key: 'profile.cosmetics.lockRewards' }
 }
 
+/** Avataro rėmelio miniatiūra: 6:7, nekarpoma, ant tamsaus fono (langas permatomas). */
+function FrameThumb({ c, width }: { c: Cosmetic; width: number | string }) {
+  return (
+    <span className="relative flex items-center justify-center overflow-hidden shrink-0"
+      style={{ width, aspectRatio: '6 / 7', borderRadius: 8, background: 'radial-gradient(circle at 50% 40%, #2a2038, #0a0810)', border: '1px solid rgba(255,255,255,0.1)' }}>
+      {c.imageUrl
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img src={c.imageUrl} alt="" loading="lazy" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        : <span style={{ fontSize: 28 }}>{c.emoji ?? '▣'}</span>}
+    </span>
+  )
+}
+
 function Thumb({ c, kind, size }: { c: Cosmetic; kind: Tab; size: number }) {
   const [bad, setBad] = useState(false)
+  if (kind === 'avatar_frame') return <FrameThumb c={c} width={size} />
   const isBack = kind === 'card_back'
   const w = isBack ? size : size
   const h = isBack ? Math.round(size * (1416 / 1044)) : size
@@ -70,6 +84,7 @@ function Thumb({ c, kind, size }: { c: Cosmetic; kind: Tab; size: number }) {
 /** Desktop miniatiūra: užpildo kortelės plotį; avataras apvalus 1:1, nugarėlė — kortos santykiu (nekarpoma). */
 function DeskThumb({ c, kind }: { c: Cosmetic; kind: Tab }) {
   const [bad, setBad] = useState(false)
+  if (kind === 'avatar_frame') return <FrameThumb c={c} width="100%" />
   const isBack = kind === 'card_back'
   return (
     <span className="relative flex items-center justify-center overflow-hidden"
@@ -108,8 +123,8 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
     return [...list.filter(ownedOf), ...list.filter((c) => !ownedOf(c))]
   }, [cos.items, cos.owned, tab])
 
-  const activeId = tab === 'card_back' ? cos.active.cardBack : cos.active.avatar
-  const activeVis = tab === 'card_back' ? activeCardBackVisual(cos) : activeAvatarVisual(cos)
+  const activeId = tab === 'card_back' ? cos.active.cardBack : tab === 'avatar_frame' ? cos.activeFrame : cos.active.avatar
+  const activeVis = tab === 'card_back' ? activeCardBackVisual(cos) : tab === 'avatar_frame' ? activeFrameVisual(cos) : activeAvatarVisual(cos)
   // Kaladžių avatarai: turimi avatarai + kaladės iš activeDeck store
   const decks = useActiveDeck()
   useEffect(() => { if (tab === 'deck_avatars' && !decks.loaded && !decks.loading) void decks.refresh() }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -127,6 +142,7 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
     playUiClick()
     const r = tab === 'avatar'
       ? await useCosmetics.getState().setActiveAvatar(c.id)
+      : tab === 'avatar_frame' ? await useCosmetics.getState().setActiveAvatarFrame(c.id)
       : await useCosmetics.getState().setActiveCardBack(c.id)
     if (r.ok) {
       playSuccess()
@@ -152,13 +168,13 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
     //  150–180 px), nugarėlės kortos santykiu, etiketės ≥ 12–13.5 px.
     const tabs = (
       <div role="tablist" className="flex" style={{ border: '1px solid rgba(255,255,255,0.14)', flex: 'none' }}>
-        {(['avatar', 'card_back', 'deck_avatars'] as const).map((k) => (
+        {(['avatar', 'card_back', 'avatar_frame', 'deck_avatars'] as const).map((k) => (
           <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => { playUiClick(); setTab(k) }}
             style={{ height: DT.ctl, padding: '0 18px', border: 0, cursor: 'pointer',
               font: '700 13px var(--rvn-font-display)', letterSpacing: 1, textTransform: 'uppercase', whiteSpace: 'nowrap',
               background: tab === k ? 'var(--ravenof-grad-gold, linear-gradient(180deg,#ffe28c,#f3b62c))' : 'transparent',
               color: tab === k ? '#3a2406' : 'var(--text-muted)' }}>
-            {t(k === 'avatar' ? 'profile.cosmetics.tabAvatar' : k === 'card_back' ? 'profile.cosmetics.tabCardBack' : 'profile.cosmetics.tabDeckAvatars')}
+            {t(k === 'avatar' ? 'profile.cosmetics.tabAvatar' : k === 'card_back' ? 'profile.cosmetics.tabCardBack' : k === 'avatar_frame' ? 'profile.cosmetics.tabFrame' : 'profile.cosmetics.tabDeckAvatars')}
           </button>
         ))}
       </div>
@@ -189,12 +205,12 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
               )}
             </span>
           ) : (
-            <span className="relative overflow-hidden shrink-0 flex items-center justify-center" style={{ width: 200, height: 200, borderRadius: 999,
+            <span className="relative overflow-hidden shrink-0 flex items-center justify-center" style={{ width: 200, height: 200, borderRadius: tab === 'avatar_frame' ? 12 : 999,
               border: `2.5px solid rgba(${GOLD},0.6)`, boxShadow: `0 0 22px rgba(${GOLD},0.25)`,
               background: activeVis.url ? '#0a0810' : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }}>
               {activeVis.url
                 // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={activeVis.url} alt={activeVis.name} className="w-full h-full object-cover" draggable={false} />
+                ? <img src={activeVis.url} alt={activeVis.name} className={tab === 'avatar_frame' ? 'w-full h-full object-contain' : 'w-full h-full object-cover'} draggable={false} />
                 : <span style={{ fontSize: 80 }}>{activeVis.emoji ?? '☠'}</span>}
             </span>
           )}
@@ -344,13 +360,13 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
         <div className="shrink-0 flex items-center gap-2 px-4 pt-3 pb-2" style={{ borderBottom: `1px solid rgba(${GOLD},0.18)` }}>
           <h2 style={{ fontFamily: 'var(--rvn-font-display)', color: 'var(--gold)', fontSize: 15, letterSpacing: '0.08em', margin: 0 }}>{t('profile.cosmetics.title')}</h2>
           <div className="flex ml-3" style={{ border: '1px solid rgba(255,255,255,0.14)' }}>
-            {(['avatar', 'card_back', 'deck_avatars'] as const).map((k) => (
+            {(['avatar', 'card_back', 'avatar_frame', 'deck_avatars'] as const).map((k) => (
               <button key={k} onClick={() => { playUiClick(); setTab(k) }} aria-pressed={tab === k}
                 style={{ minHeight: 36, padding: '0 14px', border: 0, cursor: 'pointer',
                   font: '700 11px var(--rvn-font-display)', letterSpacing: 1, textTransform: 'uppercase',
                   background: tab === k ? 'var(--ravenof-grad-gold, linear-gradient(180deg,#ffe28c,#f3b62c))' : 'transparent',
                   color: tab === k ? '#3a2406' : 'var(--text-muted)' }}>
-                {t(k === 'avatar' ? 'profile.cosmetics.tabAvatar' : k === 'card_back' ? 'profile.cosmetics.tabCardBack' : 'profile.cosmetics.tabDeckAvatars')}
+                {t(k === 'avatar' ? 'profile.cosmetics.tabAvatar' : k === 'card_back' ? 'profile.cosmetics.tabCardBack' : k === 'avatar_frame' ? 'profile.cosmetics.tabFrame' : 'profile.cosmetics.tabDeckAvatars')}
               </button>
             ))}
           </div>
@@ -426,12 +442,12 @@ export function ProfileCosmeticsModal({ onClose, initialTab = 'avatar' }: { onCl
                 )}
               </span>
             ) : (
-              <span className="relative overflow-hidden shrink-0 flex items-center justify-center" style={{ width: 160, height: 160, borderRadius: 999,
+              <span className="relative overflow-hidden shrink-0 flex items-center justify-center" style={{ width: 160, height: 160, borderRadius: tab === 'avatar_frame' ? 12 : 999,
                 border: `2.5px solid rgba(${GOLD},0.6)`, boxShadow: `0 0 22px rgba(${GOLD},0.25)`,
                 background: activeVis.url ? '#0a0810' : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }}>
                 {activeVis.url
                   // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={activeVis.url} alt={activeVis.name} className="w-full h-full object-cover" draggable={false} />
+                  ? <img src={activeVis.url} alt={activeVis.name} className={tab === 'avatar_frame' ? 'w-full h-full object-contain' : 'w-full h-full object-cover'} draggable={false} />
                   : <span style={{ fontSize: 64 }}>{activeVis.emoji ?? '☠'}</span>}
               </span>
             )}

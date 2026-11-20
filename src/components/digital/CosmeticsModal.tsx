@@ -9,8 +9,8 @@ import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
 import { useT, useContent } from '@/lib/i18n/react'
 
-const KIND_LABEL_KEY: Record<CosmeticKind, string> = { card_back: 'common.cosmetics.cardBacks', board: 'common.cosmetics.boards', avatar: 'common.cosmetics.avatars' }
-const KIND_ICON: Record<CosmeticKind, string> = { card_back: '🂠', board: '▦', avatar: '😀' }
+const KIND_LABEL_KEY: Record<CosmeticKind, string> = { card_back: 'common.cosmetics.cardBacks', board: 'common.cosmetics.boards', avatar: 'common.cosmetics.avatars', avatar_frame: 'common.cosmetics.frames' }
+const KIND_ICON: Record<CosmeticKind, string> = { card_back: '🂠', board: '▦', avatar: '😀', avatar_frame: '▣' }
 const KINDS: CosmeticKind[] = ['card_back', 'avatar']  // spec: tik nugarėlės + avatarai (boards paslėpti)
 const RAR_COL: Record<string, string> = { legendary: '#fbbf24', epic: '#c084fc', rare: '#60a5fa' }
 

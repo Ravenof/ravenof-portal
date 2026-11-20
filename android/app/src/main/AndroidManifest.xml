@@ -23,6 +23,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Deep link ravenof://auth/callback?code=… – Google/Facebook prisijungimo
+                 grįžimas iš sistemos naršyklės (Supabase OAuth, žr. src/lib/digital/oauth.ts) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ravenof" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -39,4 +48,6 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- screenOrientation="landscape" automatiskai reikalauja sios savybes; pazymim neprivaloma, kad Google Play neatmestu irenginiu (Chromebook, XR, kai kurios plansetes) -->
+    <uses-feature android:name="android.hardware.screen.landscape" android:required="false" />
 </manifest>

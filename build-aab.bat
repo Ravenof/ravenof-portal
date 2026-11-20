@@ -16,8 +16,8 @@ if not exist android\keystore.properties (
 )
 subst V: /d >nul 2>&1
 subst V: "%CD%"
-set "PUB=V:\android\app\src\main\assets\public"
-set "PACK=V:\android\media_pack\src\main\assets\public"
+set "PUB=%~dp0android\app\src\main\assets\public"
+set "PACK=%~dp0android\media_pack\src\main\assets\public"
 (
   echo CWD: %CD%
   echo JAVA_HOME: %JAVA_HOME%
@@ -26,12 +26,14 @@ set "PACK=V:\android\media_pack\src\main\assets\public"
   call npm run app:build
   call npx cap sync android
   node tools\publish-bundle.mjs --skip-build --mark-baseline android
-  if exist "V:\android\media_pack\src" rmdir /s /q "V:\android\media_pack\src"
+  if exist "%~dp0android\media_pack\src" rmdir /s /q "%~dp0android\media_pack\src"
   mkdir "%PACK%"
   for %%D in (media cards sounds rules) do if exist "%PUB%\%%D" move "%PUB%\%%D" "%PACK%\%%D"
   cd /d V:\android
-  call gradlew.bat bundleRelease
+  call gradlew.bat --stop
+  call gradlew.bat bundleRelease --no-daemon
   if errorlevel 1 echo GRADLE FAILED
+  if not exist V:\android\gradlew.bat echo V DRIVE LOST DURING BUILD
   cd /d "%~dp0"
   for %%D in (media cards sounds rules) do if exist "%PACK%\%%D" move "%PACK%\%%D" "%PUB%\%%D"
   echo AAB: android\app\build\outputs\bundle\release\app-release.aab

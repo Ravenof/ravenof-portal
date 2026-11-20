@@ -71,8 +71,11 @@ type Common = { supabase: ReturnType<typeof createClient>; flash: (m: string, e?
 // su sidabro kaina = price_gold. Rubinų kaina (jei yra) neliečiama.
 type ShopSyncInput = { id: string; kind: string; name: string; description?: string | null; rarity?: string | null; price_gold: number; sort_order: number; sellable: boolean }
 async function syncShopItem(supabase: ReturnType<typeof createClient>, c: ShopSyncInput): Promise<string | null> {
-  if (c.kind !== 'card_back' && c.kind !== 'avatar') return null
-  const itemType = c.kind === 'avatar' ? 'player_avatar' : 'card_back'
+  if (c.kind !== 'card_back' && c.kind !== 'avatar' && c.kind !== 'avatar_frame') return null
+  const itemType = c.kind === 'avatar' ? 'player_avatar' : c.kind === 'avatar_frame' ? 'avatar_frame' : 'card_back'
+  // Rėmelis: parduotuvės skiltis = 'avatar_frame', bet išdavimo (payload) tipas = 'card_back' –
+  // pirkimo funkcija kosmetiką išduoda pagal item_id į user_cosmetics, o 'avatar_frame' tipo ji nepažįsta.
+  const grantType = c.kind === 'avatar' ? 'player_avatar' : 'card_back'
   const { data: ex, error: e0 } = await supabase.from('shop_items').select('id').eq('slug', c.id).maybeSingle()
   if (e0) return e0.message
   let shopId = (ex as { id: number } | null)?.id ?? null
@@ -80,7 +83,7 @@ async function syncShopItem(supabase: ReturnType<typeof createClient>, c: ShopSy
     if (!c.sellable) return null
     const { data: ins, error } = await supabase.from('shop_items').insert({
       slug: c.id, item_type: itemType, name: c.name, description: c.description ?? null, rarity: c.rarity ?? null,
-      payload: [{ type: 'item', item_type: itemType, item_id: c.id, quantity: 1 }], sort_order: 200 + (c.sort_order || 0),
+      payload: [{ type: 'item', item_type: grantType, item_id: c.id, quantity: 1 }], sort_order: 200 + (c.sort_order || 0),
     }).select('id').single()
     if (error) return error.message
     shopId = (ins as { id: number }).id
@@ -139,7 +142,7 @@ function CosmeticsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } 
           <input className={inp} style={{ ...inpStyle, opacity: editing ? 0.5 : 1 }} disabled={editing} value={form.id} onChange={(e) => set('id', e.target.value)} /></label>
         <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Tipas
           <select className={inp} style={inpStyle} value={form.kind} onChange={(e) => set('kind', e.target.value)}>
-            <option value="card_back">Kortų nugarėlė</option><option value="board">Lenta</option><option value="avatar">Avataras</option>
+            <option value="card_back">Kortų nugarėlė</option><option value="board">Lenta</option><option value="avatar">Avataras</option><option value="avatar_frame">Avataro rėmelis (1080×1260 PNG su permatomu langu)</option>
           </select></label>
         <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Pavadinimas
           <input className={inp} style={inpStyle} value={form.name} onChange={(e) => set('name', e.target.value)} /></label>

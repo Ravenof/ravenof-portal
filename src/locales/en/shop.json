@@ -54,6 +54,7 @@
   "purchasedN": "\"{{name}}\" ×{{count}} purchased!",
   "purchasedShort": "✓ Purchased",
   "sections": {
+    "frames": "Avatar frames",
     "avatars": "Player avatars",
     "backs": "Card backs",
     "daily": "🔥 Daily cards",

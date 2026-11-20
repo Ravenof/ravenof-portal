@@ -6,6 +6,7 @@
   "continue": "Continue",
   "gp": {"select": "Select", "tabs": "Sections", "take": "Pick up", "drop": "Drop / attack", "pick": "Target", "inspect": "Inspect", "endTurn": "End turn", "hand": "Hand", "board": "Board"},
   "cosmetics": {
+    "frames": "Avatar frames",
     "avatars": "Player avatars",
     "boards": "Boards",
     "buyFailed": "Purchase failed.",
