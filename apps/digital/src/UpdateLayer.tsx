@@ -15,6 +15,7 @@ const TXT = {
     updating: 'Atnaujinama…', applying: 'Diegiama…', updatingSub: 'Siunčiami tik pasikeitę failai. Neuždaryk žaidimo.',
     failed: 'Atnaujinti nepavyko', failedSub: 'Patikrink interneto ryšį ir bandyk dar kartą.',
     ready: 'Atnaujinimas paruoštas', readySub: 'Įsigalios kitą kartą paleidus žaidimą.', now: 'Atnaujinti dabar', later: 'Vėliau',
+    available: 'Yra atnaujinimas', availableSub: 'Bus įdiegtas kitą kartą paleidus žaidimą.',
     whatsNew: 'Kas naujo',
   },
   en: {
@@ -24,6 +25,7 @@ const TXT = {
     updating: 'Updating…', applying: 'Installing…', updatingSub: 'Only changed files are downloaded. Please keep the game open.',
     failed: 'Update failed', failedSub: 'Check your internet connection and try again.',
     ready: 'Update ready', readySub: 'It will apply the next time you start the game.', now: 'Update now', later: 'Later',
+    available: 'Update available', availableSub: 'It will be installed the next time you start the game.',
     whatsNew: "What's new",
   },
 } as const
@@ -83,8 +85,8 @@ export function UpdateLayer() {
     const notes = lang === 'en' ? (s.target.notes_en || s.target.notes_lt) : (s.target.notes_lt || s.target.notes_en)
     return (
       <div role="status" style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 9000, width: 'min(360px, calc(100vw - 32px))', padding: '14px 16px', borderRadius: 12, background: 'rgba(20,16,12,.96)', border: `1px solid ${gold}`, boxShadow: '0 12px 40px rgba(0,0,0,.6)', color: '#e9dfcb', fontFamily: 'Inter, sans-serif' }}>
-        <div style={{ fontFamily: 'Cinzel, serif', fontWeight: 700, color: gold, fontSize: 15 }}>{t.ready} · {s.target.version}</div>
-        <div style={{ fontSize: 13, color: '#b9ad98', margin: '4px 0 10px' }}>{t.readySub}</div>
+        <div style={{ fontFamily: 'Cinzel, serif', fontWeight: 700, color: gold, fontSize: 15 }}>{s.readyId ? t.ready : t.available} · {s.target.version}</div>
+        <div style={{ fontSize: 13, color: '#b9ad98', margin: '4px 0 10px' }}>{s.readyId ? t.readySub : t.availableSub}</div>
         {notes && <div style={{ fontSize: 12.5, color: '#cfc4ae', margin: '0 0 10px', maxHeight: 96, overflow: 'auto', whiteSpace: 'pre-wrap' }}><b style={{ color: '#e9dfcb' }}>{t.whatsNew}:</b> {notes}</div>}
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <button type="button" onClick={() => setDismissed(s.target!.version)} style={{ ...btnGhost, padding: '7px 14px', fontSize: 13 }}>{t.later}</button>

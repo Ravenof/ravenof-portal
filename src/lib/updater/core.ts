@@ -20,6 +20,10 @@ import type { ReleaseBundle, ReleaseInfo, ShellInfo, UpdaterAdapter, UpdaterStat
 const CHECK_TIMEOUT_MS = 6_000
 const RECHECK_MS = 15 * 60_000
 const BAD_TTL_MS = 24 * 3600_000
+/** Tiek laiko po paleidimo neprivalomas atnaujinimas telefone dar diegiamas iškart (su progreso ekranu). */
+const BOOT_WINDOW_MS = 30_000
+/** Jei paruošimas užstrigo – po tiek laiko paleidžiam žaidėją į žaidimą (atnaujinsim per kitą paleidimą). */
+const EAGER_TIMEOUT_MS = 5 * 60_000
 const LS_PENDING = 'rvn.updater.pending'   // { version, from, at } – ką bandėm pritaikyti
 const LS_BAD = 'rvn.updater.bad'           // { [version]: timestamp } – šiame įrenginyje neužsikrovę bundle'ai
 /** Keliai, kuriuose vyksta partija – čia niekada neperkraunam ir nerodom blokuojančio ekrano. */
@@ -35,6 +39,17 @@ let shell: ShellInfo | null = null
 let readyMarked = false
 let busy = false
 let started = false
+/** „Atnaujinti dabar" paspaustas dar neatsisiųstam atnaujinimui (žr. applyReadyUpdateNow). */
+let forceNow = false
+
+/**
+ * Telefone bundle'o paruošimas perkopijuoja VISUS žaidimo failus (~270 MB) iš įdiegtos programėlės
+ * ir kiekvienam skaičiuoja SHA-256. Kol tai vyksta fone, kortų paveikslėliai kraunasi su vėlavimu.
+ * Todėl ten neprivalomas atnaujinimas fone nebesiunčiamas: jis diegiamas per paleidimą (progreso
+ * ekranas, tada perkrovimas) arba žaidėjui paspaudus „Atnaujinti dabar". Desktop'e – kaip buvo.
+ */
+const heavyPrepare = () => shell?.platform === 'android' || shell?.platform === 'ios'
+const inBootWindow = () => typeof performance !== 'undefined' && performance.now() < BOOT_WINDOW_MS
 
 function pickAdapter(): UpdaterAdapter | null {
   try {
@@ -159,11 +174,25 @@ export async function checkForUpdate(): Promise<void> {
       set({ phase: 'ready', target, readyId: 'builtin', blocking: false }); return
     }
 
-    const mustBlock = target.mandatory && !inBattle()
+    // Telefonas, neprivalomas atnaujinimas: iškart (blokuojančiai) tik per paleidimą arba paspaudus mygtuką.
+    // Jei šią versiją jau bandėm pritaikyti ankstesniame paleidime ir ji neįsigaliojo – automatiškai nebekartojam
+    // (kitaip galėtų suktis perkrovimų ratas); lieka mygtukas.
+    let eager = false
+    if (!target.mandatory && heavyPrepare()) {
+      const tried = lsGet<Pending | null>(LS_PENDING, null)
+      const triedBefore = !!tried && tried.version === target.version && tried.boot !== BOOT_ID
+      eager = !inBattle() && (forceNow || (inBootWindow() && !triedBefore))
+      if (!eager) { set({ phase: 'ready', target, readyId: null, blocking: false, percent: 0 }); return }
+    }
+
+    const mustBlock = eager || (target.mandatory && !inBattle())
     set({ phase: 'downloading', target, percent: 0, blocking: mustBlock })
     let id: string
     try {
-      id = await adapter.download(target, (percent) => set({ percent }))
+      const dl = adapter.download(target, (percent) => set({ percent }))
+      id = eager
+        ? await Promise.race([dl, new Promise<string>((_, rej) => setTimeout(() => rej(new Error('prepare timeout')), EAGER_TIMEOUT_MS))])
+        : await dl
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e)
       void report(/hash|checksum/i.test(msg) ? 'checksum_failed' : 'download_failed', target.version, APP_VERSION, msg)
@@ -173,7 +202,7 @@ export async function checkForUpdate(): Promise<void> {
     }
     void report('downloaded', target.version, APP_VERSION)
 
-    if (target.mandatory && !inBattle()) { await applyNowInternal(id, target); return }
+    if ((target.mandatory || eager) && !inBattle()) { await applyNowInternal(id, target); return }
     markPending(target.version)
     await adapter.applyNext(id)
     set({ phase: 'ready', readyId: id, blocking: false, percent: 100 })
@@ -189,7 +218,13 @@ export async function checkForUpdate(): Promise<void> {
 /** Mygtukas „Atnaujinti dabar" (rodomas tik ne partijoje). */
 export async function applyReadyUpdateNow(): Promise<void> {
   const { phase, readyId, target } = useUpdater.getState()
-  if (!adapter || phase !== 'ready' || !readyId || !target || inBattle()) return
+  if (!adapter || phase !== 'ready' || !target || inBattle()) return
+  if (!readyId) {
+    // Telefone atnaujinimas dar neatsisiųstas – siunčiam dabar su progreso ekranu ir iškart pritaikom.
+    forceNow = true
+    try { await checkForUpdate() } finally { forceNow = false }
+    return
+  }
   try { await applyNowInternal(readyId, target) } catch (e) { set({ phase: 'error', error: e instanceof Error ? e.message : String(e), blocking: false }) }
 }
 
