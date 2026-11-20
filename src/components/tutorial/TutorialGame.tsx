@@ -554,6 +554,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
   const size = Math.round(120 * scale)
   const sizeH = Math.round(140 * scale)
   const frameSrc = frameUrl || `/ravenof-ui/combat/avatars/frame-avatar-${owner === 'player' ? 'player' : 'enemy'}.png`
+  const portraitCls = frameUrl ? 'combat-avatar-portrait combat-avatar-portrait--cut' : 'combat-avatar-portrait'
   const glow = owner === 'player' ? 'rgba(74,222,128,0.4)' : 'rgba(239,68,68,0.4)'
   const crit = hp > 0 && hp <= maxHp * 0.25
   const videos = avatar?.videos ?? []
@@ -605,7 +606,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
       style={{ width: size, height: sizeH, filter: dead ? 'none' : `drop-shadow(0 0 ${mood ? 18 : 14}px ${moodGlow})`, transition: 'filter .25s ease' }}>
       {/* portretas / idle-video (po rėmu); žuvus — viskas subyra, lieka tuščia vieta */}
       {!dead && (
-        <div className="combat-avatar-portrait" style={{ background: '#0a0810', zIndex: 1 }}>
+        <div className={portraitCls} style={{ background: '#0a0810', zIndex: 1 }}>
           {/* portretas visada apačioje — video uždengia TIK kai jau realiai groja (seamless) */}
           {avatar?.imageUrl
             ? (
@@ -661,7 +662,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
                 transition={{ duration: 1.35, delay, ease: [0.16, 0.6, 0.45, 1] }}>
                 {/* pilnos kompozicijos kopija, paslinkta taip, kad šukė rodytų savo iškarpą */}
                 <div className="absolute" style={{ width: '400%', height: '400%', left: `${-c * 100}%`, top: `${-r * 100}%` }}>
-                  <div className="combat-avatar-portrait" style={{ background: '#0a0810' }}>
+                  <div className={portraitCls} style={{ background: '#0a0810' }}>
                     {avatar?.imageUrl
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={avatar.imageUrl} alt="" draggable={false} style={fitStyle} />
