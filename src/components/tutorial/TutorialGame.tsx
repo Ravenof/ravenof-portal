@@ -72,7 +72,9 @@ import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCa
 import { getCosmetics, getAvatarAudio, getAvatarFrame } from '@/lib/cosmetics'
 import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio } from '@/lib/game/avatarAudio'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
-import { isSummonFxEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isSceneFxEnabled } from '@/lib/settings'
+import { isSummonFxEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isSceneFxEnabled, isReducedMotionEnabled } from '@/lib/settings'
+import { avatarFxFor } from '@/lib/game/avatarPacks'
+import { AvatarFxStyles, AvBurst, AvEntranceFx, AvDefeatFx, AvVictoryFx, AvAura, avEnterMs, avEnterAnimation } from './AvatarFx'
 import { SceneFxLayer, preloadSceneImages, type SceneFxHandle, type SceneBox, type SceneKeywordKind } from '@/components/tutorial/SceneFxLayer'
 import { BattleLogList, type LogFilter } from '@/components/tutorial/BattleLogList'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
@@ -537,7 +539,12 @@ const AVATAR_MOODS: Record<AvatarMood, { face: AvatarEmotion; hold: number; glow
 }
 
 /** Avatar – mūšio HP taikinys: kvadratinis ornate rėmas (frame.png), portretas/idle-video centre, HP ant skydo. */
-export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid, dead = false, mood = null, frameUrl = null }: {
+/** Kuris įėjimo „tick'as" jau suvaidintas kiekvienai pusei (kad perpiešus išdėstymą nesikartotų). */
+const _avEnterPlayed: Record<string, number> = {}
+
+export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid, dead = false, mood = null, frameUrl = null, enterTick = 0 }: {
+  /** Kovos pradžios signalas (keičiasi kartą per kovą) → parašo įėjimo efektas. 0 = nevaidinti. */
+  enterTick?: number
   /** Žaidėjo pasirinktas rėmelis (kosmetika); null → numatytasis rėmas pagal pusę. */
   frameUrl?: string | null
   avatar: BattleAvatar | null
@@ -602,12 +609,51 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
   const faceUrl = face === 'neutral' ? null : (avatar?.emotions?.[face] ?? null)
   const emotionKeys = Object.keys(avatar?.emotions ?? {}) as (keyof AvatarEmotions)[]
   const moodGlow = moodDef ? moodDef.glow : lowHp ? 'rgba(255,60,60,0.75)' : glow
+  // ── Parašo efektai (819): profilis pagal avataro id; seni avatarai jo neturi → bendri efektai ──
+  const fx = avatarFxFor(avatar?.id)
+  const reduced = isReducedMotionEnabled()
+  const [entering, setEntering] = useState(false)
+  const [hitK, setHitK] = useState(0)
+  const [bigK, setBigK] = useState(0)
+  const [winK, setWinK] = useState(0)
+  useEffect(() => {
+    if (!enterTick || !fx) return
+    if (_avEnterPlayed[owner] === enterTick) return
+    const d = owner === 'enemy' ? 550 : 0
+    const t1 = window.setTimeout(() => { _avEnterPlayed[owner] = enterTick; setEntering(true) }, d)
+    const t2 = window.setTimeout(() => setEntering(false), d + (reduced ? 520 : avEnterMs(fx) + 500))
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enterTick, avatar?.id])
+  useEffect(() => { if (flash === 'hit') setHitK((k) => k + 1) }, [flash])
+  useEffect(() => { if (mood === 'bigdmg') setBigK((k) => k + 1); else if (mood === 'win') setWinK((k) => k + 1) }, [mood])
+  const altDefeat = !!fx && fx.defeat !== 'shatter' && !reduced
   return (
     <motion.div
       animate={dead ? { x: [0, -7, 7, -5, 5, -2, 0] } : flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
       transition={{ duration: dead ? 0.55 : 0.34 }}
       className={'relative pointer-events-none' + (mood ? ` rvn-avmood rvn-avmood-${mood}` : '') + (lowHp && !dead ? ' rvn-av-lowhp' : '')}
-      style={{ width: size, height: sizeH, filter: dead ? 'none' : `drop-shadow(0 0 ${mood ? 18 : 14}px ${moodGlow})`, transition: 'filter .25s ease' }}>
+      style={{ width: size, height: sizeH, filter: dead ? 'none' : `drop-shadow(0 0 ${mood ? 18 : 14}px ${moodGlow})`, transition: 'filter .25s ease', animation: entering && fx && !dead ? avEnterAnimation(fx, reduced) : undefined }}>
+      {fx && <AvatarFxStyles />}
+      {fx && entering && !dead && !reduced && <AvEntranceFx p={fx} size={size} />}
+      {fx && lowHp && !dead && <AvAura p={fx} size={size} reduced={reduced} />}
+      {fx && !dead && !reduced && hitK > 0 && <AvBurst key={'h' + hitK} p={fx} size={size} mode="hit" n={7} seed={hitK} />}
+      {fx && !dead && !reduced && bigK > 0 && <AvBurst key={'b' + bigK} p={fx} size={size} mode="hit" n={12} seed={bigK + 50} slow={1.25} />}
+      {fx && !dead && !reduced && winK > 0 && <AvVictoryFx key={'w' + winK} p={fx} size={size} />}
+      {dead && altDefeat && fx && (
+        <AvDefeatFx p={fx} size={size} composite={<>
+          <div className={portraitCls} style={{ background: '#0a0810' }}>
+            {avatar?.imageUrl && (
+              <div style={winStyle}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={avatar.emotions?.sad ?? avatar.imageUrl} alt="" draggable={false} style={{ ...fitStyle, position: 'absolute', inset: 0 }} />
+              </div>
+            )}
+          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={frameSrc} alt="" draggable={false} className="absolute inset-0 w-full h-full select-none" style={{ objectFit: 'contain' }} />
+        </>} />
+      )}
       {/* portretas / idle-video (po rėmu); žuvus — viskas subyra, lieka tuščia vieta */}
       {!dead && (
         <div className={portraitCls} style={{ background: '#0a0810', zIndex: 1 }}>
@@ -642,7 +688,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
       {/* ── PRALAIMĖJIMAS: VISAS avataras (rėmas + portretas) sprogsta į 16 šukių ──
           Kiekviena šukė – pilnos kompozicijos (portretas + frame.png) iškarpa, tad
           atrodo, kad subyra visas rėmas. Po animacijos vieta lieka TUŠČIA. */}
-      {dead && (
+      {dead && !altDefeat && (
         <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 6, overflow: 'visible' }}>
           {/* didysis blyksnis */}
           <motion.div className="absolute rounded-full" style={{ inset: '-60%', background: 'radial-gradient(circle, rgba(255,236,180,0.98) 0%, rgba(255,150,50,0.85) 30%, rgba(200,60,20,0.4) 55%, transparent 72%)' }}
@@ -1277,6 +1323,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const youAvIdRef = useRef<string | null>(null)
   const enemyAvIdRef = useRef<string | null>(null)
   const fightStartedRef = useRef(false)
+  const [avEnterTick, setAvEnterTick] = useState(0)   // parašo įėjimo efektas (819): kartą per kovą
+  const avEnterDoneRef = useRef(false)
   useEffect(() => {
     let alive = true
     ;(async () => {
@@ -1617,6 +1665,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const returnBlocks = !!game?.pendingReturn
   const mulliganBlocks = !!game?.pendingMulligan
   const coinBlocks = !!coinToss
+  // Parašo įėjimas (819): kai monetos metimas ir mulliganas baigti – lenta jau matoma
+  useEffect(() => {
+    if (!game || game.winner || avEnterDoneRef.current || mulliganBlocks || coinBlocks || !youAvatar) return
+    avEnterDoneRef.current = true
+    window.setTimeout(() => setAvEnterTick(Date.now()), 250)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!game, mulliganBlocks, coinBlocks, !!youAvatar])
   // PvP SVECIAS: monetos metimo UI is pirmo host'o state snapshot'o (globalTurn 0 +
   // mulligan faze = kova dar neprasidejo; game.active jau apverstas i svecio perspektyva).
   const guestTossShownRef = useRef(false)
@@ -1854,6 +1909,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     setMatchReward(null)     // rematch: atlygio/level-up būsena iš naujo
     setLuDismissed(false)
     setAvatarDead(null)      // rematch: avataras vėl sveikas
+    avEnterDoneRef.current = false   // rematch: įėjimo efektas vėl
     setEndShown(false)       // rematch: pabaigos modalas paslėptas iki naujos defeat sekos
     resetAvatarAudio()       // rematch: fightStart/defeat/victory frazės vėl gali groti
     // Nauja kova – botui nauja atsitiktinė nugarėlė (PvP ją atneša broadcast 'skin').
@@ -4933,7 +4989,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           <img src="/ravenof-ui/combat/targeting/badge-target-selected.png" alt="" aria-hidden draggable={false}
             className="absolute -top-2 -right-2 z-30 pointer-events-none select-none" style={{ width: 24, height: 24, objectFit: 'contain' }} />
         )}
-        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} mood={avatarMood[side] ?? null} dead={avatarDead === side} frameUrl={side === 'you' ? avatarFrames.you : avatarFrames.enemy} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
+        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} mood={avatarMood[side] ?? null} dead={avatarDead === side} frameUrl={side === 'you' ? avatarFrames.you : avatarFrames.enemy} enterTick={avEnterTick} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
       </button>
     )
   }
