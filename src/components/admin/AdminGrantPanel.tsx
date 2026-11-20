@@ -19,6 +19,7 @@ const KINDS: { k: GrantKind; label: string; color: string }[] = [
   { k: 'silver', label: '🪙 Sidabras', color: 'var(--gold)' },
   { k: 'rubies', label: '◆ Rubinai', color: '#fca5a5' },
   { k: 'essence', label: '✦ Esencija', color: '#c4b5fd' },
+  { k: 'xp', label: '⭐ XP', color: '#fde68a' },
   { k: 'card', label: '🃏 Korta', color: '#7dd3fc' },
   { k: 'pack', label: '📦 Pakuotė', color: '#fdba74' },
   { k: 'cosmetic', label: '🎭 Kosmetika', color: '#a78bfa' },
@@ -42,7 +43,7 @@ export function AdminGrantPanel({ userId, cards, options, log: initialLog, balan
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [pending, start] = useTransition()
 
-  const isCurrency = kind === 'silver' || kind === 'rubies' || kind === 'essence'
+  const isCurrency = kind === 'silver' || kind === 'rubies' || kind === 'essence' || kind === 'xp'
   const cardHits = useMemo(() => {
     if (kind !== 'card') return []
     const s = q.trim().toLowerCase()
@@ -53,10 +54,10 @@ export function AdminGrantPanel({ userId, cards, options, log: initialLog, balan
 
   const pickKind = (k: GrantKind) => {
     setKind(k); setRef(''); setQ(''); setMsg(null)
-    setAmount(k === 'silver' ? 100 : k === 'rubies' ? 10 : k === 'essence' ? 50 : 1)
+    setAmount(k === 'silver' ? 100 : k === 'rubies' ? 10 : k === 'essence' ? 50 : k === 'xp' ? 500 : 1)
   }
 
-  const canSubmit = !pending && (isCurrency ? amount !== 0 : (!!ref && (kind === 'card' ? amount !== 0 : amount > 0)))
+  const canSubmit = !pending && (kind === 'xp' ? amount > 0 : isCurrency ? amount !== 0 : (!!ref && (kind === 'card' ? amount !== 0 : amount > 0)))
 
   const submit = () => start(async () => {
     setMsg(null)
@@ -64,7 +65,7 @@ export function AdminGrantPanel({ userId, cards, options, log: initialLog, balan
     if (r.error) { setMsg({ ok: false, text: r.error }); return }
     if (r.balances) setBal(r.balances)
     const name = r.name ?? selCard?.name ?? ref
-    setMsg({ ok: true, text: `Skirta: ${KIND_LABEL[kind]} · ${name} × ${amount}` })
+    setMsg({ ok: true, text: kind === 'xp' ? `Skirta: ${amount} XP · dabar Lv${r.level ?? '?'} (${(r.xp ?? 0).toLocaleString('lt-LT')} XP)` : `Skirta: ${KIND_LABEL[kind]} · ${name} × ${amount}` })
     setLog((l) => [{ at: new Date().toISOString(), kind, name, amount, note: note.trim() || null, admin: 'tu' }, ...l])
   })
 
@@ -126,7 +127,7 @@ export function AdminGrantPanel({ userId, cards, options, log: initialLog, balan
       <div className="flex flex-wrap items-center gap-2">
         {kind !== 'cosmetic' && (
           <label className="flex items-center gap-1 text-xs" style={{ color: 'var(--text-secondary)' }}>
-            {isCurrency ? 'Suma (± )' : 'Kiekis'}
+            {kind === 'xp' ? 'XP (tik +)' : isCurrency ? 'Suma (± )' : 'Kiekis'}
             <input type="number" value={amount} onChange={(e) => setAmount(Number(e.target.value))} className={inp} style={{ width: 90 }} />
           </label>
         )}
@@ -137,7 +138,7 @@ export function AdminGrantPanel({ userId, cards, options, log: initialLog, balan
         </button>
       </div>
       {msg && <div className="text-xs" style={{ color: msg.ok ? '#7bd389' : '#ef4444' }}>{msg.text}</div>}
-      <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Valiutai ir kortoms galima neigiama suma (nuėmimas, ne žemiau 0). Parduotuvės daiktas skiriamas per tą patį atlygių variklį kaip pirkimas (be kainos).</div>
+      <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Valiutai ir kortoms galima neigiama suma (nuėmimas, ne žemiau 0). XP galima tik pridėti – lygis pakyla ir lygio atlygiai iškrenta kaip įprastai. Parduotuvės daiktas skiriamas per tą patį atlygių variklį kaip pirkimas (be kainos).</div>
 
       {/* Žurnalas */}
       <div>

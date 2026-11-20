@@ -32,7 +32,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
 
   let q = supabase
     .from('profiles')
-    .select('id, username, display_name, avatar_url, role, created_at, xp_total, level, gold, last_seen_at, last_platform, last_app_version')
+    .select('id, username, display_name, avatar_url, role, created_at, xp_total, level, gold, rubies, essence, last_seen_at, last_platform, last_app_version')
     .order('created_at', { ascending: false })
 
   if (params.role) q = q.eq('role', params.role)
@@ -41,7 +41,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
   const { data: users, error } = await q.limit(200)
   const rows = (users ?? []) as {
     id: string; username: string; display_name: string | null
-    role: string; created_at: string; xp_total: number; level: number; gold: number | null
+    role: string; created_at: string; xp_total: number; level: number; gold: number | null; rubies: number | null; essence: number | null
     last_seen_at: string | null; last_platform: string | null; last_app_version: string | null
   }[]
   // Kovų aktyvumas vienu RPC (kovų sk., pergalės, paskutinė kova)
@@ -169,7 +169,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: S
                     <span className="block" style={{ color: 'var(--text-muted)', fontSize: '10px' }}>matytas {fmtAgo(u.last_seen_at)}{u.last_platform ? ` · ${u.last_platform} v${u.last_app_version ?? '?'}` : ''}</span>
                   </td>
                   <td className="px-3 py-2">
-                    <UserGrantForm userId={u.id} gold={u.gold ?? 0} />
+                    <UserGrantForm userId={u.id} gold={u.gold ?? 0} rubies={u.rubies ?? 0} essence={u.essence ?? 0} xp={u.xp_total ?? 0} level={u.level ?? 1} />
                   </td>
                   <td className="px-3 py-2">
                     {u.id === user?.id ? (
