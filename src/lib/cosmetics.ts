@@ -114,6 +114,8 @@ export async function buyDailyDealCard(cardId: string): Promise<{ ok: true; gold
 
 // ── Avatar audio (battle balsai) ─────────────────────────────────────────────
 export type AvatarAudioEvent = 'fightStart' | 'hit' | 'defeat' | 'victory' | 'spellCast' | 'lowHp' | 'selected'
+  // 820: avatarų „pack" balsai (statiniai failai, žr. lib/game/avatarPacks.ts) – DB šių įvykių neturi
+  | 'bigHit' | 'attack' | 'kill' | 'timer' | 'idle' | 'emoteHello' | 'emoteWellPlayed' | 'emoteThreat' | 'emoteThanks' | 'emoteOops'
 export type AvatarAudioClip = { url: string; weight: number }
 /** { [cosmeticId]: { [eventType]: AvatarAudioClip[] } } */
 export type AvatarAudioMap = Record<string, Partial<Record<AvatarAudioEvent, AvatarAudioClip[]>>>

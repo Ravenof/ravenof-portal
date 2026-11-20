@@ -16,7 +16,12 @@ let channel: HTMLAudioElement | null = null
 /** Mokymų režimas: avatarų vienetės nutildomos, kad netrukdytų Korvo pasakojimui. */
 let muted = false
 
-const RATE_MS: Partial<Record<AvatarAudioEvent, number>> = { hit: 1800, spellCast: 2000, selected: 450 }
+const RATE_MS: Partial<Record<AvatarAudioEvent, number>> = { hit: 1800, bigHit: 2500, spellCast: 2000, selected: 450, attack: 6000, kill: 9000, idle: 45000, timer: 15000 }
+/** Foniniai įvykiai: nepertraukia jau skambančios frazės (savo ar varžovo) – tiesiog praleidžiami. */
+const LOW: AvatarAudioEvent[] = ['attack', 'kill', 'idle', 'spellCast', 'timer']
+const lastUrl = new Map<string, string>()               // paskutinis variantas – kad nesikartotų iš eilės
+let seqToken = 0                                        // dialogo eilė (playAvatarSequence)
+const busy = () => !!channel && !channel.paused && !channel.ended
 const ONCE: AvatarAudioEvent[] = ['fightStart', 'defeat', 'victory', 'lowHp']
 
 function uiSoundOn(): boolean {
@@ -69,24 +74,60 @@ export function isAvatarVoiceMuted(): boolean { return muted }
 export function playAvatarAudio(avatarId: string | null | undefined, event: AvatarAudioEvent, opts?: { volume?: number }): void {
   if (muted) return
   if (!avatarId || !uiSoundOn()) return
+  // senesni avatarai turi tik 'hit' – didelis smūgis jiems skamba kaip paprastas
+  if (event === 'bigHit' && !MAP[avatarId]?.bigHit?.length) event = 'hit'
   const clips = MAP[avatarId]?.[event]
   if (!clips?.length) return
   const key = avatarId + ':' + event
   if (ONCE.includes(event)) { if (firedOnce.has(key)) return; firedOnce.add(key) }
+  if (LOW.includes(event) && busy()) return
   const gap = RATE_MS[event]
   const now = Date.now()
   if (gap) { if (now - (lastPlayed.get(key) ?? 0) < gap) return; lastPlayed.set(key, now) }
   try {
+    seqToken++                                                 // nutraukia dialogo eilę, jei tokia buvo
     if (channel) { try { channel.pause() } catch { /* */ } }   // vienas balso kanalas
-    const a = new Audio(pickWeighted(clips))
+    const prev = lastUrl.get(key)
+    const pool = clips.length > 1 && prev ? clips.filter((c) => c.url !== prev) : clips
+    const url = pickWeighted(pool); lastUrl.set(key, url)
+    const a = new Audio(url)
     a.volume = Math.max(0, Math.min(1, (opts?.volume ?? 0.85) * getSfxVolume()))
     channel = a
     void a.play().catch(() => { /* autoplay gali blokuoti */ })
   } catch { /* tyliai */ }
 }
 
+/** Ar šiuo metu skamba avataro frazė (naudojama atsitiktinėms replikoms – jos neturi lipti ant kitų). */
+export function isAvatarVoiceBusy(): boolean { return busy() }
+
+/** Pažymi once-per-battle įvykį kaip jau suvaidintą (pvz. fightStart, kai vietoj jo skamba dialogas). */
+export function markAvatarAudioFired(avatarId: string | null | undefined, event: AvatarAudioEvent): void {
+  if (avatarId) firedOnce.add(avatarId + ':' + event)
+}
+
+/** Sugroja klipų eilę iš eilės (mini dialogas). Bet koks kitas avataro balsas eilę nutraukia. */
+export function playAvatarSequence(urls: string[], opts?: { volume?: number; gapMs?: number }): void {
+  if (muted || !uiSoundOn() || !urls.length) return
+  const token = ++seqToken
+  const step = (i: number) => {
+    if (token !== seqToken || i >= urls.length) return
+    try {
+      if (channel) { try { channel.pause() } catch { /* */ } }
+      const a = new Audio(urls[i])
+      a.volume = Math.max(0, Math.min(1, (opts?.volume ?? 0.85) * getSfxVolume()))
+      channel = a
+      const next = () => window.setTimeout(() => step(i + 1), opts?.gapMs ?? 280)
+      a.onended = next
+      a.onerror = next
+      void a.play().catch(() => { /* autoplay gali blokuoti */ })
+    } catch { /* tyliai */ }
+  }
+  step(0)
+}
+
 /** Nutildo grojantį avataro balsą (išeinant iš mūšio). */
 export function stopAvatarAudio(): void {
+  seqToken++
   try { channel?.pause() } catch { /* */ }
   channel = null
 }

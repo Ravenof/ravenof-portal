@@ -67,13 +67,13 @@ import { resolveRewardVisualV2 } from '@/lib/rewards/rewardVisuals'
 import { CardStatusVfxLayer } from '@/components/tutorial/CardStatusVfxLayer'
 import { cachedBattleSkins, getEquippedBattleSkins, randomBotCardBack, type SkinVisual } from '@/lib/cosmetics'
 import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
-import { avatarMapFor, cardVoiceUrls, skillVoiceUrls, loadVoices } from '@/lib/game/audioI18n'
+import { avatarMapFor, cardVoiceUrls, skillVoiceUrls, loadVoices, voiceLocale } from '@/lib/game/audioI18n'
 import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCache'
 import { getCosmetics, getAvatarAudio, getAvatarFrame } from '@/lib/cosmetics'
-import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio } from '@/lib/game/avatarAudio'
+import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio, playAvatarSequence, markAvatarAudioFired, isAvatarVoiceBusy } from '@/lib/game/avatarAudio'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { isSummonFxEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isSceneFxEnabled, isReducedMotionEnabled } from '@/lib/settings'
-import { avatarFxFor } from '@/lib/game/avatarPacks'
+import { avatarFxFor, packVoiceMap, packDialogue } from '@/lib/game/avatarPacks'
 import { AvatarFxStyles, AvBurst, AvEntranceFx, AvDefeatFx, AvVictoryFx, AvAura, avEnterMs, avEnterAnimation } from './AvatarFx'
 import { SceneFxLayer, preloadSceneImages, type SceneFxHandle, type SceneBox, type SceneKeywordKind } from '@/components/tutorial/SceneFxLayer'
 import { BattleLogList, type LogFilter } from '@/components/tutorial/BattleLogList'
@@ -1363,7 +1363,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       const ids = [me?.id, en?.id]
       const [map] = await Promise.all([getAvatarAudio(ids), loadVoices('avatar', ids)])
       if (!alive) return
-      resetAvatarAudio(); setAvatarAudioMap(avatarMapFor(ids, map))   // Fazė 7: balsai pagal kalbą + LT fallback
+      resetAvatarAudio(); setAvatarAudioMap({ ...avatarMapFor(ids, map), ...packVoiceMap(ids, voiceLocale()) })   // Fazė 7: balsai pagal kalbą + LT fallback
     })()
     return () => { alive = false; stopAvatarAudio() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1373,6 +1373,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     if (!game || fightStartedRef.current || !youAvIdRef.current) return
     fightStartedRef.current = true
     const a = youAvIdRef.current, b = enemyAvIdRef.current
+    // 820: jei ši avatarų pora turi mini dialogą – dažniausiai skamba jis vietoj dviejų atskirų pasisveikinimų
+    const dlg = packDialogue(a, b, voiceLocale())
+    if (dlg && Math.random() < 0.65) { markAvatarAudioFired(a, 'fightStart'); markAvatarAudioFired(b, 'fightStart'); playAvatarSequence(dlg); return }
     if (game.active === 'you') { playAvatarAudio(a, 'fightStart'); window.setTimeout(() => playAvatarAudio(b, 'fightStart'), 950) }
     else { playAvatarAudio(b, 'fightStart'); window.setTimeout(() => playAvatarAudio(a, 'fightStart'), 950) }
   }, [game, youAvatar])
@@ -1665,6 +1668,13 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   const returnBlocks = !!game?.pendingReturn
   const mulliganBlocks = !!game?.pendingMulligan
   const coinBlocks = !!coinToss
+  // 820: atsitiktinės replikos ramiais momentais – ėjimo pradžioje, retai, tik kai niekas nekalba
+  useEffect(() => {
+    if (!game || game.winner || (game.globalTurn ?? 0) < 3 || Math.random() > 0.22) return
+    const t = window.setTimeout(() => { if (!isAvatarVoiceBusy()) playAvatarAudio(Math.random() < 0.5 ? youAvIdRef.current : enemyAvIdRef.current, 'idle') }, 2200 + Math.random() * 2500)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.globalTurn])
   // Parašo įėjimas (819): kai monetos metimas ir mulliganas baigti – lenta jau matoma
   useEffect(() => {
     if (!game || game.winner || avEnterDoneRef.current || mulliganBlocks || coinBlocks || !youAvatar) return
@@ -2522,7 +2532,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         case 'death': {
           const uid = e.src?.uid
           const card = e.cardName ? cardByName[e.cardName] : null
-          { const ds = e.side; setMood(ds, 'loss', SETTLE + fxSeq + 300); setMood(ds === 'you' ? 'ai' : 'you', 'kill', SETTLE + fxSeq) }
+          { const ds = e.side; setMood(ds, 'loss', SETTLE + fxSeq + 300); setMood(ds === 'you' ? 'ai' : 'you', 'kill', SETTLE + fxSeq)
+            if (Math.random() < 0.4) { const kid = ds === 'you' ? enemyAvIdRef.current : youAvIdRef.current; window.setTimeout(() => playAvatarAudio(kid, 'kill'), SETTLE + fxSeq + 250) } }
           const from = uid ? unitRectsRef.current.get(uid) : null
           const pileEl = document.querySelector(`[data-pile="discard-${e.side}"]`)
           const startFly = () => {
@@ -2865,9 +2876,11 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
           if (!e.cardName && (val ?? 0) > 0 && (!tgt || tgt.kind === 'player')) {
             const sd = e.side
             const aid = sd === 'you' ? youAvIdRef.current : enemyAvIdRef.current
-            playAvatarAudio(aid, 'hit')
             flashAvatar(sd, 'hit')
-            { const big = (val ?? 0) >= 6 || (val ?? 0) >= P(game, sd).maxHp * 0.25; setMood(sd, big ? 'bigdmg' : 'dmg', SETTLE + fxSeq); const atk: Side = sd === 'you' ? 'ai' : 'you'; if (e.src?.uid || e.cardName) setMood(atk, 'attack', SETTLE + fxSeq) }
+            { const big = (val ?? 0) >= 6 || (val ?? 0) >= P(game, sd).maxHp * 0.25; setMood(sd, big ? 'bigdmg' : 'dmg', SETTLE + fxSeq); const atk: Side = sd === 'you' ? 'ai' : 'you'; if (e.src?.uid || e.cardName) setMood(atk, 'attack', SETTLE + fxSeq)
+              // 820: didelis smūgis – riksmas su fraze; paprastas – trumpa balsinė reakcija; puolėjas kartais šūkteli
+              playAvatarAudio(aid, big ? 'bigHit' : 'hit')
+              if (!big && (e.src?.uid || e.cardName) && Math.random() < 0.3) playAvatarAudio(atk === 'you' ? youAvIdRef.current : enemyAvIdRef.current, 'attack') }
             const pat = rectFor({ side: sd })
             // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui),
             // o smūgio FX — tik projektilui NUSILEIDUS (ne vietoj jo).

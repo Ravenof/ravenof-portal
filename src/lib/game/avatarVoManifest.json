@@ -1,0 +1,85 @@
+{
+ "voices": {
+  "gelezine-sesuo": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "korvas": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  }
+ },
+ "dialogs": []
+}

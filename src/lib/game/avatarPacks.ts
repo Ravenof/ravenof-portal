@@ -49,3 +49,47 @@ export const AVATAR_FX: Record<string, AvatarFxProfile> = {
 export function avatarFxFor(id: string | null | undefined): AvatarFxProfile | null {
   return id ? AVATAR_FX[id] ?? null : null
 }
+
+// ── Balsai (820) ─────────────────────────────────────────────────────────────
+// Klipai guli public/avatars/v2/<slug>/vo/<lt|en>/<įvykis>-<nr>.mp3 (po 5 variantus),
+// dialogų eilutės – dlg-<kitas>-<nr>-<eil>.mp3. Kas realiai įkelta, sako manifestas
+// (tools/gen-avatar-vo-manifest.py) – todėl avatarai be klipų lieka tylūs, be 404.
+import voManifest from './avatarVoManifest.json'
+import type { AvatarAudioMap, AvatarAudioEvent } from '@/lib/cosmetics'
+
+type VoManifest = { voices: Record<string, Partial<Record<'lt' | 'en', Record<string, number>>>>; dialogs: { a: string; b: string; n: number; langs: string[]; lines: [string, string][] }[] }
+const VO = voManifest as unknown as VoManifest
+
+/** 'av_gelezine_sesuo' → 'gelezine-sesuo' */
+export const avatarSlug = (id: string) => id.replace(/^av_/, '').replace(/_/g, '-')
+const voLang = (locale: string): 'lt' | 'en' => (locale === 'lt' ? 'lt' : 'en')
+
+/** Statinis balsų žemėlapis avatarams, kurių klipai įkelti. Perrašo DB balsus tiems patiems avatarams. */
+export function packVoiceMap(ids: (string | null | undefined)[], locale: string): AvatarAudioMap {
+  const out: AvatarAudioMap = {}
+  const lang = voLang(locale)
+  for (const id of ids) {
+    if (!id) continue
+    const slug = avatarSlug(id)
+    const v = VO.voices[slug]
+    const evs = v?.[lang] ?? v?.lt ?? v?.en
+    if (!evs) continue
+    const used = v?.[lang] ? lang : v?.lt ? 'lt' : 'en'
+    const m: AvatarAudioMap[string] = {}
+    for (const [ev, n] of Object.entries(evs)) {
+      m[ev as AvatarAudioEvent] = Array.from({ length: n }, (_, i) => ({ url: `/avatars/v2/${slug}/vo/${used}/${ev}-${i + 1}.mp3`, weight: 1 }))
+    }
+    out[id] = m
+  }
+  return out
+}
+
+/** Mini dialogas šiai avatarų porai (atsitiktinis iš turimų) arba null. Grąžina klipų eilę. */
+export function packDialogue(idA: string | null | undefined, idB: string | null | undefined, locale: string): string[] | null {
+  if (!idA || !idB) return null
+  const a = avatarSlug(idA), b = avatarSlug(idB), lang = voLang(locale)
+  const opts = VO.dialogs.filter((d) => ((d.a === a && d.b === b) || (d.a === b && d.b === a)) && d.langs.includes(lang))
+  if (!opts.length) return null
+  const d = opts[Math.floor(Math.random() * opts.length)]
+  return d.lines.map(([slug, file]) => `/avatars/v2/${slug}/vo/${lang}/${file}`)
+}
