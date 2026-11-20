@@ -50,6 +50,7 @@
     "failedToast": "Could not save — try again.",
     "lockLevel": "Account level {{level}}",
     "lockRewards": "Obtained from rewards or the shop",
+    "lockShopRubies": "In the shop for rubies",
     "lockShopSilver": "In the shop for {{price}} silver",
     "lockedToast": "This cosmetic is still locked.",
     "selectCta": "Select",

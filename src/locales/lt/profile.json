@@ -50,6 +50,7 @@
     "failedToast": "Nepavyko išsaugoti — bandyk dar kartą.",
     "lockLevel": "{{level}} paskyros lygis",
     "lockRewards": "Gaunama iš atlygių ar parduotuvės",
+    "lockShopRubies": "Parduotuvėje už rubinus",
     "lockShopSilver": "Parduotuvėje už {{price}} sidabro",
     "lockedToast": "Ši kosmetika dar užrakinta.",
     "selectCta": "Pasirinkti",

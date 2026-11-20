@@ -40,7 +40,7 @@ type Tab = 'avatar' | 'card_back' | 'avatar_frame' | 'deck_avatars'
 function lockHintKey(c: Cosmetic): { key: string; params?: Record<string, string | number> } {
   const lvl: Record<string, number> = { basic_card_back: 10, rare_card_back: 20, premium_card_back: 30, legendary_card_back: 40, prestige_card_back: 50, basic_player_avatar: 10, rare_player_avatar: 20, premium_player_avatar: 30, legendary_player_avatar: 40 }
   if (lvl[c.id]) return { key: 'profile.cosmetics.lockLevel', params: { level: lvl[c.id] } }
-  if (c.priceGold > 0) return { key: 'profile.cosmetics.lockShopSilver', params: { price: c.priceGold } }
+  if (c.priceGold > 0) return { key: 'profile.cosmetics.lockShopRubies' }
   return { key: 'profile.cosmetics.lockRewards' }
 }
 

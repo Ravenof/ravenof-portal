@@ -1,15 +1,15 @@
 -- Avataro rėmelių kolekcija (8 vnt.) — v813. Failai: public/ravenof-ui/combat/avatars/frames/.
--- Kainos siūlomos (sidabras; rubinai ~12 %), keičiamos /admin/shop. Idempotentiška.
+-- Kainos TIK rubinais (cosmetics.price_gold kosmetikai = rubinų kaina), keičiamos /admin/shop. Idempotentiška.
 insert into public.cosmetics (id, kind, name, description, price_gold, css, emoji, sort_order,
                               is_active, image_url, rarity, status, owned_by_default) values
-  ('af_varnagrado_gelezis', 'avatar_frame', 'Varnagrado geležis', 'Juodinto plieno rėmelis su plunksnų segmentais ir gintaro akmeniu.', 800, null, null, 1, true, '/ravenof-ui/combat/avatars/frames/af-varnagrado-gelezis.webp', 'rare', 'active', false),
-  ('af_salcio_karuna', 'avatar_frame', 'Šalčio karūna', 'Melsvo plieno rėmelis su ledo ašmenų karūna.', 1800, null, null, 2, true, '/ravenof-ui/combat/avatars/frames/af-salcio-karuna.webp', 'epic', 'active', false),
-  ('af_zariju_kalve', 'avatar_frame', 'Žarijų kalvė', 'Degintos geležies šarvo plokštės su žarijų siūlėmis.', 1800, null, null, 3, true, '/ravenof-ui/combat/avatars/frames/af-zariju-kalve.webp', 'epic', 'active', false),
-  ('af_audros_smaigalys', 'avatar_frame', 'Audros smaigalys', 'Grafitinis metalas su žaibo smaigaliu ir geltonais plyšiais.', 1800, null, null, 4, true, '/ravenof-ui/combat/avatars/frames/af-audros-smaigalys.webp', 'epic', 'active', false),
-  ('af_nuodu_erskeciai', 'avatar_frame', 'Nuodų erškėčiai', 'Bronzinis karkasas, apglėbtas erškėčių vijoklio su nuodingais akmenimis.', 1800, null, null, 5, true, '/ravenof-ui/combat/avatars/frames/af-nuodu-erskeciai.webp', 'epic', 'active', false),
-  ('af_tustumos_ragai', 'avatar_frame', 'Tuštumos ragai', 'Obsidiano rėmelis su atgal užlinkusiais ragais ir violetiniais plyšiais.', 3000, null, null, 6, true, '/ravenof-ui/combat/avatars/frames/af-tustumos-ragai.webp', 'legendary', 'active', false),
-  ('af_arkanos_antspaudas', 'avatar_frame', 'Arkanos antspaudas', 'Tamsaus sidabro rėmelis su trimis arkanos kristalais.', 3000, null, null, 7, true, '/ravenof-ui/combat/avatars/frames/af-arkanos-antspaudas.webp', 'legendary', 'active', false),
-  ('af_paauksuota_priesaika', 'avatar_frame', 'Paauksuota priesaika', 'Sendinto aukso rėmelis su karūna ir sparnais.', 3000, null, null, 8, true, '/ravenof-ui/combat/avatars/frames/af-paauksuota-priesaika.webp', 'legendary', 'active', false)
+  ('af_varnagrado_gelezis', 'avatar_frame', 'Varnagrado geležis', 'Juodinto plieno rėmelis su plunksnų segmentais ir gintaro akmeniu.', 100, null, null, 1, true, '/ravenof-ui/combat/avatars/frames/af-varnagrado-gelezis.webp', 'rare', 'active', false),
+  ('af_salcio_karuna', 'avatar_frame', 'Šalčio karūna', 'Melsvo plieno rėmelis su ledo ašmenų karūna.', 220, null, null, 2, true, '/ravenof-ui/combat/avatars/frames/af-salcio-karuna.webp', 'epic', 'active', false),
+  ('af_zariju_kalve', 'avatar_frame', 'Žarijų kalvė', 'Degintos geležies šarvo plokštės su žarijų siūlėmis.', 220, null, null, 3, true, '/ravenof-ui/combat/avatars/frames/af-zariju-kalve.webp', 'epic', 'active', false),
+  ('af_audros_smaigalys', 'avatar_frame', 'Audros smaigalys', 'Grafitinis metalas su žaibo smaigaliu ir geltonais plyšiais.', 220, null, null, 4, true, '/ravenof-ui/combat/avatars/frames/af-audros-smaigalys.webp', 'epic', 'active', false),
+  ('af_nuodu_erskeciai', 'avatar_frame', 'Nuodų erškėčiai', 'Bronzinis karkasas, apglėbtas erškėčių vijoklio su nuodingais akmenimis.', 220, null, null, 5, true, '/ravenof-ui/combat/avatars/frames/af-nuodu-erskeciai.webp', 'epic', 'active', false),
+  ('af_tustumos_ragai', 'avatar_frame', 'Tuštumos ragai', 'Obsidiano rėmelis su atgal užlinkusiais ragais ir violetiniais plyšiais.', 360, null, null, 6, true, '/ravenof-ui/combat/avatars/frames/af-tustumos-ragai.webp', 'legendary', 'active', false),
+  ('af_arkanos_antspaudas', 'avatar_frame', 'Arkanos antspaudas', 'Tamsaus sidabro rėmelis su trimis arkanos kristalais.', 360, null, null, 7, true, '/ravenof-ui/combat/avatars/frames/af-arkanos-antspaudas.webp', 'legendary', 'active', false),
+  ('af_paauksuota_priesaika', 'avatar_frame', 'Paauksuota priesaika', 'Sendinto aukso rėmelis su karūna ir sparnais.', 360, null, null, 8, true, '/ravenof-ui/combat/avatars/frames/af-paauksuota-priesaika.webp', 'legendary', 'active', false)
 on conflict (id) do nothing;
 
 insert into public.content_translations (owner_type, owner_id, locale, field, value) values
@@ -47,9 +47,7 @@ begin
       returning id into v_id;
     if v_id is not null then
       insert into public.shop_item_prices(shop_item_id, currency_type, amount)
-        values (v_id, 'silver', c.price_gold) on conflict do nothing;
-      insert into public.shop_item_prices(shop_item_id, currency_type, amount)
-        values (v_id, 'rubies', greatest(5, (ceil(c.price_gold * 0.12 / 5.0) * 5)::int)) on conflict do nothing;
+        values (v_id, 'rubies', c.price_gold) on conflict do nothing;
     end if;
   end loop;
 end $$;

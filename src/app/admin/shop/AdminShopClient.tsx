@@ -68,7 +68,8 @@ type Common = { supabase: ReturnType<typeof createClient>; flash: (m: string, e?
 // ── Kosmetika → parduotuvė ─────────────────────────────────────────────────
 // Žaidimo parduotuvė rodo `shop_items` (rvn_get_shop), ne `cosmetics`. Todėl išsaugojus
 // nugarėlę / avatarą čia pat sukuriama arba atnaujinama jos parduotuvės prekė (slug = kosmetikos id)
-// su sidabro kaina = price_gold. Rubinų kaina (jei yra) neliečiama.
+// su RUBINŲ kaina = price_gold. Kosmetika už sidabrą neparduodama (Donato sprendimas 2026-11-20):
+// tik rubinai arba eventų atlygiai; sidabro kainą kosmetikai DB sargas visada išjungia.
 type ShopSyncInput = { id: string; kind: string; name: string; description?: string | null; rarity?: string | null; price_gold: number; sort_order: number; sellable: boolean }
 async function syncShopItem(supabase: ReturnType<typeof createClient>, c: ShopSyncInput): Promise<string | null> {
   if (c.kind !== 'card_back' && c.kind !== 'avatar' && c.kind !== 'avatar_frame') return null
@@ -94,11 +95,11 @@ async function syncShopItem(supabase: ReturnType<typeof createClient>, c: ShopSy
     if (error) return error.message
   }
   if (!c.sellable) return null
-  const { data: pr, error: e1 } = await supabase.from('shop_item_prices').select('id').eq('shop_item_id', shopId).eq('currency_type', 'silver').maybeSingle()
+  const { data: pr, error: e1 } = await supabase.from('shop_item_prices').select('id').eq('shop_item_id', shopId).eq('currency_type', 'rubies').maybeSingle()
   if (e1) return e1.message
   const { error: e2 } = pr
     ? await supabase.from('shop_item_prices').update({ amount: c.price_gold, is_active: true }).eq('id', (pr as { id: number }).id)
-    : await supabase.from('shop_item_prices').insert({ shop_item_id: shopId, currency_type: 'silver', amount: c.price_gold })
+    : await supabase.from('shop_item_prices').insert({ shop_item_id: shopId, currency_type: 'rubies', amount: c.price_gold })
   return e2 ? e2.message : null
 }
 async function hideShopItem(supabase: ReturnType<typeof createClient>, cosmeticId: string): Promise<void> {
@@ -149,7 +150,7 @@ function CosmeticsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } 
         <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Aprašymas
           <input className={inp} style={inpStyle} value={form.description ?? ''} onChange={(e) => set('description', e.target.value)} /></label>
         <div className="grid grid-cols-2 gap-2">
-          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Kaina (auksas)
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Kaina (rubinai)
             <input type="number" className={inp} style={inpStyle} value={form.price_gold} onChange={(e) => set('price_gold', Number(e.target.value))} /></label>
           <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Eilė
             <input type="number" className={inp} style={inpStyle} value={form.sort_order} onChange={(e) => set('sort_order', Number(e.target.value))} /></label>
@@ -180,7 +181,7 @@ function CosmeticsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } 
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{c.name} <span className="text-xs" style={{ color: 'var(--text-muted)' }}>· {c.kind}</span></p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>🪙 {c.price_gold} {c.is_active ? '' : '· paslėpta'}</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>💎 {c.price_gold} {c.is_active ? '' : '· paslėpta'}</p>
             </div>
             <button className={btn} style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }} onClick={() => { setForm({ ...c, description: c.description ?? '', css: c.css ?? '', emoji: c.emoji ?? '', image_url: c.image_url ?? '' }); setEditing(true) }}>Redaguoti</button>
             <button className={btn} style={{ background: 'rgba(239,68,68,0.1)', color: '#fca5a5' }} onClick={() => del(c.id)}>✕</button>
@@ -587,7 +588,7 @@ function AvatarsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } & 
         <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Aprašymas
           <input className={inp} style={inpStyle} value={form.description} onChange={(e) => set('description', e.target.value)} /></label>
         <div className="grid grid-cols-3 gap-2">
-          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Kaina
+          <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Kaina (rubinai)
             <input type="number" min={0} className={inp} style={inpStyle} value={form.price_gold} onChange={(e) => set('price_gold', Number(e.target.value))} /></label>
           <label className="block text-xs" style={{ color: 'var(--text-muted)' }}>Retumas
             <select className={inp} style={inpStyle} value={form.rarity} onChange={(e) => set('rarity', e.target.value)}>
@@ -625,7 +626,7 @@ function AvatarsTab({ items, supabase, flash, reload }: { items: Cosmetic[] } & 
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)' }}>{c.name} <span className="text-xs" style={{ color: 'var(--text-muted)' }}>· {c.rarity ?? 'common'}</span></p>
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>🪙 {c.price_gold} · {c.status ?? (c.is_active ? 'active' : 'hidden')}{c.owned_by_default ? ' · nemokamas' : ''}</p>
+              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>💎 {c.price_gold} · {c.status ?? (c.is_active ? 'active' : 'hidden')}{c.owned_by_default ? ' · nemokamas' : ''}</p>
             </div>
             <button className={btn} style={{ background: 'var(--bg-elevated)', color: 'var(--text-secondary)' }}
               onClick={() => { setForm({ id: c.id, name: c.name, description: c.description ?? '', price_gold: c.price_gold, rarity: c.rarity ?? 'common', status: c.status ?? (c.is_active ? 'active' : 'hidden'), owned_by_default: !!c.owned_by_default, image_url: c.image_url ?? '', emoji: c.emoji ?? '', sort_order: c.sort_order }); setEditing(true) }}>Redaguoti</button>
