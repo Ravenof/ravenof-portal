@@ -525,7 +525,7 @@ export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; sc
 
 export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null; videos?: string[]; fit?: { x: number; y: number; zoom: number } | null; emotions?: AvatarEmotions | null }
 /** Avataro nuotaika kovoje: veidas (emocija) + efektas ant rėmo. Žr. AVATAR_MOODS. */
-export type AvatarMood = 'dmg' | 'bigdmg' | 'cast' | 'attack' | 'loss' | 'win'
+export type AvatarMood = 'dmg' | 'bigdmg' | 'cast' | 'attack' | 'loss' | 'win' | 'kill'
 const AVATAR_MOODS: Record<AvatarMood, { face: AvatarEmotion; hold: number; glow: string }> = {
   dmg:    { face: 'shock', hold: 900,  glow: 'rgba(255,70,60,0.9)' },
   bigdmg: { face: 'angry', hold: 1100, glow: 'rgba(255,70,60,0.95)' },
@@ -533,6 +533,7 @@ const AVATAR_MOODS: Record<AvatarMood, { face: AvatarEmotion; hold: number; glow
   attack: { face: 'angry', hold: 900,  glow: 'rgba(255,150,50,0.9)' },
   loss:   { face: 'sad',   hold: 1600, glow: 'rgba(70,90,160,0.7)' },
   win:    { face: 'happy', hold: 1200, glow: 'rgba(242,196,90,0.95)' },
+  kill:   { face: 'smug',  hold: 1300, glow: 'rgba(255,150,50,0.9)' },
 }
 
 /** Avatar – mūšio HP taikinys: kvadratinis ornate rėmas (frame.png), portretas/idle-video centre, HP ant skydo. */
@@ -590,11 +591,14 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
   const fit = avatar?.fit ?? { x: 50, y: 50, zoom: 100 }
   // Portretas talpinamas į rėmo LANGĄ (clip-path sritis ~64×56 % rėmo), ne į visą 120×140 dėžę –
   // anksčiau cover per visą dėžę + langas duodavo ~1.8× „priartintą" veidą. zoom 100 = visas kvadratinis portretas lange.
-  const fitStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(0.5, fit.zoom / 100)})`, transformOrigin: 'center' }
+  const fitStyle: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${fit.x}% ${fit.y}%`, transform: `scale(${Math.max(0.5, fit.zoom / 100)})`, transformOrigin: `${fit.x}% ${fit.y}%` }
   const winStyle: React.CSSProperties = { position: 'absolute', left: '17.8%', top: '12.9%', width: '64.4%', height: '56.1%', overflow: 'hidden' }
   const lowHp = hp > 0 && hp <= maxHp * 0.3
   const moodDef = mood ? AVATAR_MOODS[mood] : null
-  const face: AvatarEmotion = moodDef?.face ?? (lowHp ? 'angry' : 'neutral')
+  // Nauji veidai (sužeistas, pašaipus) – su atsarginiu variantu senesniems avatarams be jų
+  const hasFace = (k: Exclude<AvatarEmotion, 'neutral'>) => !!avatar?.emotions?.[k]
+  const wantFace: AvatarEmotion = moodDef?.face ?? (lowHp ? 'wounded' : 'neutral')
+  const face: AvatarEmotion = wantFace === 'wounded' && !hasFace('wounded') ? 'angry' : wantFace === 'smug' && !hasFace('smug') ? 'happy' : wantFace
   const faceUrl = face === 'neutral' ? null : (avatar?.emotions?.[face] ?? null)
   const emotionKeys = Object.keys(avatar?.emotions ?? {}) as (keyof AvatarEmotions)[]
   const moodGlow = moodDef ? moodDef.glow : lowHp ? 'rgba(255,60,60,0.75)' : glow
@@ -2462,7 +2466,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
         case 'death': {
           const uid = e.src?.uid
           const card = e.cardName ? cardByName[e.cardName] : null
-          { const ds = e.side; setMood(ds, 'loss', SETTLE + fxSeq + 300); setMood(ds === 'you' ? 'ai' : 'you', 'attack', SETTLE + fxSeq) }
+          { const ds = e.side; setMood(ds, 'loss', SETTLE + fxSeq + 300); setMood(ds === 'you' ? 'ai' : 'you', 'kill', SETTLE + fxSeq) }
           const from = uid ? unitRectsRef.current.get(uid) : null
           const pileEl = document.querySelector(`[data-pile="discard-${e.side}"]`)
           const startFly = () => {
@@ -6071,7 +6075,7 @@ doAction({ t: 'endTurn', actor: 'you' })
         {avatarInspect && (() => {
           const av = avatarInspect.avatar
           const af = av?.fit ?? { x: 50, y: 50, zoom: 100 }
-          const aFit: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${af.x}% ${af.y}%`, transform: `scale(${Math.max(1, af.zoom / 100)})`, transformOrigin: 'center' }
+          const aFit: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${af.x}% ${af.y}%`, transform: `scale(${Math.max(1, af.zoom / 100)})`, transformOrigin: `${af.x}% ${af.y}%` }
           return (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="fixed inset-0 z-[200] flex flex-col items-center justify-center p-6 gap-3"

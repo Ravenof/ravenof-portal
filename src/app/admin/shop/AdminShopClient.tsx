@@ -747,11 +747,13 @@ function AdminAvatarVideos({ avatarId, supabase, flash }: { avatarId: string; su
   )
 }
 
-const EMOTION_SLOTS: { key: 'angry' | 'happy' | 'sad' | 'shock'; label: string; hint: string }[] = [
+const EMOTION_SLOTS: { key: 'angry' | 'happy' | 'sad' | 'shock' | 'wounded' | 'smug'; label: string; hint: string }[] = [
   { key: 'angry', label: '😠 Piktas', hint: 'gauna didelę žalą, puola, žemas HP' },
   { key: 'happy', label: '😏 Patenkintas', hint: 'meta burtą, pagyja, laimi' },
   { key: 'sad', label: '😞 Liūdnas', hint: 'praranda padarą' },
   { key: 'shock', label: '😮 Nustebęs', hint: 'gauna žalos' },
+  { key: 'wounded', label: '🤕 Sužeistas', hint: 'HP žemiau 30 % (laikomas nuolat); be jo rodomas piktas' },
+  { key: 'smug', label: '😼 Pašaipus', hint: 'sunaikina priešo padarą; be jo rodomas patenkintas' },
 ]
 
 function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: string; imageUrl: string; supabase: ReturnType<typeof createClient>; flash: (m: string, e?: boolean) => void }) {
@@ -827,7 +829,7 @@ function AdminAvatarFit({ avatarId, imageUrl, supabase, flash }: { avatarId: str
       </div>
       {/* ── Emocijų portretai (kovoje keičiasi pagal įvykius; neutralus = pagrindinis paveikslas) ── */}
       <div className="pt-3 space-y-2" style={{ borderTop: '1px solid var(--bg-border)' }}>
-        <p className="text-xs font-bold" style={{ color: 'var(--gold)' }}>🎭 Emocijos kovoje ({EMOTION_SLOTS.filter((e) => emotions[e.key]).length}/4)</p>
+        <p className="text-xs font-bold" style={{ color: 'var(--gold)' }}>🎭 Emocijos kovoje ({EMOTION_SLOTS.filter((e) => emotions[e.key]).length}/{EMOTION_SLOTS.length})</p>
         <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Tas pats kadravimas kaip pagrindinio portreto – kelk tokio pat formato paveikslus. Trūkstama emocija → rodomas neutralus.</p>
         <div className="grid grid-cols-2 gap-2">
           {EMOTION_SLOTS.map((e) => (

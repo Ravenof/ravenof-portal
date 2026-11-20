@@ -20,7 +20,7 @@ export type Cosmetic = {
   /** Avataro emocijų portretai (neutral = imageUrl). Kovoje keičiasi pagal įvykius. */
   emotions?: AvatarEmotions | null
 }
-export type AvatarEmotion = 'neutral' | 'angry' | 'happy' | 'sad' | 'shock'
+export type AvatarEmotion = 'neutral' | 'angry' | 'happy' | 'sad' | 'shock' | 'wounded' | 'smug'
 export type AvatarEmotions = Partial<Record<Exclude<AvatarEmotion, 'neutral'>, string | null>>
 
 export type CosmeticsState = {
