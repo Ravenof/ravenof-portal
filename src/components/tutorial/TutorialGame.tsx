@@ -74,6 +74,7 @@ import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio, 
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { isSummonFxEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isSceneFxEnabled, isReducedMotionEnabled } from '@/lib/settings'
 import { avatarFxFor, packVoiceMap, packDialogue } from '@/lib/game/avatarPacks'
+import { fetchVoOverrides, applyVoOverrides } from '@/lib/game/avatarVoOverrides'
 import { AvatarFxStyles, AvBurst, AvEntranceFx, AvDefeatFx, AvVictoryFx, AvAura, avEnterMs, avEnterAnimation } from './AvatarFx'
 import { SceneFxLayer, preloadSceneImages, type SceneFxHandle, type SceneBox, type SceneKeywordKind } from '@/components/tutorial/SceneFxLayer'
 import { BattleLogList, type LogFilter } from '@/components/tutorial/BattleLogList'
@@ -1361,9 +1362,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       setYouAvatar(me); setEnemyAvatar(en)
       youAvIdRef.current = me?.id ?? null; enemyAvIdRef.current = en?.id ?? null
       const ids = [me?.id, en?.id]
-      const [map] = await Promise.all([getAvatarAudio(ids), loadVoices('avatar', ids)])
+      const [map, , voFix] = await Promise.all([getAvatarAudio(ids), loadVoices('avatar', ids), fetchVoOverrides(ids, voiceLocale())])
       if (!alive) return
-      resetAvatarAudio(); setAvatarAudioMap({ ...avatarMapFor(ids, map), ...packVoiceMap(ids, voiceLocale()) })   // Fazė 7: balsai pagal kalbą + LT fallback
+      resetAvatarAudio(); setAvatarAudioMap({ ...avatarMapFor(ids, map), ...applyVoOverrides(packVoiceMap(ids, voiceLocale()), voFix) })   // Fazė 7: balsai pagal kalbą + LT fallback
     })()
     return () => { alive = false; stopAvatarAudio() }
     // eslint-disable-next-line react-hooks/exhaustive-deps

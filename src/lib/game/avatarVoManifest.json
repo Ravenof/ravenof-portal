@@ -40,7 +40,247 @@
     "victory": 5
    }
   },
+  "kapu-giedotoja": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
   "korvas": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "nekronautas": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "pelkiu-ziniuone": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "sutarciu-ragana": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "vyriausiasis-teisejas": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "zariju-kalvis": {
    "lt": {
     "attack": 5,
     "bigHit": 5,
@@ -81,5 +321,276 @@
    }
   }
  },
- "dialogs": []
+ "dialogs": [
+  {
+   "a": "nekronautas",
+   "b": "korvas",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "nekronautas",
+     "dlg-korvas-1-1.mp3"
+    ],
+    [
+     "korvas",
+     "dlg-nekronautas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "nekronautas",
+   "b": "korvas",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "korvas",
+     "dlg-nekronautas-2-1.mp3"
+    ],
+    [
+     "nekronautas",
+     "dlg-korvas-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "korvas",
+   "b": "zariju-kalvis",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "korvas",
+     "dlg-zariju-kalvis-1-1.mp3"
+    ],
+    [
+     "zariju-kalvis",
+     "dlg-korvas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "korvas",
+   "b": "zariju-kalvis",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "zariju-kalvis",
+     "dlg-korvas-2-1.mp3"
+    ],
+    [
+     "korvas",
+     "dlg-zariju-kalvis-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "nekronautas",
+   "b": "zariju-kalvis",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "zariju-kalvis",
+     "dlg-nekronautas-1-1.mp3"
+    ],
+    [
+     "nekronautas",
+     "dlg-zariju-kalvis-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "nekronautas",
+   "b": "zariju-kalvis",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "nekronautas",
+     "dlg-zariju-kalvis-2-1.mp3"
+    ],
+    [
+     "zariju-kalvis",
+     "dlg-nekronautas-2-2.mp3"
+    ],
+    [
+     "nekronautas",
+     "dlg-zariju-kalvis-2-3.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "nekronautas",
+   "b": "kapu-giedotoja",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "kapu-giedotoja",
+     "dlg-nekronautas-1-1.mp3"
+    ],
+    [
+     "nekronautas",
+     "dlg-kapu-giedotoja-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "nekronautas",
+   "b": "kapu-giedotoja",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "nekronautas",
+     "dlg-kapu-giedotoja-2-1.mp3"
+    ],
+    [
+     "kapu-giedotoja",
+     "dlg-nekronautas-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "zariju-kalvis",
+   "b": "sutarciu-ragana",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "sutarciu-ragana",
+     "dlg-zariju-kalvis-1-1.mp3"
+    ],
+    [
+     "zariju-kalvis",
+     "dlg-sutarciu-ragana-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "zariju-kalvis",
+   "b": "sutarciu-ragana",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "zariju-kalvis",
+     "dlg-sutarciu-ragana-2-1.mp3"
+    ],
+    [
+     "sutarciu-ragana",
+     "dlg-zariju-kalvis-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "vyriausiasis-teisejas",
+   "b": "gelezine-sesuo",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "vyriausiasis-teisejas",
+     "dlg-gelezine-sesuo-1-1.mp3"
+    ],
+    [
+     "gelezine-sesuo",
+     "dlg-vyriausiasis-teisejas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "vyriausiasis-teisejas",
+   "b": "gelezine-sesuo",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "gelezine-sesuo",
+     "dlg-vyriausiasis-teisejas-2-1.mp3"
+    ],
+    [
+     "vyriausiasis-teisejas",
+     "dlg-gelezine-sesuo-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "vyriausiasis-teisejas",
+   "b": "sutarciu-ragana",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "sutarciu-ragana",
+     "dlg-vyriausiasis-teisejas-1-1.mp3"
+    ],
+    [
+     "vyriausiasis-teisejas",
+     "dlg-sutarciu-ragana-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "vyriausiasis-teisejas",
+   "b": "sutarciu-ragana",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "vyriausiasis-teisejas",
+     "dlg-sutarciu-ragana-2-1.mp3"
+    ],
+    [
+     "sutarciu-ragana",
+     "dlg-vyriausiasis-teisejas-2-2.mp3"
+    ]
+   ]
+  }
+ ]
 }

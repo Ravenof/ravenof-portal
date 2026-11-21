@@ -25,5 +25,12 @@ if os.path.exists(src):
 else:
     old = json.load(open('src/lib/game/avatarVoManifest.json')) if os.path.exists('src/lib/game/avatarVoManifest.json') else {}
     dialogs = old.get('dialogs', [])
+if os.path.exists(src):
+    script = {}; names = {}
+    for r in csv.DictReader(io.open(src, encoding='utf-8-sig')):
+        if r['event'].startswith('dlg-'): continue
+        names[r['avatar_slug']] = [r['avatar_lt'], r['avatar_en']]
+        script.setdefault(r['avatar_slug'], {})['%s-%s' % (r['event'], r['variant'])] = [r['text_lt'], r['text_en']]
+    json.dump({'names': names, 'lines': script}, io.open('src/lib/game/avatarVoScript.json', 'w', encoding='utf-8', newline='\n'), ensure_ascii=False)
 json.dump({'voices': voices, 'dialogs': dialogs}, io.open('src/lib/game/avatarVoManifest.json', 'w', encoding='utf-8', newline='\n'), ensure_ascii=False, indent=1)
 print('voices', {k: list(v) for k, v in voices.items()}, 'dialogs', len(dialogs))

@@ -9,6 +9,7 @@ const NAV = [
   { href: '/admin',               label: '📊 Apžvalga'    },
   { href: '/admin/cards',         label: '🃏 Kortos'        },
   { href: '/admin/shop',          label: '🛒 Parduotuvė'    },
+  { href: '/admin/avatar-voices', label: '🎙 Avatarų balsai' },
   { href: '/admin/economy',       label: '💰 Ekonomika'     },
   { href: '/admin/live-events',   label: '🎉 Eventai'       },
   { href: '/admin/zmk',           label: '🎲 ŽMK kortos'    },
@@ -256,6 +257,7 @@ export default async function AdminDashboard() {
             {[
               { href: '/admin/cards/new',                label: '+ Nauja korta',    color: 'var(--gold)'           },
               { href: '/admin/shop',                     label: '🛒 Parduotuvė',     color: '#fbbf24'               },
+              { href: '/admin/avatar-voices',            label: '🎙 Avatarų balsai', color: '#7dd3fc'               },
               { href: '/admin/ranked',                 label: '🏆 Reitingo kova', color: '#fca5a5'               },
               { href: '/admin/cards/import',             label: '↑ Importuoti', color: 'var(--text-secondary)' },
               { href: '/admin/events/new',               label: '+ Renginys',        color: '#34d399'               },

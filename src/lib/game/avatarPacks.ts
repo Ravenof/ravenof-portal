@@ -34,7 +34,7 @@ export const AVATAR_FX: Record<string, AvatarFxProfile> = {
   av_gelezine_sesuo:        P('#cfd8e6', '#ffffff', 'spark',   'flash',    'shatter', 'flicker'),
   av_kapu_giedotoja:        P('#a9c8ff', '#8a93a8', 'wisp',    'mist',     'mist',    'drip'),
   av_marso_bugnininkas:     P('#9bd66a', '#e9e2cf', 'bone',    'assemble', 'shatter', 'drip'),
-  av_stygu_mage:            P('#b57bff', '#ff8ad8', 'glyph',   'flash',    'light',   'flicker', { glyphs: '♪♫♩♬' }),
+  av_stygu_mage:            P('#6fd0ff', '#ff8a3a', 'spark',   'flash',    'light',   'flame'),   // Stichijų magė (id paliktas senas – žaidėjai jį jau gali turėti)
   av_tylos_mokinys:         P('#7fe3ff', '#ffffff', 'ray',     'pillar',   'light',   'flicker'),
   av_kapitone:              P('#4a8dff', '#f2c45a', 'coin',    'mist',     'ash',     'flame'),
   av_seseliu_kisenvagis:    P('#8a5cff', '#1a1026', 'wisp',    'shadow',   'mist',    'cracks'),
