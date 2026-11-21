@@ -70,12 +70,13 @@ import { playCardVoice, prefetchCardVoice } from '@/lib/game/voiceManager'
 import { avatarMapFor, cardVoiceUrls, skillVoiceUrls, loadVoices, voiceLocale } from '@/lib/game/audioI18n'
 import { getCachedVideoUrl, preloadAvatarVideos } from '@/lib/game/avatarVideoCache'
 import { getCosmetics, getAvatarAudio, getAvatarFrame } from '@/lib/cosmetics'
-import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio, playAvatarSequence, markAvatarAudioFired, isAvatarVoiceBusy } from '@/lib/game/avatarAudio'
+import { setAvatarAudioMap, resetAvatarAudio, playAvatarAudio, stopAvatarAudio, playAvatarSequence, markAvatarAudioFired, isAvatarVoiceBusy, playAvatarClip, avatarClipVariants } from '@/lib/game/avatarAudio'
 import { startBattleMusic, startMenuMusic } from '@/lib/game/musicManager'
 import { isSummonFxEnabled, isSummonCinematicsEnabled, isChampionSkillCinematicsEnabled, isSceneFxEnabled, isReducedMotionEnabled } from '@/lib/settings'
-import { avatarFxFor, packVoiceMap, packDialogue } from '@/lib/game/avatarPacks'
+import { avatarFxFor, packVoiceMap, packDialogue, EMOTE_KEYS, EMOTE_DEF, isEmoteKey, avatarLine, avatarLineCount, avatarPackName, type EmoteKey } from '@/lib/game/avatarPacks'
+import type { AvatarAudioEvent } from '@/lib/cosmetics'
 import { fetchVoOverrides, applyVoOverrides } from '@/lib/game/avatarVoOverrides'
-import { AvatarFxStyles, AvBurst, AvEntranceFx, AvDefeatFx, AvVictoryFx, AvAura, avEnterMs, avEnterAnimation } from './AvatarFx'
+import { AvatarFxStyles, AvBurst, AvEntranceFx, AvDefeatFx, AvVictoryFx, AvAura, AvEmoteFx, avEnterMs, avEnterAnimation } from './AvatarFx'
 import { SceneFxLayer, preloadSceneImages, type SceneFxHandle, type SceneBox, type SceneKeywordKind } from '@/components/tutorial/SceneFxLayer'
 import { BattleLogList, type LogFilter } from '@/components/tutorial/BattleLogList'
 import { SummonBurst, SUMMON_SHAKE } from './SummonBurst'
@@ -528,7 +529,7 @@ export function HpVial({ hp, maxHp, scale = 1 }: { hp: number; maxHp: number; sc
 
 export type BattleAvatar = { id: string; name: string; imageUrl: string | null; emoji: string | null; videos?: string[]; fit?: { x: number; y: number; zoom: number } | null; emotions?: AvatarEmotions | null }
 /** Avataro nuotaika kovoje: veidas (emocija) + efektas ant rėmo. Žr. AVATAR_MOODS. */
-export type AvatarMood = 'dmg' | 'bigdmg' | 'cast' | 'attack' | 'loss' | 'win' | 'kill'
+export type AvatarMood = 'dmg' | 'bigdmg' | 'cast' | 'attack' | 'loss' | 'win' | 'kill' | 'emoHappy' | 'emoSmug' | 'emoShock'
 const AVATAR_MOODS: Record<AvatarMood, { face: AvatarEmotion; hold: number; glow: string }> = {
   dmg:    { face: 'shock', hold: 900,  glow: 'rgba(255,70,60,0.9)' },
   bigdmg: { face: 'angry', hold: 1100, glow: 'rgba(255,70,60,0.95)' },
@@ -537,13 +538,19 @@ const AVATAR_MOODS: Record<AvatarMood, { face: AvatarEmotion; hold: number; glow
   loss:   { face: 'sad',   hold: 1600, glow: 'rgba(70,90,160,0.7)' },
   win:    { face: 'happy', hold: 1200, glow: 'rgba(242,196,90,0.95)' },
   kill:   { face: 'smug',  hold: 1300, glow: 'rgba(255,150,50,0.9)' },
+  // 823: emocijų rato veidai – laikomi ilgiau nei kovos reakcijos
+  emoHappy: { face: 'happy', hold: 2200, glow: 'rgba(242,196,90,0.85)' },
+  emoSmug:  { face: 'smug',  hold: 2200, glow: 'rgba(255,150,50,0.85)' },
+  emoShock: { face: 'shock', hold: 2200, glow: 'rgba(160,190,255,0.85)' },
 }
 
 /** Avatar – mūšio HP taikinys: kvadratinis ornate rėmas (frame.png), portretas/idle-video centre, HP ant skydo. */
 /** Kuris įėjimo „tick'as" jau suvaidintas kiekvienai pusei (kad perpiešus išdėstymą nesikartotų). */
 const _avEnterPlayed: Record<string, number> = {}
 
-export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid, dead = false, mood = null, frameUrl = null, enterTick = 0 }: {
+export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid, dead = false, mood = null, frameUrl = null, enterTick = 0, emote = null }: {
+  /** 823: emocijų rato efektas (dalelės / blyksnis); `id` keičiasi kiekvienai emocijai. */
+  emote?: { k: string; id: number; vec?: { x: number; y: number } } | null
   /** Kovos pradžios signalas (keičiasi kartą per kovą) → parašo įėjimo efektas. 0 = nevaidinti. */
   enterTick?: number
   /** Žaidėjo pasirinktas rėmelis (kosmetika); null → numatytasis rėmas pagal pusę. */
@@ -631,7 +638,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
   const altDefeat = !!fx && fx.defeat !== 'shatter' && !reduced
   return (
     <motion.div
-      animate={dead ? { x: [0, -7, 7, -5, 5, -2, 0] } : flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : {}}
+      animate={dead ? { x: [0, -7, 7, -5, 5, -2, 0] } : flash === 'hit' ? { x: [0, -3, 3, -2, 2, 0] } : flash === 'heal' ? { scale: [1, 1.05, 1] } : emote?.k === 'oops' ? { x: [0, -4, 4, -3, 3, 0] } : emote ? { scale: [1, 1.07, 1] } : {}}
       transition={{ duration: dead ? 0.55 : 0.34 }}
       className={'relative pointer-events-none' + (mood ? ` rvn-avmood rvn-avmood-${mood}` : '') + (lowHp && !dead ? ' rvn-av-lowhp' : '')}
       style={{ width: size, height: sizeH, filter: dead ? 'none' : `drop-shadow(0 0 ${mood ? 18 : 14}px ${moodGlow})`, transition: 'filter .25s ease', animation: entering && fx && !dead ? avEnterAnimation(fx, reduced) : undefined }}>
@@ -641,6 +648,7 @@ export function AvatarFrame({ avatar, hp, maxHp, owner, scale = 1, flash, onVid,
       {fx && !dead && !reduced && hitK > 0 && <AvBurst key={'h' + hitK} p={fx} size={size} mode="hit" n={7} seed={hitK} />}
       {fx && !dead && !reduced && bigK > 0 && <AvBurst key={'b' + bigK} p={fx} size={size} mode="hit" n={12} seed={bigK + 50} slow={1.25} />}
       {fx && !dead && !reduced && winK > 0 && <AvVictoryFx key={'w' + winK} p={fx} size={size} />}
+      {fx && !dead && !reduced && emote && <AvEmoteFx key={'e' + emote.id} p={fx} size={size} k={emote.k} vec={emote.vec} seed={emote.id % 97} />}
       {dead && altDefeat && fx && (
         <AvDefeatFx p={fx} size={size} composite={<>
           <div className={portraitCls} style={{ background: '#0a0810' }}>
@@ -1401,6 +1409,9 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     if (delay > 0) window.setTimeout(apply, delay); else apply()
   }, [])
   const avatarMoodRef = useRef<Partial<Record<Side, AvatarMood | null>>>({})
+  // 823: boto emocija iš kovos įvykių (apibrėžiama žemiau, prie emocijų rato)
+  const botEmoteRef = useRef<((k: EmoteKey, delay: number) => void) | null>(null)
+  const onRemoteEmoteRef = useRef<((payload: unknown) => void) | null>(null)
   const logScrollRef = useRef<HTMLDivElement | null>(null)
   const [hoverCard, setHoverCard] = useState<{ card: TutCard; x: number; y: number } | null>(null)
   const [pileView, setPileView] = useState<{ title: string; cards: TutCard[] } | null>(null)
@@ -2881,6 +2892,8 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             { const big = (val ?? 0) >= 6 || (val ?? 0) >= P(game, sd).maxHp * 0.25; setMood(sd, big ? 'bigdmg' : 'dmg', SETTLE + fxSeq); const atk: Side = sd === 'you' ? 'ai' : 'you'; if (e.src?.uid || e.cardName) setMood(atk, 'attack', SETTLE + fxSeq)
               // 820: didelis smūgis – riksmas su fraze; paprastas – trumpa balsinė reakcija; puolėjas kartais šūkteli
               playAvatarAudio(aid, big ? 'bigHit' : 'hit')
+              if (big && sd === 'you' && Math.random() < 0.15) botEmoteRef.current?.('threat', SETTLE + fxSeq + 2600)
+              else if (big && sd === 'ai' && Math.random() < 0.12) botEmoteRef.current?.('oops', SETTLE + fxSeq + 2600)
               if (!big && (e.src?.uid || e.cardName) && Math.random() < 0.3) playAvatarAudio(atk === 'you' ? youAvIdRef.current : enemyAvIdRef.current, 'attack') }
             const pat = rectFor({ side: sd })
             // burto/efekto žala žaidėjui → projektilas į avatarą (tik kai žala REALIAI eina žaidėjui),
@@ -3099,7 +3112,17 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
             if (isAtk) { playBattleSound('impact', 0.45); fxRef.current?.hitFlash(to.x, to.y, '#ffffff'); fxRef.current?.shakeBoard('soft') }
           }
         }, (isAtk ? 220 : 200) + hold)
-        const popAt = rectOf(tgt)
+        let popAt = rectOf(tgt)
+        // 823: taikinys – AVATARAS → kortos miniatiūra rodoma ŠALIA jo (priešo – dešinėje, tavo – kairėje),
+        // kad neuždengtų avataro reakcijos į žalą (telefone miniatiūra dengdavo visą portretą).
+        if (popAt && !tgt.uid && tgt.side) {
+          const ar = document.querySelector(`[data-player="${tgt.side}"]`)?.getBoundingClientRect()
+          if (ar) {
+            const pw = isTouch ? 66 : 84
+            const x = tgt.side === 'ai' ? ar.right + pw / 2 + 10 : ar.left - pw / 2 - 10
+            popAt = { x: Math.max(pw / 2 + 4, Math.min(window.innerWidth - pw / 2 - 4, x)), y: Math.max(48, ar.top + ar.height * 0.2) }
+          }
+        }
         if (popAt) { const pc = srcCard, pcol = isAtk ? '#ffffff' : col; window.setTimeout(() => spawnPop(pc, popAt, pcol, undefined), isAtk ? 260 : 220) }
       }
     }
@@ -3748,7 +3771,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       setOppBack(b, true); setSkinTick((t) => t + 1)
     })
     ch.on('broadcast', { event: 'chat' }, ({ payload }) => { const txt = (payload as { text?: string }).text; if (txt) setChatLog((l) => [...l.slice(-40), { mine: false, text: txt }]) })
-    ch.on('broadcast', { event: 'emote' }, ({ payload }) => { const t = (payload as { text?: string }).text; if (!t) return; const id = Date.now(); setEmoteBubble({ side: 'ai', text: t, id }); window.setTimeout(() => setEmoteBubble((b) => b && b.id === id ? null : b), 3000) })
+    ch.on('broadcast', { event: 'emote' }, ({ payload }) => { onRemoteEmoteRef.current?.(payload) })
     ch.on('presence', { event: 'sync' }, () => {
       if (spectator) return
       const st = ch.presenceState() as Record<string, { side?: Side }[]>
@@ -3831,17 +3854,119 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     setChatLog((l) => [...l.slice(-40), { mine: true, text: txt }]); setChatInput('')
   }
 
-  // ── Emote (F5): 5s cooldown; bubble prie savo avataro 3s; PvP -> broadcast 'emote' (senas klientas be handler'io tyliai ignoruoja) ──
-  const sendEmote = (text: string) => {
-    const now = Date.now()
-    if (now < emoteCdRef.current) return
-    emoteCdRef.current = now + 5000
-    const id = now
-    setEmoteBubble({ side: 'you', text, id })
-    window.setTimeout(() => setEmoteBubble((b) => b && b.id === id ? null : b), 3000)
-    if (vsRemote) channelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { text } })
+  // ── Emocijos (823): 5 vardinės emocijos – avataras pats atlieka (veidas, jo frazė kaspine, efektas, balsas).
+  //    Ribos: 1 per 6 s ir ne daugiau kaip 3 per 30 s. PvP: 'emote' su { k, v, text } – senas klientas rodo text (emoji),
+  //    o gavus tik text (senas varžovas) rodomas senasis burbulas. Nutildymas – tik varžovo pusei, jis apie tai nesužino.
+  const [avSay, setAvSay] = useState<Partial<Record<Side, { text: string; name: string | null; c: string; id: number } | null>>>({})
+  const [avEmote, setAvEmote] = useState<Partial<Record<Side, { k: string; id: number; vec?: { x: number; y: number } } | null>>>({})
+  const [emoteMuted, setEmoteMuted] = useState<boolean>(() => { try { return localStorage.getItem('rvn_mute_opp_emotes') === '1' } catch { return false } })
+  const emoteMutedRef = useRef(emoteMuted)
+  useEffect(() => { emoteMutedRef.current = emoteMuted }, [emoteMuted])
+  const toggleEmoteMute = () => setEmoteMuted((m) => { try { localStorage.setItem('rvn_mute_opp_emotes', m ? '0' : '1') } catch { /* */ } return !m })
+  const emoteTimesRef = useRef<number[]>([])
+  const [emoteCdUntil, setEmoteCdUntil] = useState(0)
+  const botEmoteAtRef = useRef(0)
+  const tauntAtRef = useRef(0)
+  const sayIdRef = useRef(0)
+  /** Frazės kaspinas prie avataro (kartu – subtitrai balsui). false – avataras šiam įvykiui frazių neturi. */
+  const showSay = (side: Side, aid: string | null, ev: string, v: number, holdMs = 2800): boolean => {
+    const loc = voiceLocale()
+    const text = avatarLine(aid, ev, v, loc)
+    if (!text) return false
+    const id = ++sayIdRef.current
+    setAvSay((st) => ({ ...st, [side]: { text, name: avatarPackName(aid, loc), c: avatarFxFor(aid)?.c1 ?? '#f0b429', id } }))
+    window.setTimeout(() => setAvSay((st) => (st[side]?.id === id ? { ...st, [side]: null } : st)), holdMs)
+    return true
   }
+  /** Variantas: iš turimų balso klipų (po admino pataisų); be balso – bet kuri frazė. */
+  const pickVariant = (aid: string | null, ev: AvatarAudioEvent): number => {
+    const have = avatarClipVariants(aid, ev)
+    if (have.length) return have[Math.floor(Math.random() * have.length)]
+    const n = avatarLineCount(aid, ev)
+    return n ? 1 + Math.floor(Math.random() * n) : 1
+  }
+  const performEmote = (side: Side, k: EmoteKey, v: number) => {
+    const aid = side === 'you' ? youAvIdRef.current : enemyAvIdRef.current
+    const def = EMOTE_DEF[k]
+    const id = Date.now() + (side === 'you' ? 0 : 1)
+    if (!showSay(side, aid, def.ev, v)) {   // senas avataras be frazių → paprastas burbulas su piktograma
+      setEmoteBubble({ side, text: def.icon, id })
+      window.setTimeout(() => setEmoteBubble((bb) => bb && bb.id === id ? null : bb), 3000)
+      return
+    }
+    setMood(side, def.face === 'smug' ? 'emoSmug' : def.face === 'shock' ? 'emoShock' : 'emoHappy')
+    let vec: { x: number; y: number } | undefined
+    if (k === 'threat') { const p1 = rectFor({ side }), p2 = rectFor({ side: side === 'you' ? 'ai' : 'you' }); if (p1 && p2) vec = { x: p2.x - p1.x, y: p2.y - p1.y } }
+    setAvEmote((st) => ({ ...st, [side]: { k, id, vec } }))
+    window.setTimeout(() => setAvEmote((st) => (st[side]?.id === id ? { ...st, [side]: null } : st)), 2400)
+    playAvatarClip(aid, def.ev, v)
+  }
+  /** Boto emocija: ne dažniau kaip kartą per 20 s; ne mokymuose, ne poligone, ne kai varžovo emocijos nutildytos. */
+  const botEmote = (k: EmoteKey, delay: number) => {
+    if (vsRemote || spectator || sandbox || tutorialRef.current?.active || emoteMutedRef.current) return
+    const now = Date.now()
+    if (now - botEmoteAtRef.current < 20000) return
+    botEmoteAtRef.current = now
+    window.setTimeout(() => performEmote('ai', k, pickVariant(enemyAvIdRef.current, EMOTE_DEF[k].ev)), delay)
+  }
+  botEmoteRef.current = botEmote
+  const sendEmote = (arg: string) => {
+    if (spectator) return
+    const k: EmoteKey = isEmoteKey(arg) ? arg : 'hello'
+    const now = Date.now()
+    const recent = emoteTimesRef.current.filter((x) => now - x < 30000)
+    if ((recent.length && now - recent[recent.length - 1] < 6000) || recent.length >= 3) return
+    recent.push(now); emoteTimesRef.current = recent
+    setEmoteCdUntil(recent.length >= 3 ? recent[0] + 30000 : now + 6000)
+    const v = pickVariant(youAvIdRef.current, EMOTE_DEF[k].ev)
+    performEmote('you', k, v)
+    if (vsRemote) { channelRef.current?.send({ type: 'broadcast', event: 'emote', payload: { k, v, text: EMOTE_DEF[k].icon } }); return }
+    // botas atsako: pasisveikinimas → pasisveikinimas, gerai sužaista → ačiū, grasinimas → grasinimas arba oi, oi → kartais pašaipa
+    const reply: EmoteKey | null = k === 'hello' ? 'hello' : k === 'wellPlayed' ? 'thanks' : k === 'threat' ? (Math.random() < 0.6 ? 'threat' : 'oops') : k === 'oops' ? (Math.random() < 0.5 ? 'threat' : null) : null
+    if (reply) botEmote(reply, 1600 + Math.random() * 900)
+  }
+  onRemoteEmoteRef.current = (payload: unknown) => {
+    if (emoteMutedRef.current) return
+    const pl = (payload ?? {}) as { k?: unknown; v?: unknown; text?: string }
+    if (isEmoteKey(pl.k)) { performEmote('ai', pl.k, typeof pl.v === 'number' && pl.v >= 1 && pl.v <= 20 ? Math.floor(pl.v) : 1); return }
+    if (!pl.text) return
+    const id = Date.now()
+    setEmoteBubble({ side: 'ai', text: String(pl.text).slice(0, 8), id })
+    window.setTimeout(() => setEmoteBubble((bb) => bb && bb.id === id ? null : bb), 3000)
+  }
+  /** Laikmačio replika: laukiantis avataras paragina delsiantį (kaspinas + balsas). Ne dažniau kaip kas 25 s. */
+  const taunt = (side: Side) => {
+    if (spectator || sandbox || tutorialRef.current?.active || (side === 'ai' && emoteMutedRef.current)) return
+    const now = Date.now()
+    if (now - tauntAtRef.current < 25000) return
+    tauntAtRef.current = now
+    const aid = side === 'you' ? youAvIdRef.current : enemyAvIdRef.current
+    const v = pickVariant(aid, 'timer')
+    if (showSay(side, aid, 'timer', v, 2600)) { setMood(side, 'emoSmug'); playAvatarClip(aid, 'timer', v) }
+  }
+  // Kova su DI be laikmačio: jei žaidėjas savo ėjime 45 s nieko nedaro – boto avataras paragina
+  useEffect(() => {
+    if (vsRemote || ranked || turnSeconds || spectator || sandbox || !game || game.winner || game.active !== 'you' || (game.globalTurn ?? 0) < 2) return
+    const tm = window.setTimeout(() => taunt('ai'), 45000)
+    return () => window.clearTimeout(tm)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game?.log?.length, game?.active, game?.winner])
+  const wheelEmotes = EMOTE_KEYS.map((k) => ({ k, icon: EMOTE_DEF[k].icon, label: getLocale() === 'lt' ? EMOTE_DEF[k].lt : EMOTE_DEF[k].en }))
+  const emoteMuteTitle = getLocale() === 'lt' ? (emoteMuted ? 'Varžovo emocijos nutildytos – įjungti' : 'Nutildyti varžovo emocijas') : (emoteMuted ? 'Opponent emotes muted – unmute' : 'Mute opponent emotes')
   const renderEmoteBubbleH = (side: Side) => {
+    const say = avSay[side]
+    if (say) {
+      return (
+        <div key={say.id} className="absolute z-40 pointer-events-none"
+          style={{ [side === 'ai' ? 'top' : 'bottom']: '100%', marginTop: side === 'ai' ? 4 : undefined, marginBottom: side === 'you' ? 4 : undefined,
+            ...(side === 'ai' ? { left: '50%' } : { right: 0 }), width: 'max-content', maxWidth: 'min(250px, 46vw)', padding: '6px 11px 7px', borderRadius: 10, textAlign: 'left',
+            background: 'linear-gradient(180deg, rgba(26,18,36,0.97), rgba(12,9,18,0.97))', border: `1px solid ${say.c}99`, borderLeft: `3px solid ${say.c}`,
+            boxShadow: `0 6px 18px rgba(0,0,0,0.7), 0 0 14px ${say.c}33`, animation: side === 'ai' ? 'rvnEmotePop 0.25s ease-out both' : 'rvnSayPop 0.25s ease-out both' }}>
+          {say.name && <div style={{ fontSize: 9, letterSpacing: '0.08em', textTransform: 'uppercase', color: say.c, fontWeight: 700, lineHeight: 1.1, marginBottom: 2 }}>{say.name}</div>}
+          <div style={{ fontSize: 13, lineHeight: 1.25, color: '#f3ead8', fontWeight: 600 }}>{say.text}</div>
+        </div>
+      )
+    }
     if (!emoteBubble || emoteBubble.side !== side) return null
     return (
       <div className="absolute left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-2xl text-xl whitespace-nowrap z-40 pointer-events-none"
@@ -4020,7 +4145,10 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
     if (!(vsRemote || ranked || turnSeconds) || spectator || !game || game.winner) { setTurnDeadline(null); return }
     const deadline = Date.now() + (turnSeconds ?? 120) * 1000
     setTurnDeadline(deadline)
+    let warned = false
     const iv = setInterval(() => {
+      // 823: likus 20 s laukiantis avataras paragina delsiantį
+      if (!warned && deadline - Date.now() <= 20000) { warned = true; taunt(game.active === 'you' ? 'ai' : 'you') }
       if (Date.now() >= deadline) {
         clearInterval(iv)
         if (game.active === 'you') doAction({ t: 'endTurn', actor: 'you' })
@@ -5003,7 +5131,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           <img src="/ravenof-ui/combat/targeting/badge-target-selected.png" alt="" aria-hidden draggable={false}
             className="absolute -top-2 -right-2 z-30 pointer-events-none select-none" style={{ width: 24, height: 24, objectFit: 'contain' }} />
         )}
-        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} mood={avatarMood[side] ?? null} dead={avatarDead === side} frameUrl={side === 'you' ? avatarFrames.you : avatarFrames.enemy} enterTick={avEnterTick} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
+        <AvatarFrame avatar={side === 'you' ? youAvatar : enemyAvatar} hp={p.hp} maxHp={p.maxHp} owner={side === 'you' ? 'player' : 'enemy'} scale={scale} flash={avatarFlash[side]} mood={avatarMood[side] ?? null} emote={avEmote[side] ?? null} dead={avatarDead === side} frameUrl={side === 'you' ? avatarFrames.you : avatarFrames.enemy} enterTick={avEnterTick} onVid={(v) => (side === 'you' ? setYouVid(v) : setEnemyVid(v))} />
       </button>
     )
   }
@@ -5356,6 +5484,7 @@ doAction({ t: 'endTurn', actor: 'you' })
           100% { transform: translate(0,0) rotate(0deg); }
         }
         .rvn-field-quake { animation: rvnFieldQuake 3s cubic-bezier(.36,.07,.19,.97) both; will-change: transform; }
+        @keyframes rvnSayPop { 0% { transform: translateY(6px) scale(0.85); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
         @keyframes rvnEmotePop { 0% { transform: translateX(-50%) scale(0.3); opacity: 0; } 60% { transform: translateX(-50%) scale(1.15); opacity: 1; } 100% { transform: translateX(-50%) scale(1); opacity: 1; } }
         /* QA #5: „oponentas galvoja" gyvybes indikatorius — pulsuojantys taskai */
         @keyframes rvnOppDot { 0%, 60%, 100% { opacity: 0.15; } 30% { opacity: 1; } }
@@ -5496,6 +5625,11 @@ doAction({ t: 'endTurn', actor: 'you' })
           renderDiscardGold={renderDiscardGoldH}
           renderEmoteBubble={renderEmoteBubbleH}
           onEmote={sendEmote}
+          emotes={wheelEmotes}
+          emoteCdUntil={emoteCdUntil}
+          emoteMuted={emoteMuted}
+          onToggleEmoteMute={toggleEmoteMute}
+          emoteMuteTitle={emoteMuteTitle}
         />
         </TutZoomWrap>
       )}
@@ -5523,6 +5657,11 @@ doAction({ t: 'endTurn', actor: 'you' })
           renderDiscardGold={renderDiscardGoldH}
           renderEmoteBubble={renderEmoteBubbleH}
           onEmote={sendEmote}
+          emotes={wheelEmotes}
+          emoteCdUntil={emoteCdUntil}
+          emoteMuted={emoteMuted}
+          onToggleEmoteMute={toggleEmoteMute}
+          emoteMuteTitle={emoteMuteTitle}
         />
         </TutZoomWrap>
       )}

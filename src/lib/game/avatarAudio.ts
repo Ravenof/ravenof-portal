@@ -6,9 +6,19 @@
 // kanalas (be perkrovos), once-per-battle „defeat/fightStart/lowHp" ir t. t.
 
 import { getSfxVolume } from '@/lib/settings'
+import { duckMusic } from './musicManager'
 import type { AvatarAudioMap, AvatarAudioEvent } from '@/lib/cosmetics'
 
 let MAP: AvatarAudioMap = {}
+
+/** 823: kol avataras kalba – muzika pritildoma (−10 dB); trukmė patikslinama, kai žinomas klipo ilgis. */
+function duckFor(a: HTMLAudioElement): void {
+  try {
+    duckMusic(-10, 2200)
+    const ext = () => { if (isFinite(a.duration) && a.duration > 0) duckMusic(-10, Math.round(a.duration * 1000) + 250) }
+    if (a.readyState >= 1) ext(); else a.addEventListener('loadedmetadata', ext, { once: true })
+  } catch { /* tyliai */ }
+}
 const warm = new Map<string, HTMLAudioElement>()        // preload cache (HTTP warm)
 const lastPlayed = new Map<string, number>()            // `${avatarId}:${event}` -> ts
 const firedOnce = new Set<string>()                     // once-per-battle keys
@@ -93,8 +103,39 @@ export function playAvatarAudio(avatarId: string | null | undefined, event: Avat
     const a = new Audio(url)
     a.volume = Math.max(0, Math.min(1, (opts?.volume ?? 0.85) * getSfxVolume()))
     channel = a
+    duckFor(a)
     void a.play().catch(() => { /* autoplay gali blokuoti */ })
   } catch { /* tyliai */ }
+}
+
+const clipNo = (url: string, i: number) => { const m = url.match(/-(\d+)\.mp3(?:\?.*)?$/); return m ? Number(m[1]) : i + 1 }
+
+/** Kokius variantų numerius avataras turi šiam įvykiui (po admino pataisų). Tuščia – klipų nėra. */
+export function avatarClipVariants(avatarId: string | null | undefined, event: AvatarAudioEvent): number[] {
+  const clips = avatarId ? MAP[avatarId]?.[event] : null
+  return clips?.length ? clips.map((c, i) => clipNo(c.url, i)) : []
+}
+
+/**
+ * Sugroja KONKRETŲ variantą (emocijos, laikmačio replikos – tekstas kaspine turi sutapti su balsu).
+ * Be rate-limit (ribas valdo kvietėjas); nutraukia kitą frazę. Jei tokio varianto nėra – tyla.
+ */
+export function playAvatarClip(avatarId: string | null | undefined, event: AvatarAudioEvent, variant: number, opts?: { volume?: number }): boolean {
+  if (muted || !avatarId || !uiSoundOn()) return false
+  const clips = MAP[avatarId]?.[event]
+  const c = clips?.find((x, i) => clipNo(x.url, i) === variant)
+  if (!c) return false
+  try {
+    seqToken++
+    if (channel) { try { channel.pause() } catch { /* */ } }
+    const a = new Audio(c.url)
+    a.volume = Math.max(0, Math.min(1, (opts?.volume ?? 0.85) * getSfxVolume()))
+    channel = a
+    duckFor(a)
+    lastPlayed.set(avatarId + ':' + event, Date.now())
+    void a.play().catch(() => { /* autoplay gali blokuoti */ })
+    return true
+  } catch { return false }
 }
 
 /** Ar šiuo metu skamba avataro frazė (naudojama atsitiktinėms replikoms – jos neturi lipti ant kitų). */
@@ -116,6 +157,7 @@ export function playAvatarSequence(urls: string[], opts?: { volume?: number; gap
       const a = new Audio(urls[i])
       a.volume = Math.max(0, Math.min(1, (opts?.volume ?? 0.85) * getSfxVolume()))
       channel = a
+      duckFor(a)
       const next = () => window.setTimeout(() => step(i + 1), opts?.gapMs ?? 280)
       a.onended = next
       a.onerror = next

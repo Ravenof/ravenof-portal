@@ -354,7 +354,13 @@ export const SceneFxLayer = forwardRef<SceneFxHandle>(function SceneFxLayer(_pro
             const t = t0 - f.stagger; if (t < 0 || t >= te) continue
             const pile = boxOf(f.d.pile), tg = boxOf(f.d.target)
             const zw = Math.max(40, Math.min(60, tg.w * 0.62)), zh = zw * 72 / 52
-            const dest = { x: tg.x + f.dx * zw * 0.7, y: Math.max(40 + zh / 2, tg.y - tg.h / 2 - zh * 0.55) }
+            // Įprastai ŽMK korta pakimba VIRŠ taikinio. Jei virš jo nėra vietos (priešo avataras ekrano viršuje) –
+            // 823: kimba KAIRĖJE šalia taikinio, o ne ant jo (anksčiau uždengdavo avataro reakciją į žalą).
+            const yAbove = tg.y - tg.h / 2 - zh * 0.55
+            const sideN = f.dx === 0 ? 0 : f.dx > 0 ? 2 * f.dx - 1 : -2 * f.dx
+            const dest = yAbove < 40 + zh / 2
+              ? { x: Math.max(zw / 2 + 4, tg.x - tg.w / 2 - zw * 0.62 - sideN * zw * 0.72), y: Math.max(40 + zh / 2, tg.y) }
+              : { x: tg.x + f.dx * zw * 0.7, y: yAbove }
             let x: number, y: number, rot = 0, sx = 1, face = false, alpha = 1, scale = 1
             const col = zcol(f.value)
             if (t < tl) {

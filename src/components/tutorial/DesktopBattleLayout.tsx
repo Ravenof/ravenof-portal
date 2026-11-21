@@ -6,6 +6,7 @@
 // rezervas po tavo padarais: ramybėje ji nedengia nei padarų, nei avataro.
 // Render helper'iai (state) lieka TutorialGame'e; mobile BattleLayout NEKEIČIAMAS.
 import React, { useEffect, useRef, useState } from 'react'
+import EmoteWheel from './EmoteWheel'
 import type { BattleLayoutProps } from './BattleLayout'
 import type { DesktopSizes } from './useDesktopLayout'
 import { useT } from '@/lib/i18n/react'
@@ -170,17 +171,9 @@ export default function DesktopBattleLayout(props: DesktopBattleLayoutProps) {
           <>
             <div className="absolute inset-0 z-40" onClick={() => setEmoteOpen(null)} />
             <div className="absolute z-50" style={emoteOpen === 'avatar'
-              ? { right: s.railR + 24, bottom: 96, width: 150, height: 150 }
-              : { left: s.railL + 24, top: 24, width: 150, height: 150 }}>
-              {EMOTES.map((e, i) => {
-                const ang = (-90 + i * (360 / EMOTES.length)) * Math.PI / 180
-                const x = 75 + Math.cos(ang) * 58 - 22, y = 75 + Math.sin(ang) * 58 - 22
-                return (
-                  <button key={i} onClick={() => { onEmote?.(e); setEmoteOpen(null) }}
-                    className="combat-emote-slot absolute w-11 h-11 flex items-center justify-center text-xl transition-transform hover:scale-125 active:scale-95"
-                    style={{ left: x, top: y, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.6))' }}>{e}</button>
-                )
-              })}
+              ? { right: s.railR + 40, bottom: 104, width: 150, height: 150 }
+              : { left: s.railL + 40, top: 30, width: 150, height: 150 }}>
+              <EmoteWheel emotes={props.emotes ?? EMOTES.map((e) => ({ k: e, icon: e, label: '' }))} cdUntil={props.emoteCdUntil} muted={props.emoteMuted} onToggleMute={props.onToggleEmoteMute} muteTitle={props.emoteMuteTitle} onPick={(k) => { onEmote?.(k); setEmoteOpen(null) }} />
             </div>
           </>
         )}

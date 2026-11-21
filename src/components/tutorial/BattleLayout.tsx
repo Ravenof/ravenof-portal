@@ -4,6 +4,7 @@
 // (emote ratas, preview panelė, laikmačio žiedas). VISI render helper'iai lieka TutorialGame'e ir
 // perduodami čia render-funkcijomis, kad state nereiktų kilnoti. Engine/state/FX nekeičiami.
 import React, { useEffect, useRef, useState } from 'react'
+import EmoteWheel from './EmoteWheel'
 import type { GameState, Side, TutCard } from '@/lib/tutorial/engine'
 import { useT } from '@/lib/i18n/react'
 
@@ -30,6 +31,12 @@ export interface BattleLayoutProps {
   turnDeadline?: number | null
   renderEmoteBubble?: (side: Side) => React.ReactNode
   onEmote?: (text: string) => void
+  /** 823: vardinės emocijos ratui; be jų – senas emoji ratas. */
+  emotes?: { k: string; icon: string; label: string }[]
+  emoteCdUntil?: number
+  emoteMuted?: boolean
+  onToggleEmoteMute?: () => void
+  emoteMuteTitle?: string
 }
 
 // Kompaktiškas šoninis blokas su antrašte
@@ -204,24 +211,9 @@ export default function BattleLayout(props: BattleLayoutProps) {
           <>
             <div className="absolute inset-0 z-40" onClick={() => setEmoteOpen(null)} />
             <div className="absolute z-50" style={emoteOpen === 'avatar'
-              ? { right: 'clamp(4px,1.5vw,18px)', bottom: 'clamp(78px,16vh,140px)', width: 150, height: 150 }
+              ? { right: 'clamp(30px,4vw,48px)', bottom: 'clamp(84px,17vh,146px)', width: 150, height: 150 }
               : { left: 'clamp(60px,8vw,120px)', bottom: 'clamp(120px,26vh,220px)', width: 150, height: 150 }}>
-              {EMOTES.map((e, i) => {
-                const ang = (-90 + i * (360 / EMOTES.length)) * Math.PI / 180
-                const rad = 58
-                const x = 75 + Math.cos(ang) * rad - 22
-                const y = 75 + Math.sin(ang) * rad - 22
-                return (
-                  <button key={i}
-                    onClick={() => { onEmote?.(e); setEmoteOpen(null) }}
-                    className="combat-emote-slot absolute w-11 h-11 flex items-center justify-center text-xl transition-transform hover:scale-125 active:scale-95"
-                    style={{ left: x, top: y, filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.6))' }}>
-                    {e}
-                  </button>
-                )
-              })}
-              <div className="absolute w-9 h-9 rounded-full flex items-center justify-center text-base pointer-events-none"
-                style={{ left: 75 - 18, top: 75 - 18, background: 'rgba(240,180,41,0.16)', border: '1px solid rgba(240,180,41,0.4)' }}>😊</div>
+              <EmoteWheel emotes={props.emotes ?? EMOTES.map((e) => ({ k: e, icon: e, label: '' }))} cdUntil={props.emoteCdUntil} muted={props.emoteMuted} onToggleMute={props.onToggleEmoteMute} muteTitle={props.emoteMuteTitle} onPick={(k) => { onEmote?.(k); setEmoteOpen(null) }} />
             </div>
           </>
         )}

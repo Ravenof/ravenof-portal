@@ -27,7 +27,9 @@ const BATTLE_TRACKS = [1, 2, 3, 4].map((n) => `/sounds/music/battle-${n}.mp3`)
 // Globalus muzikos daugiklis (0..1). Mokymai jį sumažina, kad pasakotojas
 // girdėtųsi — vartotojo nustatymas NEKEIČIAMAS (grįžus atstatoma 1).
 let musicScale = 1
-const musicVol = () => getMusicVolume() * musicScale
+// 823: kovoje muzika tylesnė (0.6×) – kad girdėtųsi avatarų balsai ir kortų replikos
+const BATTLE_GAIN = 0.6
+const musicVol = () => getMusicVolume() * musicScale * (mode === 'battle' ? BATTLE_GAIN : 1)
 const FADE_MS = 1100
 const FADE_STEPS = 22
 

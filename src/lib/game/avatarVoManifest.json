@@ -1653,6 +1653,120 @@
      "dlg-varnu-pranase-2-2.mp3"
     ]
    ]
+  },
+  {
+   "a": "marso-bugnininkas",
+   "b": "stygu-mage",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "marso-bugnininkas",
+     "dlg-stygu-mage-1-1.mp3"
+    ],
+    [
+     "stygu-mage",
+     "dlg-marso-bugnininkas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "marso-bugnininkas",
+   "b": "stygu-mage",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "stygu-mage",
+     "dlg-marso-bugnininkas-2-1.mp3"
+    ],
+    [
+     "marso-bugnininkas",
+     "dlg-stygu-mage-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "stygu-mage",
+   "b": "tylos-mokinys",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "stygu-mage",
+     "dlg-tylos-mokinys-1-1.mp3"
+    ],
+    [
+     "tylos-mokinys",
+     "dlg-stygu-mage-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "stygu-mage",
+   "b": "tylos-mokinys",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "tylos-mokinys",
+     "dlg-stygu-mage-2-1.mp3"
+    ],
+    [
+     "stygu-mage",
+     "dlg-tylos-mokinys-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "stygu-mage",
+   "b": "arenos-cempionas",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "arenos-cempionas",
+     "dlg-stygu-mage-1-1.mp3"
+    ],
+    [
+     "stygu-mage",
+     "dlg-arenos-cempionas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "stygu-mage",
+   "b": "arenos-cempionas",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "arenos-cempionas",
+     "dlg-stygu-mage-2-1.mp3"
+    ],
+    [
+     "stygu-mage",
+     "dlg-arenos-cempionas-2-2.mp3"
+    ]
+   ]
   }
  ]
 }

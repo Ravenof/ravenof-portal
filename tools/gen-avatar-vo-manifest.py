@@ -32,5 +32,15 @@ if os.path.exists(src):
         names[r['avatar_slug']] = [r['avatar_lt'], r['avatar_en']]
         script.setdefault(r['avatar_slug'], {})['%s-%s' % (r['event'], r['variant'])] = [r['text_lt'], r['text_en']]
     json.dump({'names': names, 'lines': script}, io.open('src/lib/game/avatarVoScript.json', 'w', encoding='utf-8', newline='\n'), ensure_ascii=False)
+    # 823: zaidimui reikalingos tik emociju ir laikmacio frazes (kaspinas prie avataro) - mazas atskiras failas, be zymu [..]
+    strip = lambda t: re.sub(r'\s+', ' ', re.sub(r'\[[^\]]*\]', '', t)).strip()
+    say = {}
+    for slug, ls in script.items():
+        for k, (lt, en) in ls.items():
+            ev, n = k.rsplit('-', 1)
+            if ev.startswith('emote') or ev == 'timer':
+                say.setdefault(slug, {}).setdefault(ev, {})[int(n)] = [strip(lt), strip(en)]
+    say = {sl: {ev: [v[i] for i in sorted(v)] for ev, v in evs.items()} for sl, evs in say.items()}
+    json.dump({'names': names, 'lines': say}, io.open('src/lib/game/avatarSayLines.json', 'w', encoding='utf-8', newline='\n'), ensure_ascii=False)
 json.dump({'voices': voices, 'dialogs': dialogs}, io.open('src/lib/game/avatarVoManifest.json', 'w', encoding='utf-8', newline='\n'), ensure_ascii=False, indent=1)
 print('voices', {k: list(v) for k, v in voices.items()}, 'dialogs', len(dialogs))

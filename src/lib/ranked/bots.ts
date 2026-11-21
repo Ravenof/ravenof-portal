@@ -117,17 +117,24 @@ export const RANKED_BOTS: RankedBot[] = [
 //  offline / fallback atveju matytųsi tas pats.
 //  Taisyklė (20 botų): top 10 pagal rangą – hard, viduriniai 5 – normal,
 //  žemiausi 5 – easy.
-export const BOT_AVATARS = [
-  '/card-backs/av-varnas.webp',
-  '/card-backs/av-kaukole.webp',
-  '/card-backs/av-drakonas.webp',
-  '/card-backs/av-inkvizitorius.webp',
-  '/card-backs/av-karuna.webp',
-  '/card-backs/av-rubino-varnas.webp',
-  '/card-backs/av-basic.webp',
-  '/card-backs/av-rare.webp',
-  '/card-backs/av-premium.webp',
-  '/card-backs/av-legendary.webp',
+export const BOT_AVATARS = [   // 823: tik nauji avatarai (seni išimti) – kovoje atpažįstami pagal šį URL
+  '/avatars/v2/nekronautas/face-neutral.webp',
+  '/avatars/v2/zariju-kalvis/face-neutral.webp',
+  '/avatars/v2/sutarciu-ragana/face-neutral.webp',
+  '/avatars/v2/vyriausiasis-teisejas/face-neutral.webp',
+  '/avatars/v2/gelezine-sesuo/face-neutral.webp',
+  '/avatars/v2/kapu-giedotoja/face-neutral.webp',
+  '/avatars/v2/marso-bugnininkas/face-neutral.webp',
+  '/avatars/v2/stygu-mage/face-neutral.webp',
+  '/avatars/v2/tylos-mokinys/face-neutral.webp',
+  '/avatars/v2/kapitone/face-neutral.webp',
+  '/avatars/v2/seseliu-kisenvagis/face-neutral.webp',
+  '/avatars/v2/ausros-riteris/face-neutral.webp',
+  '/avatars/v2/varpu-gydytoja/face-neutral.webp',
+  '/avatars/v2/gaujos-vadas/face-neutral.webp',
+  '/avatars/v2/pelkiu-ziniuone/face-neutral.webp',
+  '/avatars/v2/arenos-cempionas/face-neutral.webp',
+  '/avatars/v2/varnu-pranase/face-neutral.webp',
 ]
 
 {

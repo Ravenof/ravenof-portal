@@ -93,3 +93,39 @@ export function packDialogue(idA: string | null | undefined, idB: string | null 
   const d = opts[Math.floor(Math.random() * opts.length)]
   return d.lines.map(([slug, file]) => `/avatars/v2/${slug}/vo/${lang}/${file}`)
 }
+
+// ── Emocijų ratas ir frazės kaspinas (823) ───────────────────────────────────
+// 5 vardinės emocijos: avataras pats „atlieka" – veidas, jo frazė (kaspinas), efektas, balsas.
+// Frazės (emocijos + laikmačio replikos) – avatarSayLines.json (generuoja tools/gen-avatar-vo-manifest.py).
+import sayLines from './avatarSayLines.json'
+
+export type EmoteKey = 'hello' | 'wellPlayed' | 'threat' | 'thanks' | 'oops'
+export const EMOTE_KEYS: EmoteKey[] = ['hello', 'wellPlayed', 'threat', 'thanks', 'oops']
+export const EMOTE_DEF: Record<EmoteKey, { ev: AvatarAudioEvent; icon: string; lt: string; en: string; face: 'happy' | 'smug' | 'shock' }> = {
+  hello:      { ev: 'emoteHello',      icon: '👋', lt: 'Sveikas',        en: 'Hello',       face: 'happy' },
+  wellPlayed: { ev: 'emoteWellPlayed', icon: '👏', lt: 'Gerai sužaista', en: 'Well played', face: 'happy' },
+  threat:     { ev: 'emoteThreat',     icon: '⚔️', lt: 'Grasinimas',     en: 'Threat',      face: 'smug' },
+  thanks:     { ev: 'emoteThanks',     icon: '🙏', lt: 'Ačiū',           en: 'Thanks',      face: 'happy' },
+  oops:       { ev: 'emoteOops',       icon: '😬', lt: 'Oi',             en: 'Oops',        face: 'shock' },
+}
+export const isEmoteKey = (k: unknown): k is EmoteKey => typeof k === 'string' && (EMOTE_KEYS as string[]).includes(k)
+
+type SayLines = { names: Record<string, [string, string]>; lines: Record<string, Record<string, [string, string][]>> }
+const SAY = sayLines as unknown as SayLines
+
+/** Kiek variantų frazių avataras turi šiam įvykiui (0 – seni avatarai be frazių). */
+export function avatarLineCount(id: string | null | undefined, ev: string): number {
+  return id ? SAY.lines[avatarSlug(id)]?.[ev]?.length ?? 0 : 0
+}
+/** Avataro frazė (be žymų) įvykiui ir variantui (1..n) arba null. */
+export function avatarLine(id: string | null | undefined, ev: string, variant: number, locale: string): string | null {
+  if (!id) return null
+  const l = SAY.lines[avatarSlug(id)]?.[ev]
+  if (!l?.length) return null
+  const row = l[Math.max(0, Math.min(l.length - 1, variant - 1))]
+  return (locale === 'lt' ? row[0] : row[1]) || row[0] || null
+}
+export function avatarPackName(id: string | null | undefined, locale: string): string | null {
+  const n = id ? SAY.names[avatarSlug(id)] : null
+  return n ? (locale === 'lt' ? n[0] : n[1]) : null
+}

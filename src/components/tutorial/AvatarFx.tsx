@@ -247,3 +247,20 @@ export function AvAura({ p, size, reduced }: { p: AvatarFxProfile; size: number;
     </div>
   )
 }
+
+/** Emocijos efektas (823): forma bendra, dalelės ir spalva – avataro. `vec` – kryptis į varžovo avatarą (grasinimui). */
+export function AvEmoteFx({ p, size, k, vec, seed = 1 }: { p: AvatarFxProfile; size: number; k: string; vec?: { x: number; y: number }; seed?: number }) {
+  const ringFx = (c: string, strong: boolean) => (
+    <motion.div className="absolute rounded-xl" style={{ inset: '4%', border: `2px solid ${c}`, boxShadow: `0 0 ${strong ? 26 : 16}px ${c}`, zIndex: 7 }}
+      initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: [0, strong ? 1 : 0.7, 0], scale: [0.92, 1.08, 1.16] }} transition={{ duration: strong ? 0.9 : 1.3, ease: 'easeOut' }} />
+  )
+  return (
+    <div className="absolute inset-0 pointer-events-none" style={{ overflow: 'visible' }} aria-hidden>
+      {k === 'hello' && <AvBurst p={p} size={size} mode="fountain" n={6} seed={seed} />}
+      {k === 'wellPlayed' && <>{ringFx(p.c1, true)}<AvBurst p={p} size={size} mode="rise" n={4} seed={seed + 2} /></>}
+      {k === 'threat' && <AvBurst p={p} size={size} mode="toward" n={8} seed={seed + 4} vec={vec} />}
+      {k === 'thanks' && ringFx(p.c2, false)}
+      {k === 'oops' && <AvBurst p={p} size={size} mode="fall" n={4} seed={seed + 6} />}
+    </div>
+  )
+}
