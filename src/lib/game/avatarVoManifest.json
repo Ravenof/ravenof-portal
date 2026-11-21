@@ -1,6 +1,166 @@
 {
  "voices": {
+  "arenos-cempionas": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "ausros-riteris": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "gaujos-vadas": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
   "gelezine-sesuo": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "kapitone": {
    "lt": {
     "attack": 5,
     "bigHit": 5,
@@ -120,6 +280,46 @@
     "victory": 5
    }
   },
+  "marso-bugnininkas": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
   "nekronautas": {
    "lt": {
     "attack": 5,
@@ -200,7 +400,207 @@
     "victory": 5
    }
   },
+  "seseliu-kisenvagis": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "stygu-mage": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
   "sutarciu-ragana": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "tylos-mokinys": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "varnu-pranase": {
+   "lt": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   },
+   "en": {
+    "attack": 5,
+    "bigHit": 5,
+    "defeat": 5,
+    "emoteHello": 5,
+    "emoteOops": 5,
+    "emoteThanks": 5,
+    "emoteThreat": 5,
+    "emoteWellPlayed": 5,
+    "fightStart": 5,
+    "hit": 5,
+    "idle": 5,
+    "kill": 5,
+    "lowHp": 5,
+    "selected": 5,
+    "spellCast": 5,
+    "timer": 5,
+    "victory": 5
+   }
+  },
+  "varpu-gydytoja": {
    "lt": {
     "attack": 5,
     "bigHit": 5,
@@ -479,6 +879,44 @@
    ]
   },
   {
+   "a": "korvas",
+   "b": "varnu-pranase",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "korvas",
+     "dlg-varnu-pranase-1-1.mp3"
+    ],
+    [
+     "varnu-pranase",
+     "dlg-korvas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "korvas",
+   "b": "varnu-pranase",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "varnu-pranase",
+     "dlg-korvas-2-1.mp3"
+    ],
+    [
+     "korvas",
+     "dlg-varnu-pranase-2-2.mp3"
+    ]
+   ]
+  },
+  {
    "a": "zariju-kalvis",
    "b": "sutarciu-ragana",
    "n": 1,
@@ -556,6 +994,44 @@
   },
   {
    "a": "vyriausiasis-teisejas",
+   "b": "seseliu-kisenvagis",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "vyriausiasis-teisejas",
+     "dlg-seseliu-kisenvagis-1-1.mp3"
+    ],
+    [
+     "seseliu-kisenvagis",
+     "dlg-vyriausiasis-teisejas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "vyriausiasis-teisejas",
+   "b": "seseliu-kisenvagis",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "seseliu-kisenvagis",
+     "dlg-vyriausiasis-teisejas-2-1.mp3"
+    ],
+    [
+     "vyriausiasis-teisejas",
+     "dlg-seseliu-kisenvagis-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "vyriausiasis-teisejas",
    "b": "sutarciu-ragana",
    "n": 1,
    "langs": [
@@ -589,6 +1065,592 @@
     [
      "sutarciu-ragana",
      "dlg-vyriausiasis-teisejas-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "gelezine-sesuo",
+   "b": "ausros-riteris",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "ausros-riteris",
+     "dlg-gelezine-sesuo-1-1.mp3"
+    ],
+    [
+     "gelezine-sesuo",
+     "dlg-ausros-riteris-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "gelezine-sesuo",
+   "b": "ausros-riteris",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "gelezine-sesuo",
+     "dlg-ausros-riteris-2-1.mp3"
+    ],
+    [
+     "ausros-riteris",
+     "dlg-gelezine-sesuo-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "gelezine-sesuo",
+   "b": "gaujos-vadas",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "gaujos-vadas",
+     "dlg-gelezine-sesuo-1-1.mp3"
+    ],
+    [
+     "gelezine-sesuo",
+     "dlg-gaujos-vadas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "gelezine-sesuo",
+   "b": "gaujos-vadas",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "gelezine-sesuo",
+     "dlg-gaujos-vadas-2-1.mp3"
+    ],
+    [
+     "gaujos-vadas",
+     "dlg-gelezine-sesuo-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "kapu-giedotoja",
+   "b": "marso-bugnininkas",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "marso-bugnininkas",
+     "dlg-kapu-giedotoja-1-1.mp3"
+    ],
+    [
+     "kapu-giedotoja",
+     "dlg-marso-bugnininkas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "kapu-giedotoja",
+   "b": "marso-bugnininkas",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "kapu-giedotoja",
+     "dlg-marso-bugnininkas-2-1.mp3"
+    ],
+    [
+     "marso-bugnininkas",
+     "dlg-kapu-giedotoja-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "kapu-giedotoja",
+   "b": "varpu-gydytoja",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "varpu-gydytoja",
+     "dlg-kapu-giedotoja-1-1.mp3"
+    ],
+    [
+     "kapu-giedotoja",
+     "dlg-varpu-gydytoja-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "kapu-giedotoja",
+   "b": "varpu-gydytoja",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "kapu-giedotoja",
+     "dlg-varpu-gydytoja-2-1.mp3"
+    ],
+    [
+     "varpu-gydytoja",
+     "dlg-kapu-giedotoja-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "marso-bugnininkas",
+   "b": "arenos-cempionas",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "arenos-cempionas",
+     "dlg-marso-bugnininkas-1-1.mp3"
+    ],
+    [
+     "marso-bugnininkas",
+     "dlg-arenos-cempionas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "marso-bugnininkas",
+   "b": "arenos-cempionas",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "marso-bugnininkas",
+     "dlg-arenos-cempionas-2-1.mp3"
+    ],
+    [
+     "arenos-cempionas",
+     "dlg-marso-bugnininkas-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "tylos-mokinys",
+   "b": "varnu-pranase",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "varnu-pranase",
+     "dlg-tylos-mokinys-1-1.mp3"
+    ],
+    [
+     "tylos-mokinys",
+     "dlg-varnu-pranase-1-2.mp3"
+    ],
+    [
+     "varnu-pranase",
+     "dlg-tylos-mokinys-1-3.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "tylos-mokinys",
+   "b": "varnu-pranase",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "tylos-mokinys",
+     "dlg-varnu-pranase-2-1.mp3"
+    ],
+    [
+     "varnu-pranase",
+     "dlg-tylos-mokinys-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "tylos-mokinys",
+   "b": "gaujos-vadas",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "gaujos-vadas",
+     "dlg-tylos-mokinys-1-1.mp3"
+    ],
+    [
+     "tylos-mokinys",
+     "dlg-gaujos-vadas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "tylos-mokinys",
+   "b": "gaujos-vadas",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "tylos-mokinys",
+     "dlg-gaujos-vadas-2-1.mp3"
+    ],
+    [
+     "gaujos-vadas",
+     "dlg-tylos-mokinys-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "kapitone",
+   "b": "seseliu-kisenvagis",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "kapitone",
+     "dlg-seseliu-kisenvagis-1-1.mp3"
+    ],
+    [
+     "seseliu-kisenvagis",
+     "dlg-kapitone-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "kapitone",
+   "b": "seseliu-kisenvagis",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "seseliu-kisenvagis",
+     "dlg-kapitone-2-1.mp3"
+    ],
+    [
+     "kapitone",
+     "dlg-seseliu-kisenvagis-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "kapitone",
+   "b": "ausros-riteris",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "ausros-riteris",
+     "dlg-kapitone-1-1.mp3"
+    ],
+    [
+     "kapitone",
+     "dlg-ausros-riteris-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "kapitone",
+   "b": "ausros-riteris",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "kapitone",
+     "dlg-ausros-riteris-2-1.mp3"
+    ],
+    [
+     "ausros-riteris",
+     "dlg-kapitone-2-2.mp3"
+    ],
+    [
+     "kapitone",
+     "dlg-ausros-riteris-2-3.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "kapitone",
+   "b": "pelkiu-ziniuone",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "pelkiu-ziniuone",
+     "dlg-kapitone-1-1.mp3"
+    ],
+    [
+     "kapitone",
+     "dlg-pelkiu-ziniuone-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "kapitone",
+   "b": "pelkiu-ziniuone",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "kapitone",
+     "dlg-pelkiu-ziniuone-2-1.mp3"
+    ],
+    [
+     "pelkiu-ziniuone",
+     "dlg-kapitone-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "seseliu-kisenvagis",
+   "b": "sutarciu-ragana",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "sutarciu-ragana",
+     "dlg-seseliu-kisenvagis-1-1.mp3"
+    ],
+    [
+     "seseliu-kisenvagis",
+     "dlg-sutarciu-ragana-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "seseliu-kisenvagis",
+   "b": "sutarciu-ragana",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "seseliu-kisenvagis",
+     "dlg-sutarciu-ragana-2-1.mp3"
+    ],
+    [
+     "sutarciu-ragana",
+     "dlg-seseliu-kisenvagis-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "ausros-riteris",
+   "b": "varpu-gydytoja",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "varpu-gydytoja",
+     "dlg-ausros-riteris-1-1.mp3"
+    ],
+    [
+     "ausros-riteris",
+     "dlg-varpu-gydytoja-1-2.mp3"
+    ],
+    [
+     "varpu-gydytoja",
+     "dlg-ausros-riteris-1-3.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "ausros-riteris",
+   "b": "varpu-gydytoja",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "ausros-riteris",
+     "dlg-varpu-gydytoja-2-1.mp3"
+    ],
+    [
+     "varpu-gydytoja",
+     "dlg-ausros-riteris-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "varpu-gydytoja",
+   "b": "pelkiu-ziniuone",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "pelkiu-ziniuone",
+     "dlg-varpu-gydytoja-1-1.mp3"
+    ],
+    [
+     "varpu-gydytoja",
+     "dlg-pelkiu-ziniuone-1-2.mp3"
+    ],
+    [
+     "pelkiu-ziniuone",
+     "dlg-varpu-gydytoja-1-3.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "varpu-gydytoja",
+   "b": "pelkiu-ziniuone",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "varpu-gydytoja",
+     "dlg-pelkiu-ziniuone-2-1.mp3"
+    ],
+    [
+     "pelkiu-ziniuone",
+     "dlg-varpu-gydytoja-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "gaujos-vadas",
+   "b": "pelkiu-ziniuone",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "gaujos-vadas",
+     "dlg-pelkiu-ziniuone-1-1.mp3"
+    ],
+    [
+     "pelkiu-ziniuone",
+     "dlg-gaujos-vadas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "gaujos-vadas",
+   "b": "pelkiu-ziniuone",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "pelkiu-ziniuone",
+     "dlg-gaujos-vadas-2-1.mp3"
+    ],
+    [
+     "gaujos-vadas",
+     "dlg-pelkiu-ziniuone-2-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "arenos-cempionas",
+   "b": "varnu-pranase",
+   "n": 1,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "arenos-cempionas",
+     "dlg-varnu-pranase-1-1.mp3"
+    ],
+    [
+     "varnu-pranase",
+     "dlg-arenos-cempionas-1-2.mp3"
+    ]
+   ]
+  },
+  {
+   "a": "arenos-cempionas",
+   "b": "varnu-pranase",
+   "n": 2,
+   "langs": [
+    "lt",
+    "en"
+   ],
+   "lines": [
+    [
+     "varnu-pranase",
+     "dlg-arenos-cempionas-2-1.mp3"
+    ],
+    [
+     "arenos-cempionas",
+     "dlg-varnu-pranase-2-2.mp3"
     ]
    ]
   }
