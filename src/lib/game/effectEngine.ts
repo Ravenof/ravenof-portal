@@ -424,6 +424,22 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       // Burtų žalos priedas dabar TIK pasyvi aura (auraSpellDamage – kol kūrinys kovos lauke),
       // pridedama dealToUnit/dealToPlayer per spellAuraBonusFor. Jokio nuolatinio kaupiamo priedo.
       const dv = v
+      // 825: „lieka su N gyvybių" (leaveHp) – kiekvienam taikiniui žala paskaičiuojama pagal jo dabartinį HP, be ŽMK
+      if (m.leaveHp != null && m.leaveHp >= 0) {
+        for (const t of targets) {
+          if (t.kind === 'player') continue
+          if (t.kind === 'artifact') {
+            const a = (t.side === 'you' ? g.you : g.ai).artifacts.find((x) => x?.uid === t.uid)
+            const d = a ? a.hp - m.leaveHp : 0
+            if (a && d > 0) { api.dealToArtifact(g, a, t.side, d, caster); chainDamage += d }
+          } else {
+            const f = findUnit(g, t)
+            const d = f ? f.u.hp - m.leaveHp : 0
+            if (f && d > 0) { api.dealToUnit(g, f.u, f.owner, d, caster, false, false); chainDamage += d }
+          }
+        }
+        break
+      }
       for (const t of targets) {
         if (t.kind === 'player') { api.dealToPlayer(g, t.side, dv, caster, useZmk); chainDamage += dv }
         else if (t.kind === 'artifact') {

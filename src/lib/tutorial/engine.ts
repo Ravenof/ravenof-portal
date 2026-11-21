@@ -2573,6 +2573,14 @@ function fireGlobalListeners(g: GameState, trigger: 'onAnyDeath' | 'onAnyAttack'
         if (want === 'enemy' && ctx.side && sameTeam(g, ctx.side, sd)) return false
       }
       if (m.triggerSubtype && (ctx?.subtype ?? '').toLowerCase() !== m.triggerSubtype.trim().toLowerCase()) return false
+      // 825: „tik kai iškviestas padaras turi raktažodį" (Kojos spąstai – Sprintas)
+      if (m.triggerKeyword && trigger === 'onAnySummon') {
+        const kw = m.triggerKeyword
+        const su = trigSrc && trigSrc.kind === 'unit' ? allSeats(g).flatMap((x) => P(g, x).units).find((u) => u?.uid === trigSrc.uid) : null
+        if (!su) return false
+        const has = kw === 'shield' ? !!su.shield : kw === 'stealth' ? !!su.stealth : (su.card.keywords.includes(kw) || !!su.auraKw?.includes(kw))
+        if (!has) return false
+      }
       // onAnyStatus: filtras pagal konkrečią būseną / raktažodį
       if (m.triggerStatus && trigger === 'onAnyStatus' && ctx?.status !== m.triggerStatus) return false
       if (m.triggerSpellType && trigger === 'onAnyCast' && m.triggerSpellType !== ctx?.spellType) return false
@@ -3334,6 +3342,7 @@ function auraCostReductionFor(g: GameState, s: Side, card: TutCard): number {
       if (cfg.auraSubtype && want(card.subtype ?? undefined) !== want(cfg.auraSubtype)) continue
       if (cfg.auraFaction && card.factionId !== cfg.auraFaction) continue
       if (cfg.auraRequiresKeyword && !card.keywords.includes(cfg.auraRequiresKeyword)) continue
+      if (cfg.auraCostCardType && card.type !== cfg.auraCostCardType) continue
       red += cfg.auraCostReduction
     }
   }

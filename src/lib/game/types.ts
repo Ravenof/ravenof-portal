@@ -379,6 +379,7 @@ export type EffectMapping = {
   targetFaction?: number            // tik nurodytos frakcijos padarai (faction id)
   triggerSide?: 'own' | 'enemy' | 'any'  // globalus trigger: kieno įvykis aktyvuoja (savo/priešo/bet kuris)
   triggerSubtype?: string           // globalus trigger: tik šio potipio padaro įvykis aktyvuoja
+  triggerKeyword?: 'sprint' | 'taunt' | 'shield' | 'stealth'  // onAnySummon: tik kai iškviestas padaras turi šį raktažodį (Kojos spąstai: Sprintas)
   triggerFaction?: number           // globalus trigger: tik šios frakcijos padaro įvykis aktyvuoja
   triggerSummonSource?: 'any' | 'graveyard' | 'deck' | 'hand' | 'play'  // onAnySummon: iš kur padaras atsirado
   summonCostMax?: number            // summon*: tik kortos su kaina <= reikšmė
@@ -410,6 +411,7 @@ export type EffectMapping = {
   resurrectHpMod?: number           // resurrectSelf: HP pokytis prisikėlus (+/−; taikoma ir su resurrectHp1)
   resurrectStatuses?: ('frozen' | 'burning' | 'poisoned' | 'stunned' | 'silenced' | 'blessed')[]  // resurrectSelf: būsenos, uždedamos prisikėlus
   onlyIfTargetDied?: boolean        // follow-up (`then`): vykdyti tik jei tėvinio efekto taikinys žuvo (pvz. Kamuolinis žaibas)
+  leaveHp?: number                  // damage: taikinys LIEKA su tiek HP (žala = dabartinis HP − leaveHp, be ŽMK; skydas/sumažinimas galioja). Pragaro Liepsna: visi lieka su 1
   doomTargetAtTurnEnd?: boolean     // taikiniai-padarai PAŽYMIMI žūčiai: žūsta savo savininko ėjimo PABAIGOJE (Chaoso pakylėtas: +5 atk, ėjimo gale sunaikinamas)
   chooseOne?: { label: string; mappings: EffectMapping[] }[]  // chooseEffect: variantai pop-up'e (žaidėjas renkasi 1)
   chooseAlt?: EffectMapping[]       // ARBA: pilnos alternatyvos ŠIAM efektui – žaidėjas pop-up'e renkasi tarp pagrindinio efekto ir šių (kiekviena = atskiras variantas)
@@ -500,7 +502,8 @@ export type PassiveAuraConfig = {
   auraZmkRemapFrom?: string
   auraZmkRemapTo?: string
   auraRequiresKeyword?: 'taunt' | 'shield' | 'stealth' | 'sprint'  // SĄLYGA: aura veikia tik padarus su šiuo raktažodžiu (pvz. +1/+1 tik taunt padarams)
-  auraCostReduction?: number           // sumažina paveiktos pusės rankos kortų kainą (auksas)
+  auraCostReduction?: number           // sumažina paveiktos pusės rankos kortų kainą (auksas); neigiama reikšmė – pabrangina (Drūzas Kirvarža: priešui +100)
+  auraCostCardType?: 'unit' | 'spell' | 'artifact' | 'reaction' | 'field'  // kainos aura galioja tik šio tipo kortoms (nenurodyta – visoms)
   // ── Pranašumas / nepalankumas (ŽMK traukiama 2× ir imama geresnė/blogesnė) ──
   advAttack?: 'advantage' | 'disadvantage'   // paveiktų padarų ATAKŲ ŽMK traukimas
   advAttackSelfOnly?: boolean                 // advAttack taikomas TIK pačiai auros kortai puolant (ne visai pusei)
