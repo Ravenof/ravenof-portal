@@ -6820,7 +6820,7 @@ doAction({ t: 'endTurn', actor: 'you' })
 
         {game?.pendingChoice && ((game.pendingChoice.chooser ?? game.pendingChoice.caster) === 'you') && game.pendingChoice.kind === 'tutorHand' && game.pendingChoice.cards && renderPickScene({
           key: 'choice', z: 134,
-          title: game.pendingChoice.title,
+          title: t(game.pendingChoice.title, game.pendingChoice.titleParams),
           items: game.pendingChoice.cards.map((c, i2) => ({ key: i2 + ':' + c.uid, card: c })),
           mode: 'choose',
           onTap: (k) => { playSuccess(); doAction({ t: 'resolveChoice', index: parseInt(k, 10) }) },

@@ -325,6 +325,12 @@ export type PendingChoice = {
   title: string
   titleParams?: Record<string, string | number>
   kind: 'effect' | 'tutorHand'
+  /** tutorHand: kur keliauja pasirinkta korta (numatyta – ranka). 'deck' = iš kapinyno į kaladę (Elvira Melvija). */
+  dest?: 'hand' | 'deck'
+  /** dest='deck': kiek kortų dar liko pasirinkti (įskaitant šią). */
+  remaining?: number
+  /** dest='deck': kortos tipo filtras kitam pasirinkimui. */
+  filterCardType?: string
   options: { label: string; sub?: string }[]
   branches?: EffectMapping[][]
   cards?: TutCard[]
@@ -2403,17 +2409,54 @@ function millDeckPrim(g: GameState, s: Side, n: number) {
   if (milled.length > 0) fireGlobalListeners(g, 'onAnyDiscard', { side: s })
 }
 
-function returnGraveyardToDeckPrim(g: GameState, s: Side, n: number) {
+function returnGraveyardToDeckPrim(g: GameState, s: Side, n: number, opts?: { cardType?: string; choose?: boolean }) {
   const p = P(g, s)
+  const wantCardType = (opts?.cardType ?? '').trim()
+  // Senas elgesys (be filtro ir be pasirinkimo): N viršutinių kapinyno kortų.
+  if (!wantCardType && !opts?.choose) {
+    let moved = 0
+    for (let i = 0; i < n; i++) {
+      const c = p.discard.pop()
+      if (!c) break
+      p.deck.push(c)
+      moved++
+    }
+    if (moved > 0) p.deck = shuffle(p.deck)
+    log(g, { t: 'zmkReshuffle', side: s, key: `battleLog.graveToDeck.${SK(s)}`, params: { n: moved } })
+    return
+  }
+  const candidates = graveToDeckCandidates(p, wantCardType)
+  if (candidates.length === 0 || n <= 0) { log(g, { t: 'blocked', side: s, key: 'battleLog.graveToDeckNone' }); return }
+  if (opts?.choose && human(g, s) && candidates.length > n) {
+    openGraveToDeckChoice(g, s, n, wantCardType, candidates)
+    return
+  }
+  // AI arba kandidatų ne daugiau nei reikia: brangiausios kortos automatiškai.
+  const picks = [...candidates].sort((a, b) => (b.gold ?? 0) - (a.gold ?? 0)).slice(0, n)
   let moved = 0
-  for (let i = 0; i < n; i++) {
-    const c = p.discard.pop()
-    if (!c) break
-    p.deck.push(c)
+  for (const c of picks) {
+    const i = p.discard.findIndex((x) => x.uid === c.uid)
+    if (i === -1) continue
+    p.deck.push(p.discard.splice(i, 1)[0])
     moved++
   }
   if (moved > 0) p.deck = shuffle(p.deck)
   log(g, { t: 'zmkReshuffle', side: s, key: `battleLog.graveToDeck.${SK(s)}`, params: { n: moved } })
+}
+
+function graveToDeckCandidates(p: PlayerState, wantCardType: string): TutCard[] {
+  return p.discard.filter((c) => c.type !== 'curse' && (!wantCardType || c.type === wantCardType))
+}
+
+function openGraveToDeckChoice(g: GameState, s: Side, remaining: number, wantCardType: string, candidates: TutCard[]) {
+  const shown = candidates.slice(-12).reverse() // naujausios kapinyno kortos pirmos
+  g.pendingChoice = {
+    caster: s, sourceName: 'GraveToDeck', kind: 'tutorHand', dest: 'deck', remaining, filterCardType: wantCardType,
+    title: 'battleLog.chooseCardToDeck',
+    titleParams: { n: remaining },
+    options: shown.map((c) => ({ label: c.name, sub: t('battleLog.goldCost', { gold: c.gold }) })),
+    cards: shown,
+  }
 }
 
 // „Peržiūrėk N viršutines aukos kaladės → pasirink K išmesti į kapinyną".
@@ -3230,6 +3273,20 @@ export function resolveChoice(g: GameState, index: number): { ok: boolean; reaso
         if (g.pendingLastwish) flushPendingLastwish(g)
         g.pendingLastwish = { side: pc.caster, cardName: pc.sourceName, mappings: manual }
       }
+    }
+  } else if (pc.kind === 'tutorHand' && pc.dest === 'deck' && pc.cards && pc.cards[index]) {
+    // Iš kapinyno į kaladę (po vieną kortą; kol lieka ką rinktis – atidarom kitą pasirinkimą).
+    const card = pc.cards[index]
+    const p = P(g, pc.caster)
+    const i = p.discard.findIndex((c) => c.uid === card.uid)
+    if (i !== -1) {
+      p.deck = shuffle([...p.deck, p.discard.splice(i, 1)[0]])
+      log(g, { t: 'zmkReshuffle', side: pc.caster, cardName: card.name, key: `battleLog.graveToDeck.${SK(pc.caster)}`, params: { n: 1 } })
+    }
+    const left = (pc.remaining ?? 1) - 1
+    if (left > 0) {
+      const rest = graveToDeckCandidates(p, pc.filterCardType ?? '')
+      if (rest.length > 0) openGraveToDeckChoice(g, pc.caster, left, pc.filterCardType ?? '', rest)
     }
   } else if (pc.kind === 'tutorHand' && pc.cards && pc.cards[index]) {
     const card = pc.cards[index]

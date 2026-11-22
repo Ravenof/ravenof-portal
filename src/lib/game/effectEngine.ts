@@ -51,7 +51,7 @@ export type GameApi = {
   tutorToHand(g: GameState, s: Side, opts: { zone?: 'deck' | 'discard' | 'both'; spellType?: string; cardType?: string; choose?: boolean }): void
   chooseEffect(g: GameState, caster: Side, sourceName: string, branches: EffectMapping[][], labels: string[], chooser?: Side): void
   millDeck(g: GameState, s: Side, n: number): void
-  returnGraveyardToDeck(g: GameState, s: Side, n: number): void
+  returnGraveyardToDeck(g: GameState, s: Side, n: number, opts?: { cardType?: string; choose?: boolean }): void
   peekDiscard(g: GameState, victim: Side, peekCount: number, choose: number, caster: Side): void
   revealDeck(g: GameState, whoseDeck: Side, count: number, caster: Side): void
   summonAdvanced(g: GameState, s: Side, opts: { zones?: ('hand' | 'deck' | 'discard')[]; costMin?: number; costMax?: number; subtype?: string; factionId?: number; count?: number; choose?: boolean; names?: string }): void
@@ -569,7 +569,7 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       break
     }
     case 'mill': api.millDeck(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v); break
-    case 'returnGraveyardToDeck': api.returnGraveyardToDeck(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v); break
+    case 'returnGraveyardToDeck': api.returnGraveyardToDeck(g, targets[0]?.kind === 'player' ? targets[0].side : caster, v, { cardType: m.tutorCardType, choose: m.tutorChoose }); break
     case 'peekDiscard': api.peekDiscard(g, targets[0]?.kind === 'player' ? targets[0].side : foe, m.peekCount ?? v * 2, v, caster); break
     case 'revealOwnDeck': api.revealDeck(g, caster, v, caster); break
     case 'revealEnemyDeck': api.revealDeck(g, foe, v, caster); break

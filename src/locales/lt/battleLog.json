@@ -52,6 +52,8 @@
     "ai": "💰 Priešininkas sumoka {{gold}} aukso už gebėjimą „{{skill}}\".",
     "you": "💰 Sumoki {{gold}} aukso už gebėjimą „{{skill}}\"."
   },
+  "chooseCardToDeck": "Pasirink kortą iš kapinyno į kaladę (liko {{n}})",
+  "graveToDeckNone": "Kapinyne nėra tinkamos kortos – niekas negrąžinama.",
   "chooseCardToHand": "Pasirink kortą į ranką",
   "chooseCardToHandType": "Pasirink kortą į ranką ({{type}})",
   "chooseEffect": "„{{src}}\" – pasirink efektą",

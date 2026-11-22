@@ -1480,6 +1480,23 @@ export function GameplayConfigEditor({ initial, isField, isChampion = false, isC
                         </label>
                       </>
                     )}
+                    {m.effect === 'returnGraveyardToDeck' && (
+                      <>
+                        <label className="flex items-center gap-1">Kortos tipas
+                          <select value={m.tutorCardType ?? ''} onChange={(e) => setMapping(i, { tutorCardType: (e.target.value || undefined) as EffectMapping['tutorCardType'] })} style={{ ...inputStyle, width: 130 }}>
+                            <option value="">(bet kuris – viršutinės)</option>
+                            <option value="unit">Padaras</option>
+                            <option value="spell">Burtas</option>
+                            <option value="artifact">Artefaktas</option>
+                            <option value="field">Laukas</option>
+                          </select>
+                        </label>
+                        <label className="flex items-center gap-1">
+                          <input type="checkbox" checked={!!m.tutorChoose} onChange={(e) => setMapping(i, { tutorChoose: e.target.checked || undefined })} className="w-3.5 h-3.5 accent-yellow-400" />
+                          Žaidėjas renkasi
+                        </label>
+                      </>
+                    )}
                     {m.effect === 'tutorToHand' && (
                       <>
                         <label className="flex items-center gap-1">Zona
