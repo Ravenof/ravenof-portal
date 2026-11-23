@@ -64,7 +64,7 @@ export function UpdateLayer() {
       <div role="alertdialog" aria-modal style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'grid', placeItems: 'center', padding: 24, background: 'radial-gradient(70% 60% at 50% 45%, #221a2c 0%, #0a0a0f 72%)', color: '#e9dfcb', textAlign: 'center' }}>
         <div style={{ maxWidth: 520 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/ravenof-logo.png" alt="Ravenof" draggable={false} style={{ width: 'min(46vw, 300px)', maxHeight: '26vh', objectFit: 'contain', marginBottom: 18, filter: 'drop-shadow(0 10px 30px rgba(0,0,0,.8))' }} />
+          <img src="/brand/ravenof-logo.png" alt="Ravenof" draggable={false} style={{ display: 'block', width: 'min(46vw, 300px)', maxHeight: '26vh', objectFit: 'contain', margin: '0 auto 18px', filter: 'drop-shadow(0 10px 30px rgba(0,0,0,.8))' }} />
           <h1 style={{ fontFamily: 'Cinzel, serif', fontSize: 24, color: gold, margin: '0 0 10px' }}>{title}</h1>
           <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, lineHeight: 1.5, color: '#b9ad98', margin: '0 0 20px' }}>{sub}</p>
           {progress && (
