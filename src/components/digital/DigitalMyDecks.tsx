@@ -13,7 +13,7 @@
 // • Momentai: įėjimas (dėžutės atskrenda iš gylio), AKTYVINTI (antspaudas,
 //   blyksnis, banga, kibirkštys, drebėjimas, kaspinas peršoka), netinkama —
 //   dėžutė papurto, TRINTI — dėžutė sudega į žarijas.
-// • Pilnas kortų sąrašas (tap → detali peržiūra) ir „Išbandyti" — šoniniame
+// • Pilnas kortų sąrašas (tap → detali peržiūra) — šoniniame
 //   meniu (drawer), atidaromame mygtuku KORTOS.
 // Dalelės — vienas sprite canvas (kaip PackOpen / onboarding), reduced-motion =
 // be dalelių ir be plūduriavimo. Valdymas: tap/click, rodyklės, ratukas, swipe.
@@ -24,7 +24,6 @@ import { Edit2, Trash2, Copy, Lock, Globe, X, List } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { LoadingOrRetry } from './ui/LoadingOrRetry'
 import { playUiClick, playSuccess, playError, playCardFlip, playImpact, playCardPick } from '@/lib/ui-sound'
-import { PlaytestButton } from '@/components/decks/PlaytestButton'
 import { isDeckSizeValid, formatDeckCount, formatDeckCountShort } from '@/lib/deck-validation'
 import { costCurve, COST_CURVE_LABELS, displayAvgCost } from '@/lib/cards/cost'
 import { getStarterDecks } from '@/lib/starterDecks'
@@ -156,50 +155,36 @@ const CSS = `
 .rvn-dk-mood{position:absolute;inset:0;background:radial-gradient(55% 60% at 32% 62%,var(--mc) 0%,transparent 70%);opacity:.16;mix-blend-mode:screen;transition:background .7s;z-index:0;pointer-events:none}
 .rvn-dk[data-port="1"] .rvn-dk-mood{background:radial-gradient(70% 45% at 50% 32%,var(--mc) 0%,transparent 70%)}
 .rvn-dk-stage{position:relative;z-index:1;overflow:hidden;perspective:1400px;flex:1 1 auto;min-width:0;min-height:0;touch-action:pan-y}
-.rvn-dk-floor{position:absolute;left:50%;top:var(--fy);width:calc(var(--bw)*1.6);height:calc(var(--bw)*.45);transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;z-index:0}
-.rvn-dk-sig{position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse,color-mix(in srgb,var(--mc) 55%,transparent) 0%,color-mix(in srgb,var(--mc) 18%,transparent) 40%,transparent 70%);filter:blur(4px);transition:background .7s;animation:rvn-dk-sigb 3.2s ease-in-out infinite}
+.rvn-dk-floor{position:absolute;left:50%;top:var(--fy);width:calc(var(--bw)*1.5);height:calc(var(--bw)*.3);transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;z-index:0}
+.rvn-dk-sig{position:absolute;inset:0;border-radius:50%;background:radial-gradient(ellipse,color-mix(in srgb,var(--mc) 60%,transparent) 0%,transparent 70%);opacity:.85;filter:blur(8px);transition:background .7s;animation:rvn-dk-sigb 3.2s ease-in-out infinite}
 @keyframes rvn-dk-sigb{50%{opacity:.7;transform:scale(.96)}}
-.rvn-dk-rune{position:absolute;inset:8% 4%;border-radius:50%;border:1px solid color-mix(in srgb,var(--mc) 70%,transparent);box-shadow:0 0 14px color-mix(in srgb,var(--mc) 50%,transparent),inset 0 0 20px color-mix(in srgb,var(--mc) 25%,transparent);transition:border-color .7s}
-.rvn-dk-rune2{position:absolute;inset:22% 18%;border-radius:50%;border:1px dashed color-mix(in srgb,var(--mc) 60%,transparent);animation:rvn-dk-spin 18s linear infinite;transition:border-color .7s}
 @keyframes rvn-dk-spin{to{transform:rotate(360deg)}}
 .rvn-dk-floor.flare .rvn-dk-sig{animation:rvn-dk-flare .8s ease-out}
 @keyframes rvn-dk-flare{0%{filter:blur(4px) brightness(3);transform:scale(1.25)}}
 .rvn-dk-rail{position:absolute;left:50%;top:var(--fy);width:0;height:0;transform-style:preserve-3d;z-index:2}
-.rvn-dk-box{position:absolute;left:0;top:0;width:var(--bw);height:calc(var(--bw)*1.36);margin-left:calc(var(--bw)*-.5);margin-top:calc(var(--bw)*-1.36);cursor:pointer;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.8,.2,1),filter .55s,opacity .55s;transform:translate3d(var(--tx),0,var(--tz)) rotateY(var(--ry)) scale(var(--sc));filter:brightness(var(--br)) saturate(var(--sat));will-change:transform}
+.rvn-dk-box{position:absolute;left:0;top:0;width:var(--bw);height:calc(var(--bw)*1.53);margin-left:calc(var(--bw)*-.5);margin-top:calc(var(--bw)*-1.53);cursor:pointer;transform-style:preserve-3d;transition:transform .55s cubic-bezier(.2,.8,.2,1),filter .55s,opacity .55s;transform:translate3d(var(--tx),0,var(--tz)) rotateY(var(--ry)) scale(var(--sc));filter:brightness(var(--br)) saturate(var(--sat));will-change:transform}
 .rvn-dk-box.enter{animation:rvn-dk-enter .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:var(--ed)}
 @keyframes rvn-dk-enter{from{transform:translate3d(0,-40vh,-900px) scale(.3);opacity:0}}
 .rvn-dk-b3d{position:absolute;inset:0;transform-style:preserve-3d}
 .rvn-dk-box.foc .rvn-dk-b3d{animation:rvn-dk-float 3.4s ease-in-out infinite}
 @keyframes rvn-dk-float{0%,100%{transform:translateY(-2%) rotateY(-10deg) rotateX(3deg)}50%{transform:translateY(-4.5%) rotateY(-10deg) rotateX(3deg)}}
-.rvn-dk-front{position:absolute;inset:0;border-radius:6px;overflow:hidden;border:2px solid rgba(212,163,59,.5);background:#0d0a14;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 24px 46px rgba(0,0,0,.75),8px 8px 0 -2px #1c130b,14px 14px 0 -4px #120c08;transition:border-color .4s,box-shadow .4s}
-.rvn-dk-front .rvn-dk-cov{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 18%}
-.rvn-dk-front:after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 40%,rgba(0,0,0,.88)),linear-gradient(120deg,rgba(255,255,255,.12),transparent 40%);pointer-events:none}
-.rvn-dk-box.foc .rvn-dk-front{border-color:var(--c);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 30px 60px rgba(0,0,0,.8),0 0 46px color-mix(in srgb,var(--c) 55%,transparent),8px 8px 0 -2px #1c130b,14px 14px 0 -4px #120c08}
-.rvn-dk-box.active .rvn-dk-front{border-color:${GOLD_HEX}}
-.rvn-dk-box.active.foc .rvn-dk-front{box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 30px 60px rgba(0,0,0,.8),0 0 50px rgba(212,163,59,.6),8px 8px 0 -2px #1c130b,14px 14px 0 -4px #120c08}
-.rvn-dk-fac{position:absolute;left:50%;bottom:calc(var(--bw)*.16);transform:translateX(-50%);width:calc(var(--bw)*.24);height:calc(var(--bw)*.24);border-radius:50%;background:radial-gradient(circle,#1a1325,#0a0810);border:2px solid var(--c);box-shadow:0 0 16px var(--c);display:grid;place-items:center;z-index:2}
+.rvn-dk-front{position:absolute;inset:0}
+.rvn-dk-front .rvn-dk-cov{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;filter:drop-shadow(0 18px 22px rgba(0,0,0,.75));transition:filter .45s}
+.rvn-dk-front.nocov{border-radius:6px;overflow:hidden;border:2px solid color-mix(in srgb,var(--c) 60%,transparent);box-shadow:0 24px 46px rgba(0,0,0,.75)}
+.rvn-dk-box.foc .rvn-dk-cov{filter:drop-shadow(0 26px 30px rgba(0,0,0,.8)) drop-shadow(0 0 22px color-mix(in srgb,var(--c) 70%,transparent))}
+.rvn-dk-box.foc .rvn-dk-front.nocov{box-shadow:0 30px 60px rgba(0,0,0,.8),0 0 46px color-mix(in srgb,var(--c) 55%,transparent)}
+.rvn-dk-box.active.foc .rvn-dk-cov{filter:drop-shadow(0 26px 30px rgba(0,0,0,.8)) drop-shadow(0 0 24px rgba(212,163,59,.75))}
+.rvn-dk-fac{position:absolute;left:50%;bottom:calc(var(--bw)*.06);transform:translateX(-50%);width:calc(var(--bw)*.24);height:calc(var(--bw)*.24);border-radius:50%;background:radial-gradient(circle,#1a1325,#0a0810);border:2px solid var(--c);box-shadow:0 0 16px var(--c);display:grid;place-items:center;z-index:2}
 .rvn-dk-fac img{width:70%;height:70%;object-fit:contain}
-.rvn-dk-nm{position:absolute;left:6px;right:6px;bottom:calc(var(--bw)*.05);text-align:center;font:700 calc(var(--bw)*.075) var(--ravenof-font-display);letter-spacing:.06em;color:#f3ead3;text-shadow:0 2px 6px #000;z-index:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rvn-dk-nm{position:absolute;left:-20%;right:-20%;top:calc(100% + var(--bw)*.1);text-align:center;font:700 calc(var(--bw)*.075) var(--ravenof-font-display);letter-spacing:.06em;color:#f3ead3;text-shadow:0 2px 6px #000;z-index:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .rvn-dk-ribbon{position:absolute;top:-9px;left:50%;transform:translateX(-50%) translateZ(20px);font:800 calc(var(--bw)*.055) var(--ravenof-font-body);letter-spacing:.16em;padding:3px 10px;background:linear-gradient(180deg,#ffe08a,#d4a33b);color:#1a0f04;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%);box-shadow:0 4px 12px rgba(0,0,0,.6);z-index:4;animation:rvn-dk-rpulse 2.4s ease-in-out infinite;white-space:nowrap}
 @keyframes rvn-dk-rpulse{50%{filter:brightness(1.2) drop-shadow(0 0 10px rgba(212,163,59,.8))}}
 .rvn-dk-ribbon.pop{animation:rvn-dk-rpop .6s cubic-bezier(.2,1.4,.3,1) both}
 @keyframes rvn-dk-rpop{0%{transform:translateX(-50%) translateZ(20px) scale(2.2) rotate(-15deg);opacity:0}100%{transform:translateX(-50%) translateZ(20px) scale(1);opacity:1}}
 .rvn-dk-warn{position:absolute;top:8px;left:50%;transform:translateX(-50%);font:800 calc(var(--bw)*.05) var(--ravenof-font-body);letter-spacing:.08em;padding:2px 7px;background:rgba(120,20,30,.92);border:1px solid #c65563;color:#ffb0b8;border-radius:3px;z-index:4;white-space:nowrap}
-.rvn-dk-box.bad .rvn-dk-cov{filter:saturate(.45) brightness(.6)}
-.rvn-dk-box.bad.foc .rvn-dk-cov{filter:saturate(.7) brightness(.8)}
-.rvn-dk-refl{position:absolute;left:0;top:100%;width:100%;height:60%;overflow:hidden;opacity:.22;transform:scaleY(-1);mask-image:linear-gradient(0deg,rgba(0,0,0,.9),transparent);-webkit-mask-image:linear-gradient(0deg,rgba(0,0,0,.9),transparent);pointer-events:none;filter:blur(1px)}
-.rvn-dk-refl img{width:100%;height:166%;object-fit:cover;object-position:50% 18%;border-radius:6px}
-.rvn-dk-halo{position:absolute;left:50%;top:0;width:0;height:0;z-index:-1;pointer-events:none}
-.rvn-dk-hc{position:absolute;width:calc(var(--bw)*.32);aspect-ratio:1044/1416;border-radius:4px;border:1px solid rgba(212,163,59,.7);box-shadow:0 10px 26px #000,0 0 14px color-mix(in srgb,var(--c) 45%,transparent);left:calc(var(--bw)*-.18);top:calc(var(--bw)*.34);opacity:0;transform:translate(0,0) rotate(0) scale(.5);transition:transform .6s cubic-bezier(.2,.8,.2,1),opacity .4s;transition-delay:var(--hd,0s);background:#0d0a14;overflow:hidden}
-.rvn-dk-hc img{width:100%;height:100%;object-fit:cover;display:block}
-.rvn-dk-box.foc .rvn-dk-hc{opacity:1;transform:translate(var(--hx),var(--hy)) rotate(var(--hr)) scale(1);animation:rvn-dk-hfloat 4s ease-in-out infinite;animation-delay:var(--hd)}
-.rvn-dk-box.foc .rvn-dk-hc:nth-child(1){--hx:calc(var(--bw)*-1.12);--hy:calc(var(--bw)*-.3);--hr:-24deg;--hd:.05s}
-.rvn-dk-box.foc .rvn-dk-hc:nth-child(2){--hx:calc(var(--bw)*-.8);--hy:calc(var(--bw)*-.64);--hr:-12deg;--hd:.12s}
-.rvn-dk-box.foc .rvn-dk-hc:nth-child(3){--hx:0px;--hy:calc(var(--bw)*-.84);--hr:0deg;--hd:.19s}
-.rvn-dk-box.foc .rvn-dk-hc:nth-child(4){--hx:calc(var(--bw)*.8);--hy:calc(var(--bw)*-.64);--hr:12deg;--hd:.26s}
-.rvn-dk-box.foc .rvn-dk-hc:nth-child(5){--hx:calc(var(--bw)*1.12);--hy:calc(var(--bw)*-.3);--hr:24deg;--hd:.33s}
-@keyframes rvn-dk-hfloat{50%{translate:0 -6px}}
-.rvn-dk-ghost{border:2px dashed rgba(212,163,59,.45);background:rgba(7,6,10,.55);box-shadow:none;display:grid;place-items:center;align-content:center;gap:4px}
+.rvn-dk-box.bad .rvn-dk-cov{filter:saturate(.45) brightness(.6) drop-shadow(0 18px 22px rgba(0,0,0,.75))}
+.rvn-dk-box.bad.foc .rvn-dk-cov{filter:saturate(.7) brightness(.8) drop-shadow(0 26px 30px rgba(0,0,0,.8)) drop-shadow(0 0 18px color-mix(in srgb,var(--c) 55%,transparent))}
+.rvn-dk-ghost{border-radius:6px;border:2px dashed rgba(212,163,59,.45);background:rgba(7,6,10,.55);box-shadow:none;display:grid;place-items:center;align-content:center;gap:4px}
 .rvn-dk-ghost:after{display:none}
 .rvn-dk-ghost .rvn-dk-plus{font:300 calc(var(--bw)*.6) var(--ravenof-font-body);color:${GOLD_HEX};text-shadow:0 0 22px rgba(212,163,59,.7);animation:rvn-dk-rpulse 2.2s ease-in-out infinite;line-height:1}
 .rvn-dk-ghost .rvn-dk-nm{position:static;color:var(--ravenof-text-secondary);font-size:calc(var(--bw)*.065)}
@@ -270,18 +255,10 @@ const CSS = `
 /* LITE (mobile): be blend/blur/atspindžio/filtrų, mažiau šešėlių ir halo kortų */
 .rvn-dk[data-lite="1"] .rvn-dk-mood{mix-blend-mode:normal;opacity:.12}
 .rvn-dk[data-lite="1"] .rvn-dk-sig{filter:none;animation:none}
-.rvn-dk[data-lite="1"] .rvn-dk-refl{display:none}
 .rvn-dk[data-lite="1"] .rvn-dk-box{filter:none;opacity:var(--br);transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .45s}
-.rvn-dk[data-lite="1"] .rvn-dk-front,.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-front{box-shadow:0 14px 28px rgba(0,0,0,.7),6px 6px 0 -2px #1c130b}
-.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-front{border-color:var(--c)}
-.rvn-dk[data-lite="1"] .rvn-dk-hc{box-shadow:0 6px 14px #000;animation:none!important}
-.rvn-dk[data-lite="1"] .rvn-dk-hc:nth-child(4),.rvn-dk[data-lite="1"] .rvn-dk-hc:nth-child(5){display:none}
-.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(1){--hx:calc(var(--bw)*-.84);--hy:calc(var(--bw)*-.6);--hr:-14deg}
-.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(2){--hx:0px;--hy:calc(var(--bw)*-.84);--hr:0deg}
-.rvn-dk[data-lite="1"] .rvn-dk-box.foc .rvn-dk-hc:nth-child(3){--hx:calc(var(--bw)*.84);--hy:calc(var(--bw)*-.6);--hr:14deg}
 .rvn-dk[data-lite="1"] .rvn-dk-cta{animation:none}
 .rvn-dk[data-lite="1"] .rvn-dk-panel>*{transition-duration:.3s}
-@media (prefers-reduced-motion: reduce){.rvn-dk-box.foc .rvn-dk-b3d,.rvn-dk-box.foc .rvn-dk-hc,.rvn-dk-sig,.rvn-dk-rune2,.rvn-dk-ribbon,.rvn-dk-cta,.rvn-dk-ghost .rvn-dk-plus{animation:none!important}.rvn-dk-box.enter{animation:none}}
+@media (prefers-reduced-motion: reduce){.rvn-dk-box.foc .rvn-dk-b3d,.rvn-dk-sig,.rvn-dk-ribbon,.rvn-dk-cta,.rvn-dk-ghost .rvn-dk-plus{animation:none!important}.rvn-dk-box.enter{animation:none}}
 `
 
 export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; onEdit: (id: string) => void; onCreate: () => void }) {
@@ -430,7 +407,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
       const w = st.clientWidth, h = st.clientHeight
       setCompact(!port && h < 330)
       setLite(port || h < 330 || window.matchMedia('(pointer: coarse)').matches || (navigator.hardwareConcurrency ?? 8) <= 4)
-      const fitH = (h - (port ? 36 : 64)) / 2.4     // dėžutė (1.36) + kortų halo VIRŠ jos, nepersidengiant (~.84)
+      const fitH = (h - (port ? 36 : 64)) / 2.15    // dėžutė (1.53, PNG be fono) + plūduriavimas + ženkliukai; pavadinimas po ja
       const fitW = w / (port ? 2.3 : 3.1)          // fokusas + kaimynų kraštai (+ strėlės)
       setBw(Math.round(Math.max(96, Math.min(fitH, fitW, 330))))
     }
@@ -596,7 +573,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
 
       {/* ── SCENA ── */}
       <div ref={stageRef} className="rvn-dk-stage" style={{ ['--bw' as string]: `${bw}px`, ['--fy' as string]: fy }} data-testid="my-decks-stage">
-        <div ref={floorRef} className="rvn-dk-floor"><div className="rvn-dk-sig" /><div className="rvn-dk-rune" /><div className="rvn-dk-rune2" /></div>
+        <div ref={floorRef} className="rvn-dk-floor"><div className="rvn-dk-sig" /></div>
         <div ref={railRef} className="rvn-dk-rail">
           {slots.map((d, i) => {
             const o = i - c0, a = Math.abs(o)
@@ -617,11 +594,8 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
             }
             return (
               <div key={d.id} data-deck={d.id} className={cls} style={vars} onClick={() => { if (o !== 0) { playCardPick(); setCur(i) } else openDrawer(d) }} role="button" aria-label={d.name} aria-current={o === 0 ? 'true' : undefined}>
-                <div className="rvn-dk-halo">
-                  {d.keys.map((src, k) => <span key={k} className="rvn-dk-hc"><SmartImg src={src} width={160} loading={o === 0 ? 'eager' : 'lazy'} alt="" /></span>)}
-                </div>
                 <div className="rvn-dk-b3d">
-                  <div className="rvn-dk-front" style={{ background: cover ? undefined : `radial-gradient(120% 90% at 50% 25%, ${d.factionColor}55, rgba(10,8,16,0.98) 72%), linear-gradient(160deg,#1a1325,#0a0810)` }}>
+                  <div className={'rvn-dk-front' + (cover ? '' : ' nocov')} style={{ background: cover ? undefined : `radial-gradient(120% 90% at 50% 25%, ${d.factionColor}55, rgba(10,8,16,0.98) 72%), linear-gradient(160deg,#1a1325,#0a0810)` }}>
                     {cover && <SmartImg src={cover} width={440} loading="eager" className="rvn-dk-cov" alt="" />}
                     <span className="rvn-dk-fac">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -632,7 +606,6 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
                   {isActive && <span className={'rvn-dk-ribbon' + (popId === d.id ? ' pop' : '')}>★ {t('decks.my.activeBadge')}</span>}
                   {!valid && <span className="rvn-dk-warn">⚠ {(d.missing ?? 0) > 0 ? t('decks.my.missingShort', { count: d.missing ?? 0 }) : t('decks.my.invalidBadge')}</span>}
                 </div>
-                {cover && <div className="rvn-dk-refl"><SmartImg src={cover} width={220} alt="" /></div>}
               </div>
             )
           })}
@@ -741,8 +714,7 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
 
                 {/* Veiksmai */}
                 <div className="grid grid-cols-2 gap-2 pt-1">
-                  <button onClick={() => { playUiClick(); onEdit(openDeck.id) }} className="rvn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold" style={{ minHeight: 44, background: `rgba(${GOLD},0.14)`, border: `1px solid rgba(${GOLD},0.45)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}><Edit2 className="w-3.5 h-3.5" /> {t('decks.my.edit')}</button>
-                  <PlaytestButton deckId={openDeck.id} deckName={openDeck.name} variant="compact" />
+                  <button onClick={() => { playUiClick(); onEdit(openDeck.id) }} className="col-span-2 rvn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold" style={{ minHeight: 44, background: `rgba(${GOLD},0.14)`, border: `1px solid rgba(${GOLD},0.45)`, color: 'var(--gold)', fontFamily: 'var(--rvn-font-display)' }}><Edit2 className="w-3.5 h-3.5" /> {t('decks.my.edit')}</button>
                   <button onClick={() => duplicate(openDeck.id)} disabled={busy === openDeck.id} className="rvn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold disabled:opacity-40" style={{ minHeight: 44, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-secondary)' }}><Copy className="w-3.5 h-3.5" /> {t('decks.my.copy')}</button>
                   <button onClick={() => setConfirmDel(openDeck.id)} className="rvn-press inline-flex items-center justify-center gap-1.5 rounded-xl text-xs font-bold" style={{ minHeight: 44, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.4)', color: '#fca5a5' }}><Trash2 className="w-3.5 h-3.5" /> {t('decks.my.delete')}</button>
                 </div>

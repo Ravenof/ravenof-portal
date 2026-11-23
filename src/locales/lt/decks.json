@@ -42,6 +42,8 @@
     "missingInfo": "Trūksta {{count}} kortų — nukopijuota kaladė bus pilna, bet žaisti galėsi tik jas įsigijęs",
     "noComments": "Komentarų dar nėra — būk pirmas!",
     "noneFound": "Kaladžių nerasta.",
+    "viewGrid": "Kortų vaizdas",
+    "viewList": "Sąrašas",
     "preview": "Peržiūra",
     "remove": "Pašalinti",
     "removeFailed": "Nepavyko pašalinti",

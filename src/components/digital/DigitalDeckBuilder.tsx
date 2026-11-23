@@ -25,6 +25,8 @@ import { useT, useContent, useCardI18n } from '@/lib/i18n/react'
 import { useDesktopUi } from './ui/useDesktopUi'
 import { DT, deskGrid } from './ui/deskTokens'
 import { useDialogFocus } from './ui/DeskKit'
+import { withoutHiddenFactions } from '@/lib/game/hiddenFactions'
+import { getStarterDecks } from '@/lib/starterDecks'
 
 const GOLD = '212,163,59'
 // hover preview tik įrenginiams su tikra pele (touch emuliuoja mouse eventus,
@@ -77,6 +79,78 @@ function FactionGlyph({ f, size }: { f: Pick<Faction, 'slug' | 'color_hex'>; siz
       WebkitMask: `url('${url}') center / contain no-repeat`, mask: `url('${url}') center / contain no-repeat`,
       filter: 'drop-shadow(0 0 6px rgba(0,0,0,.6))',
     }} />
+  )
+}
+
+// ── Frakcijos pasirinkimas: starter dėžutės (PNG be fono) su frakcijos glow ──
+const FBP_CSS = `
+.rvn-fbp-item{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;cursor:pointer;padding:14px 2px 4px;flex:0 0 auto;outline:none}
+.rvn-fbp-box{position:relative;width:100%;aspect-ratio:1/1.53}
+.rvn-fbp-art{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 100%;filter:drop-shadow(0 16px 20px rgba(0,0,0,.75));transition:filter .35s,transform .35s cubic-bezier(.2,.8,.2,1);z-index:1}
+.rvn-fbp-tile{position:absolute;inset:0;border-radius:6px;border:1.5px solid color-mix(in srgb,var(--c) 60%,transparent);background:radial-gradient(120% 90% at 50% 25%,color-mix(in srgb,var(--c) 30%,transparent),rgba(10,8,16,.98) 72%);box-shadow:0 16px 30px rgba(0,0,0,.7);transition:box-shadow .35s,transform .35s cubic-bezier(.2,.8,.2,1);z-index:1;display:grid;place-items:center}
+.rvn-fbp-disc{position:absolute;left:-18%;right:-18%;bottom:-12%;height:22%;border-radius:50%;background:radial-gradient(ellipse,var(--c) 0%,transparent 70%);opacity:.28;filter:blur(7px);transition:opacity .35s;z-index:0}
+.rvn-fbp-med{position:absolute;left:50%;bottom:5%;width:30%;aspect-ratio:1;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,#1a1325,#0a0810);border:2px solid var(--c);box-shadow:0 0 14px var(--c);display:grid;place-items:center;z-index:2;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.rvn-fbp-nm{font:700 var(--fs) var(--ravenof-font-display);letter-spacing:.04em;text-align:center;line-height:1.15;transition:text-shadow .35s}
+.rvn-fbp-ln{font:400 calc(var(--fs) * .78) var(--ravenof-font-body);color:var(--ravenof-text-secondary);text-align:center;line-height:1.3}
+.rvn-fbp-item:hover .rvn-fbp-art,.rvn-fbp-item:focus-visible .rvn-fbp-art{transform:translateY(-8px) scale(1.05);filter:drop-shadow(0 24px 28px rgba(0,0,0,.8)) drop-shadow(0 0 22px color-mix(in srgb,var(--c) 75%,transparent))}
+.rvn-fbp-item:hover .rvn-fbp-tile,.rvn-fbp-item:focus-visible .rvn-fbp-tile{transform:translateY(-8px) scale(1.05);box-shadow:0 24px 40px rgba(0,0,0,.8),0 0 30px color-mix(in srgb,var(--c) 55%,transparent)}
+.rvn-fbp-item:hover .rvn-fbp-med,.rvn-fbp-item:focus-visible .rvn-fbp-med{transform:translateX(-50%) translateY(-8px)}
+.rvn-fbp-item:hover .rvn-fbp-disc,.rvn-fbp-item:focus-visible .rvn-fbp-disc{opacity:.85}
+.rvn-fbp-item:hover .rvn-fbp-nm,.rvn-fbp-item:focus-visible .rvn-fbp-nm{text-shadow:0 0 14px color-mix(in srgb,var(--c) 70%,transparent)}
+@media (prefers-reduced-motion: reduce){.rvn-fbp-art,.rvn-fbp-tile,.rvn-fbp-med{transition:none}}
+`
+
+function FactionBoxPicker({ factions, desktop, onPick, onBack }: { factions: Faction[]; desktop: boolean; onPick: (f: Faction) => void; onBack: () => void }) {
+  const t = useT()
+  const tc = useContent()
+  // Starter dėžučių paveikslėliai pagal frakciją (tas pats cache kaip „Mano kaladės")
+  const [boxes, setBoxes] = useState<Record<number, string>>(() => {
+    try { return JSON.parse(sessionStorage.getItem('rvn-deck-covers') || '{}') as Record<number, string> } catch { return {} }
+  })
+  const [bad, setBad] = useState<Record<number, boolean>>({})
+  useEffect(() => {
+    let alive = true
+    getStarterDecks().then((sd) => {
+      if (!alive) return
+      const m: Record<number, string> = {}
+      for (const d of sd ?? []) if (d.factionId != null && d.imageUrl) m[d.factionId] = d.imageUrl
+      setBoxes(m)
+      try { sessionStorage.setItem('rvn-deck-covers', JSON.stringify(m)) } catch { /* */ }
+    })
+    return () => { alive = false }
+  }, [])
+  const bw = desktop ? 'clamp(120px, 11vw, 170px)' : 'clamp(62px, 21vh, 104px)'
+  return (
+    <div className="flex-1 min-h-0 flex flex-col" data-testid="faction-grid">
+      <style>{FBP_CSS}</style>
+      <div className="relative shrink-0" style={{ marginBottom: desktop ? DT.sp.md : 4, marginTop: desktop ? DT.sp.lg : 0 }}>
+        {!desktop && <button onClick={() => { playUiClick(); onBack() }} className="rvn-press absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-lg" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-gold)' }} aria-label={t('deckBuilder.back')}><ChevronLeft className="w-5 h-5" /></button>}
+        <h2 className={desktop ? 'rvn-d-h2' : 'rvn-disp font-extrabold'} style={{ textAlign: 'center', textTransform: 'uppercase', letterSpacing: '.06em', color: 'var(--ravenof-gold)', fontSize: desktop ? undefined : 'clamp(11px,1.7vh,14px)', textShadow: '0 2px 10px rgba(0,0,0,.8)' }}>{t('deckBuilder.pickDeckFaction')}</h2>
+      </div>
+      <div className="flex-1 min-h-0 overflow-auto ravenof-scroll flex" style={{ flexWrap: desktop ? 'wrap' : 'nowrap', justifyContent: desktop ? 'center' : 'flex-start', alignItems: 'center', alignContent: 'center', gap: desktop ? '18px 26px' : 14, padding: desktop ? '8px 24px 24px' : '0 8px 4px' }}>
+        {!desktop && <span className="flex-1" />}
+        {factions.map((f) => {
+          const id = identityFor(f.name)
+          const col = f.color_hex ?? `rgb(${GOLD})`
+          const img = boxes[f.id]
+          return (
+            <button key={f.id} type="button" onClick={() => { playUiClick(); onPick(f) }} className="rvn-fbp-item"
+              style={{ width: bw, ['--c' as string]: col, ['--fs' as string]: desktop ? '15px' : '11px' }} aria-label={tc('faction', f.id, 'name', f.name)}>
+              <span className="rvn-fbp-box">
+                <span className="rvn-fbp-disc" />
+                {img && !bad[f.id]
+                  ? <SmartImg src={img} width={340} alt="" className="rvn-fbp-art" onFail={() => setBad((b) => ({ ...b, [f.id]: true }))} />
+                  : <span className="rvn-fbp-tile"><FactionGlyph f={f} size={desktop ? 64 : 36} /></span>}
+                {img && !bad[f.id] && <span className="rvn-fbp-med"><FactionGlyph f={f} size={desktop ? 30 : 18} /></span>}
+              </span>
+              <span className="rvn-fbp-nm" style={{ color: glyphColor(f.color_hex) }}>{tc('faction', f.id, 'name', f.name)}</span>
+              {id && <span className="rvn-fbp-ln" style={{ display: desktop ? undefined : 'none' }}>{t(id.lineKey)}</span>}
+            </button>
+          )
+        })}
+        {!desktop && <span className="flex-1" />}
+      </div>
+    </div>
   )
 }
 
@@ -391,6 +465,13 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
 
   const dragGhostCol = dragCard ? rarityColor(dragCard.rarity?.name) : '#f0b429'
   const selFaction = factions.find((f) => f.id === store.factionId)
+  // Pasirenkamos frakcijos: be neutralių ir be laikinai paslėptų (Rytų vėjas)
+  const pickable = useMemo(() => withoutHiddenFactions(factions).filter((f) => f.id !== NEUTRAL_FACTION_ID), [factions])
+  // Numatytas pavadinimas sandėlyje lietuviškas – naujai kaladei rodom/saugom aktyvios kalbos variantą
+  const defaultName = t('decks.my.newDeck')
+  useEffect(() => {
+    if (!store.deckId && (store.name === 'Nauja kaladė' || store.name === 'New deck') && store.name !== defaultName) store.setName(defaultName)
+  }, [store.deckId, store.name, defaultName]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const pickFaction = (f: Faction) => {
     playUiClick()
@@ -454,52 +535,10 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
       <div className={`flex-1 min-h-0 grid ${desktop ? '' : 'gap-2'}`} style={{ gridTemplateColumns: desktop ? (deskPickOnly ? 'minmax(0,1fr)' : `minmax(0,1fr) ${DT.side.deck}px`) : 'minmax(0,2.55fr) minmax(220px,1.05fr)', gridTemplateRows: 'minmax(0, 1fr)', gap: desktop ? DT.sp.lg : undefined }}>
 
         {/* ── KAIRĖ: ALBUMAS (filtrų juosta + kortų grid) ── */}
-        <section className={`flex flex-col min-h-0 overflow-hidden ${desktop ? '' : 'p-2.5'}`} style={desktop ? (deskPickOnly ? { padding: 0 } : { ...PANEL, padding: DT.sp.lg }) : PANEL}>
-          {store.factionId == null && desktop ? (
-            /* DESKTOP frakcijos pasirinkimas: kompaktiškas centruotas grid (≤1100px), 260–320px plytelės */
-            <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll">
-              <div className="flex flex-col" style={{ maxWidth: 1100, margin: '0 auto', padding: `${DT.sp.xl}px ${DT.sp.xl}px`, ...PANEL }}>
-                <h2 className="rvn-d-h2" style={{ textAlign: 'center', textTransform: 'uppercase', color: 'var(--ravenof-gold)' }}>{t('deckBuilder.pickDeckFaction')}</h2>
-                <div style={{ ...deskGrid([260, 320], DT.sp.lg), marginTop: DT.sp.xl }} data-testid="faction-grid">
-                  {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => {
-                    const id = identityFor(f.name)
-                    const on = f.id === store.factionId
-                    return (
-                      <button key={f.id} onClick={() => pickFaction(f)} className="ravenof-press flex items-center text-left"
-                        style={{ minHeight: 96, gap: DT.sp.lg, padding: `${DT.sp.lg}px ${DT.sp.lg}px`, cursor: 'pointer', background: on ? `rgba(${GOLD},0.1)` : 'rgba(10,8,16,0.85)', border: `1.5px solid ${f.color_hex ? f.color_hex + '77' : `rgba(${GOLD},0.3)`}`, boxShadow: f.color_hex ? `inset 0 0 28px ${f.color_hex}14` : undefined }}>
-                        <span className="shrink-0 flex items-center justify-center" style={{ width: 52, height: 52, border: `1px solid ${f.color_hex ? f.color_hex + '55' : `rgba(${GOLD},0.3)`}`, background: 'rgba(0,0,0,0.35)' }}><FactionGlyph f={f} size={34} /></span>
-                        <span className="min-w-0 flex flex-col" style={{ gap: 4 }}>
-                          <span className="rvn-clamp2" style={{ font: `700 ${DT.fs.h3 + 1}px/1.2 var(--ravenof-font-display)`, color: f.color_hex ?? '#f3ead3', letterSpacing: '.03em' }}>{tc('faction', f.id, 'name', f.name)}</span>
-                          {id && <span className="rvn-d-help" style={{ lineHeight: 1.35 }}>{t(id.lineKey)}</span>}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-          ) : store.factionId == null ? (
-            <div className="flex-1 min-h-0 flex flex-col">
-              <div className="relative mb-2 shrink-0">
-                <button onClick={() => { playUiClick(); onBack() }} className="rvn-press absolute left-0 top-1/2 -translate-y-1/2 flex items-center justify-center rounded-lg" style={{ width: 32, height: 32, background: 'rgba(10,8,16,0.9)', border: `1px solid rgba(${GOLD},0.3)`, color: 'var(--ravenof-gold)' }} aria-label={t('deckBuilder.back')}><ChevronLeft className="w-5 h-5" /></button>
-                <div className="rvn-disp font-extrabold uppercase tracking-wide text-center" style={{ fontSize: 'clamp(11px,1.7vh,14px)', color: 'var(--ravenof-gold)' }}>{t('deckBuilder.pickDeckFaction')}</div>
-              </div>
-              <div className="flex-1 min-h-0 overflow-y-auto grid grid-cols-2 gap-2 content-start">
-                {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => {
-                  const id = identityFor(f.name)
-                  return (
-                    <button key={f.id} onClick={() => pickFaction(f)} className="rvn-press flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left"
-                      style={{ minHeight: 56, background: 'rgba(10,8,16,0.85)', border: `1.5px solid ${f.color_hex ? f.color_hex + '66' : `rgba(${GOLD},0.25)`}` }}>
-                      <span className="shrink-0 flex items-center justify-center" style={{ width: 30, height: 30 }}><FactionGlyph f={f} size={26} /></span>
-                      <span className="min-w-0">
-                        <span className="block font-bold leading-tight truncate" style={{ fontSize: 13, color: f.color_hex ?? '#f3ead3', fontFamily: 'var(--rvn-font-display)' }}>{tc('faction', f.id, 'name', f.name)}</span>
-                        <span className="block leading-tight truncate" style={{ fontSize: 10, color: 'var(--ravenof-text-secondary)' }}>{id ? t(id.lineKey) : ''}</span>
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
+        <section className={`flex flex-col min-h-0 overflow-hidden ${desktop ? '' : 'p-2.5'}`} style={desktop ? (deskPickOnly ? { padding: 0 } : { ...PANEL, padding: DT.sp.lg }) : (store.factionId == null ? undefined : PANEL)}>
+          {store.factionId == null ? (
+            /* Frakcijos pasirinkimas — starter dėžutės be fono su frakcijos glow (kaip onboarding / Mano kaladės) */
+            <FactionBoxPicker factions={pickable} desktop={desktop} onPick={pickFaction} onBack={onBack} />
           ) : (
             <>
               {/* Filtrų juosta (back čia — atskiros antraštės eilutės nebėra, plotas kortoms) */}
@@ -512,7 +551,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
                 </div>
                 <select value={store.factionId ?? ''} onChange={(e) => { const f = factions.find((x) => x.id === Number(e.target.value)); if (f) pickFaction(f) }}
                   className="rounded-lg outline-none" style={{ minHeight: desktop ? DT.ctl : 32, maxWidth: desktop ? 260 : 150, fontSize: desktop ? DT.fs.body : 11, padding: desktop ? '0 10px' : '0 6px', background: 'rgba(10,8,16,0.9)', border: `1px solid ${selFaction?.color_hex ? selFaction.color_hex + '88' : `rgba(${GOLD},0.3)`}`, color: selFaction?.color_hex ?? 'var(--text-primary)' }}>
-                  {factions.filter((f) => f.id !== NEUTRAL_FACTION_ID).map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+                  {pickable.map((f) => <option key={f.id} value={f.id}>{tc('faction', f.id, 'name', f.name)}</option>)}
                 </select>
                 <button onClick={() => { playUiClick(); store.setOwnedOnly(!store.ownedOnly) }} aria-pressed={store.ownedOnly} className={`rvn-press rounded-lg font-semibold ${desktop ? 'px-4' : 'px-2'}`}
                   style={{ minHeight: desktop ? DT.ctl : 32, fontSize: desktop ? 13 : 10, background: store.ownedOnly ? 'rgba(79,158,82,0.16)' : 'rgba(10,8,16,0.8)', border: `1px solid ${store.ownedOnly ? 'rgba(79,158,82,0.55)' : `rgba(${GOLD},0.25)`}`, color: store.ownedOnly ? '#7fbf82' : 'var(--text-muted)' }}>

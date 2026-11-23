@@ -41,6 +41,8 @@
     "missingInfo": "{{count}} cards missing — the copied deck will be complete, but playable only once you own them",
     "noComments": "No comments yet — be the first!",
     "noneFound": "No decks found.",
+    "viewGrid": "Grid view",
+    "viewList": "List view",
     "preview": "Preview",
     "remove": "Remove",
     "removeFailed": "Could not remove",
