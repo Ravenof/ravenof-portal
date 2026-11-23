@@ -29,6 +29,7 @@ import { useDialogFocus } from '@/components/digital/ui/DeskKit'
 import { X } from 'lucide-react'
 import { PackOpenFlow } from './PackChooser'
 import { RubyPacks } from './shop/RubyPacks'
+import { AvatarPackStage, AvatarPackControls, AVATAR_PREVIEW_IDLE, isAvatarPack, type AvatarPreviewState } from './shop/AvatarPackPreview'
 
 type Sel = { t: 'shop'; id: number } | { t: 'deal'; id: string } | { t: 'starter'; id: string }
 type Section = { key: string; labelKey: string }
@@ -66,6 +67,8 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   // kosmetikos vizualai + nuosavybė — VIENAS šaltinis su Profiliu (cosmeticsStore).
   // Jokių lokalių kopijų: pirkimas atsinaujina ir Shop'e, ir Profilyje iškart.
   const cosStore = useCosmetics()
+  // Avataro „pack" peržiūra (veidai, reakcijos su balsu, emocijos)
+  const [avPv, setAvPv] = useState<AvatarPreviewState>(AVATAR_PREVIEW_IDLE)
   const cosVis = useMemo(() => {
     const m: Record<string, { imageUrl: string | null; css: string | null; emoji: string | null; kind: string }> = {}
     for (const it of cosStore.items) m[it.id] = { imageUrl: it.imageUrl ?? null, css: it.css ?? null, emoji: it.emoji ?? null, kind: it.kind }
@@ -261,6 +264,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     let name = '', sub: string | null = null
     let heroSrc: string | null = null
     let details: React.ReactNode = null
+    let heroNode: React.ReactNode = null
     const actions: React.ReactNode[] = []
     let qtyRow: React.ReactNode = null
 
@@ -287,6 +291,10 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     if (selShop) {
       name = shopName(selShop); sub = shopDesc(selShop)
       heroSrc = packImgOf(selShop) ?? visOf(selShop)?.imageUrl ?? null
+      const avId = selShop.itemType === 'player_avatar' ? cosIdOf(selShop) : null
+      const avPack = avId && isAvatarPack(avId) ? avId : null
+      const avEmo = avPack ? cosStore.items.find((c) => c.id === avPack)?.emotions ?? null : null
+      if (avPack) heroNode = <AvatarPackStage id={avPack} base={heroSrc} emotions={avEmo} state={avPv} desktop={D} />
       const stack = isStackable(selShop.itemType) && !ownedShopItem(selShop)
       details = (
         <>
@@ -425,6 +433,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
       || (selDeal && !selDeal.bought && bal.silver < selDeal.priceGold)
       || (selStarter && !selStarter.claimed && selStarter.priceGold > 0 && bal.silver < selStarter.priceGold))
 
+    if (selShop && heroNode) {
+      const avId2 = cosIdOf(selShop) as string
+      details = <>{details}<AvatarPackControls id={avId2} base={heroSrc} emotions={cosStore.items.find((c) => c.id === avId2)?.emotions ?? null} onState={setAvPv} desktop={D} /></>
+    }
+
     if (D) {
       // Desktop: centruotas dialogas — header (pavadinimas + ×) · body (vaizdas | detalės) · footer (veiksmai pagal turinį)
       const heroAspect = selShop?.itemType === 'player_avatar' ? '1 / 1' : selShop?.itemType === 'avatar_frame' ? '6 / 7' : '3 / 4'
@@ -440,11 +453,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
               <button type="button" data-dlg-close="1" className="rvn-dlg-close" onClick={close} aria-label={t('common.close')}><X size={20} /></button>
             </div>
             <div className="rvn-dlg-body ravenof-scroll" style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
-              <div className="relative shrink-0 overflow-hidden" style={{ width: 300, aspectRatio: heroAspect, border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.7)', borderRadius: heroAspect === '1 / 1' ? '50%' : 0 }}>
-                {heroSrc ? artFull(heroSrc, 700, '50% 30%') : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}>
+              <div className="relative shrink-0 overflow-hidden" style={{ width: 300, aspectRatio: heroAspect, border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.7)', borderRadius: heroAspect === '1 / 1' ? '50%' : 0, ...(heroNode ? { position: 'sticky', top: 0 } : null) }}>
+                {heroNode ?? (heroSrc ? artFull(heroSrc, 700, '50% 30%') : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {selShop?.itemType === 'rubies_bundle' ? <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png?v=2`} alt="" style={{ width: 96, height: 96, objectFit: 'contain' }} /> : <span style={{ fontSize: 56 }}>🛒</span>}
-                </span>}
+                </span>)}
               </div>
               <div className="flex-1 min-w-0 flex flex-col" style={{ gap: 16 }}>
                 {details}
@@ -472,7 +485,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
           width: 700, maxWidth: '94vw', height: 'min(78vh, 460px)', padding: 18, gap: 16, animation: 'ravenofFound .3s ease' }}>
           {/* KAIRĖ: pilnas prekės vaizdas */}
           <div className="relative shrink-0 overflow-hidden" style={{ width: 236, maxWidth: '38%', border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.7)' }}>
-            {heroSrc ? artFull(heroSrc, 700, '50% 30%') : <span className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 40, background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}>🛒</span>}
+            {heroNode ?? (heroSrc ? artFull(heroSrc, 700, '50% 30%') : <span className="absolute inset-0 flex items-center justify-center" style={{ fontSize: 40, background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}>🛒</span>)}
           </div>
 
           {/* DEŠINĖ: info + visada matoma veiksmų juosta */}

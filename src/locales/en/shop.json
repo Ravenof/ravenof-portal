@@ -62,6 +62,38 @@
     "failed": "Purchase failed. You were not charged or will be refunded – please try again.",
     "unavailable": "Purchases are available only in the Android app (Google Play)."
   },
+  "avatarPack": {
+    "faces": "{{count}} facial expressions",
+    "emotes": "{{count}} emotes",
+    "voiceLines": "{{count}} voice lines",
+    "fx": "Signature effects",
+    "talkTitle": "Try it",
+    "talk": "Talk",
+    "reactionsTitle": "Battle reactions",
+    "emotesTitle": "Emote wheel",
+    "facesTitle": "Facial expressions",
+    "ev": {
+      "fightStart": "Battle start",
+      "attack": "Attacks",
+      "spellCast": "Casts a spell",
+      "hit": "Takes damage",
+      "bigHit": "Big hit",
+      "lowHp": "Low health",
+      "kill": "Destroys a unit",
+      "victory": "Victory",
+      "defeat": "Defeat",
+      "timer": "Turn timer"
+    },
+    "face": {
+      "neutral": "Calm",
+      "happy": "Happy",
+      "smug": "Smug",
+      "angry": "Angry",
+      "shock": "Shocked",
+      "sad": "Sad",
+      "wounded": "Wounded"
+    }
+  },
   "sections": {
     "frames": "Avatar frames",
     "avatars": "Player avatars",

@@ -9,6 +9,14 @@ import { createClient } from 'npm:@supabase/supabase-js@2'
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
 
+// CORS: klientas (Capacitor WebView https://localhost / web) kviečia per functions.invoke
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+const json = (b: unknown, init: { status?: number } = {}) => new Response(JSON.stringify(b), { status: init.status ?? 200, headers: { ...CORS, 'content-type': 'application/json' } })
+
 async function googleAccessToken(): Promise<string> {
   const sa = JSON.parse(Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON')!)
   const now = Math.floor(Date.now() / 1000)
@@ -52,22 +60,23 @@ async function verifySteam(_productId: string, _orderId: string) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method !== 'POST') return new Response('POST', { status: 405 })
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
+  if (req.method !== 'POST') return new Response('POST', { status: 405, headers: CORS })
   const auth = req.headers.get('authorization') ?? ''
   const { data: { user } } = await admin.auth.getUser(auth.replace(/^Bearer\s+/i, ''))
-  if (!user) return Response.json({ error: 'unauthorized' }, { status: 401 })
+  if (!user) return json({ error: 'unauthorized' }, { status: 401 })
   const body = await req.json().catch(() => null) as { platform?: string; productId?: string; token?: string } | null
-  if (!body?.platform || !body.productId || !body.token) return Response.json({ error: 'bad request' }, { status: 400 })
+  if (!body?.platform || !body.productId || !body.token) return json({ error: 'bad request' }, { status: 400 })
 
   const v: { ok: boolean; externalId: string; raw: unknown; consume?: () => Promise<void> } = body.platform === 'google' ? await verifyGoogle(body.productId, body.token, user.id)
     : body.platform === 'apple' ? await verifyApple(body.productId, body.token)
     : body.platform === 'steam' ? await verifySteam(body.productId, body.token)
     : { ok: false, externalId: '', raw: {} }
-  if (!v.ok) return Response.json({ error: 'receipt invalid', raw: v.raw }, { status: 402 })
+  if (!v.ok) return json({ error: 'receipt invalid', raw: v.raw }, { status: 402 })
 
   const { data, error } = await admin.rpc('rvn_grant_purchase', { p_user: user.id, p_platform: body.platform, p_product: body.productId, p_external: v.externalId, p_raw: v.raw })
-  if (error) return Response.json({ error: error.message }, { status: 500 })
+  if (error) return json({ error: error.message }, { status: 500 })
   // Suteikta (arba jau buvo suteikta anksčiau – duplicate) → galima suvartoti pirkinį
   await v.consume?.()
-  return Response.json(data)
+  return json(data)
 })

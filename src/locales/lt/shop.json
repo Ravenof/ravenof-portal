@@ -65,6 +65,38 @@
     "failed": "Pirkimas nepavyko. Pinigai nenuskaičiuoti arba bus grąžinti – bandyk dar kartą.",
     "unavailable": "Pirkimas galimas tik Android programėlėje (Google Play)."
   },
+  "avatarPack": {
+    "faces": "{{count}} veido išraiškos",
+    "emotes": "{{count}} emocijos",
+    "voiceLines": "{{count}} balso eilučių",
+    "fx": "Savi efektai",
+    "talkTitle": "Išbandyk",
+    "talk": "Pakalbinti",
+    "reactionsTitle": "Reakcijos kovoje",
+    "emotesTitle": "Emocijų ratas",
+    "facesTitle": "Veido išraiškos",
+    "ev": {
+      "fightStart": "Kovos pradžia",
+      "attack": "Puola",
+      "spellCast": "Burtas",
+      "hit": "Gauna žalą",
+      "bigHit": "Didelis smūgis",
+      "lowHp": "Mažai gyvybių",
+      "kill": "Sunaikina padarą",
+      "victory": "Pergalė",
+      "defeat": "Pralaimėjimas",
+      "timer": "Ėjimo laikas"
+    },
+    "face": {
+      "neutral": "Ramybė",
+      "happy": "Džiaugsmas",
+      "smug": "Pašaipa",
+      "angry": "Pyktis",
+      "shock": "Nuostaba",
+      "sad": "Liūdesys",
+      "wounded": "Skausmas"
+    }
+  },
   "sections": {
     "frames": "Avatarų rėmeliai",
     "avatars": "Žaidėjo avatarai",
