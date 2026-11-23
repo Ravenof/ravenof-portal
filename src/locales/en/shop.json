@@ -53,6 +53,15 @@
   "purchased": "Purchased: {{name}}",
   "purchasedN": "\"{{name}}\" ×{{count}} purchased!",
   "purchasedShort": "✓ Purchased",
+  "rubies": {
+    "androidOnly": "Rubies can be bought in the Android app via Google Play. If the buttons are inactive, update the app on Google Play.",
+    "bonusAmount": "{{base}} + {{bonus}} bonus",
+    "success": "+{{count}} rubies added!",
+    "recovered": "Earlier purchases credited: {{count}}",
+    "pending": "Payment is still pending – rubies will be credited once it goes through.",
+    "failed": "Purchase failed. You were not charged or will be refunded – please try again.",
+    "unavailable": "Purchases are available only in the Android app (Google Play)."
+  },
   "sections": {
     "frames": "Avatar frames",
     "avatars": "Player avatars",

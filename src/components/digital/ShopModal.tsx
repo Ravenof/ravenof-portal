@@ -28,13 +28,14 @@ import { DT } from '@/components/digital/ui/deskTokens'
 import { useDialogFocus } from '@/components/digital/ui/DeskKit'
 import { X } from 'lucide-react'
 import { PackOpenFlow } from './PackChooser'
+import { RubyPacks } from './shop/RubyPacks'
 
 type Sel = { t: 'shop'; id: number } | { t: 'deal'; id: string } | { t: 'starter'; id: string }
 type Section = { key: string; labelKey: string }
 // 'decks' DB sekcija pašalinta (faction_deck prekių niekada nebuvo — tuščia
 // kategorija klaidino; kalades parduoda Starter sekcija žemiau)
 const ALL_SECTIONS: Section[] = [
-  ...SHOP_SECTIONS.filter((s) => s.key !== 'decks' && (REAL_MONEY_SHOP_ENABLED || s.key !== 'rubies')).map((s) => ({ key: s.key, labelKey: s.labelKey })),
+  ...SHOP_SECTIONS.filter((s) => s.key !== 'decks').map((s) => ({ key: s.key, labelKey: s.labelKey })),
   { key: 'daily', labelKey: 'shop.sections.daily' },
   { key: 'starter', labelKey: 'shop.sections.starter' },
 ]
@@ -58,6 +59,9 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   // UŽBLOKUOTI ir rodoma "—", ne 0 (audit: jokiu fake zero / klaidinancio "neuztenka").
   const account = useAccount()
   const balLoaded = account.balances != null
+  // Rubinai už tikrus pinigus: kol neįjungta visiems – matoma tik adminams (testavimui)
+  const showRubies = REAL_MONEY_SHOP_ENABLED || account.profile?.role === 'admin'
+  const sections = useMemo(() => ALL_SECTIONS.filter((sc) => sc.key !== 'rubies' || showRubies), [showRubies])
   const bal = account.balances ?? { silver: 0, rubies: 0, essence: 0 }
   // kosmetikos vizualai + nuosavybė — VIENAS šaltinis su Profiliu (cosmeticsStore).
   // Jokių lokalių kopijų: pirkimas atsinaujina ir Shop'e, ir Profilyje iškart.
@@ -216,9 +220,9 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const priceRow = (silver?: number | null, rubies?: number | null, state?: { label: string; color: string } | null) => (
     <div className="shrink-0 flex items-center justify-center" style={{ gap: f(5, 8), padding: D ? '0 10px' : '6px 4px', height: D ? 44 : undefined, borderTop: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.6)' }}>
       {state ? <span style={{ font: `700 ${f(11, 14)}px var(--ravenof-font-body)`, color: state.color }}>{state.label}</span> : <>
-        {silver != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: f(14, 18), height: f(14, 18), objectFit: 'contain' }} /><span style={{ font: `700 ${f(11, 15)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{D ? formatNumber(silver) : silver}</span></>}
+        {silver != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-silver.png?v=2`} alt="" style={{ width: f(14, 18), height: f(14, 18), objectFit: 'contain' }} /><span style={{ font: `700 ${f(11, 15)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{D ? formatNumber(silver) : silver}</span></>}
         {silver != null && rubies != null && <span style={{ color: 'var(--ravenof-text-secondary)', fontSize: f(9, 13) }}>/</span>}
-        {rubies != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: f(13, 16), height: f(14, 18), objectFit: 'contain' }} /><span style={{ font: `700 ${f(11, 15)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{D ? formatNumber(rubies) : rubies}</span></>}
+        {rubies != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png?v=2`} alt="" style={{ width: f(13, 16), height: f(14, 18), objectFit: 'contain' }} /><span style={{ font: `700 ${f(11, 15)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{D ? formatNumber(rubies) : rubies}</span></>}
       </>}
     </div>
   )
@@ -403,7 +407,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                       <span className="flex-1 truncate" style={{ font: `500 ${f(11, 14.5)}px var(--ravenof-font-body)`, color: c.rarityColor ?? 'var(--ravenof-text-primary)' }}>{c.name}</span>
                       {c.gold != null && <span className="flex items-center" style={{ gap: 4, font: `600 ${f(10, 13)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: f(11, 14), height: f(11, 14), objectFit: 'contain' }} />{c.gold}
+                        <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png?v=2`} alt="" style={{ width: f(11, 14), height: f(11, 14), objectFit: 'contain' }} />{c.gold}
                       </span>}
                     </div>
                   ))}
@@ -439,7 +443,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
               <div className="relative shrink-0 overflow-hidden" style={{ width: 300, aspectRatio: heroAspect, border: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.7)', borderRadius: heroAspect === '1 / 1' ? '50%' : 0 }}>
                 {heroSrc ? artFull(heroSrc, 700, '50% 30%') : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {selShop?.itemType === 'rubies_bundle' ? <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 96, height: 96, objectFit: 'contain' }} /> : <span style={{ fontSize: 56 }}>🛒</span>}
+                  {selShop?.itemType === 'rubies_bundle' ? <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png?v=2`} alt="" style={{ width: 96, height: 96, objectFit: 'contain' }} /> : <span style={{ fontSize: 56 }}>🛒</span>}
                 </span>}
               </div>
               <div className="flex-1 min-w-0 flex flex-col" style={{ gap: 16 }}>
@@ -503,11 +507,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
         <div className="flex-1" />
         <div className={D ? 'ravenof-pill' : 'flex items-center'} style={D ? undefined : { gap: 5, font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png`} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />{balLoaded ? formatNumber(bal.silver) : '—'}
+          <img src={`${RAVENOF_ASSET}/currencies/cur-silver.png?v=2`} alt="" style={{ width: 14, height: 14, objectFit: 'contain' }} />{balLoaded ? formatNumber(bal.silver) : '—'}
         </div>
         <div className={D ? 'ravenof-pill' : 'flex items-center'} style={D ? undefined : { gap: 5, font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 13, height: 14, objectFit: 'contain' }} />{balLoaded ? formatNumber(bal.rubies) : '—'}
+          <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png?v=2`} alt="" style={{ width: 13, height: 14, objectFit: 'contain' }} />{balLoaded ? formatNumber(bal.rubies) : '—'}
         </div>
         {D && <button type="button" className="rvn-dlg-close ravenof-press" style={{ width: 42, height: 42 }} onClick={() => { playUiClick(); onClose() }} aria-label={t('common.close')}><X size={20} /></button>}
       </div>
@@ -516,7 +520,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
         {/* ── KAIRĖ: kategorijos ── */}
         <div className="flex flex-col shrink-0" style={{ width: f(128, 220), gap: f(4, 8) }}>
           <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll flex flex-col" style={{ gap: f(4, 6) }}>
-            {ALL_SECTIONS.map((sc) => {
+            {sections.map((sc) => {
               const active = section === sc.key
               return (
                 <button key={sc.key} onClick={() => { playUiClick(); setSection(sc.key); setSel(null); setToast(null) }}
@@ -556,7 +560,9 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
 
           {/* Prekės */}
           <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll">
-            {section === 'daily' ? (
+            {section === 'rubies' && showRubies ? (
+              <RubyPacks desktop={D} onToast={(m) => setToast(m)} onPurchased={() => { refresh(); onPurchased?.() }} />
+            ) : section === 'daily' ? (
               deal.length === 0 ? <p className="text-center py-8" style={{ font: `400 ${f(11, 15)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>{t('shop.dealLoading')}</p> : (
                 <div className={D ? 'rvn-d-grid' : 'grid content-start'} style={D ? { '--min': `${DT.card.collection[0]}px`, '--max': `${DT.card.collection[1]}px`, justifyContent: 'start' } as React.CSSProperties : { gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 8 }}>
                   {deal.map((c) => tileFrame(c.id, () => { playUiClick(); setSel({ t: 'deal', id: c.id }); setToast(null) },
@@ -598,7 +604,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
                             // Desktop rubinų pasiūlymas: kompaktiškas – rubino ženklas vietoj tuščios panelės su krepšeliu
                             ? <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'radial-gradient(circle at 50% 45%, rgba(180,68,79,.28), transparent 62%), linear-gradient(160deg,#1a1325,#0a0810)' }}>
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} alt="" style={{ width: 64, height: 64, objectFit: 'contain', filter: 'drop-shadow(0 0 14px rgba(180,68,79,.55))' }} />
+                                <img src={`${RAVENOF_ASSET}/currencies/cur-rubies.png?v=2`} alt="" style={{ width: 64, height: 64, objectFit: 'contain', filter: 'drop-shadow(0 0 14px rgba(180,68,79,.55))' }} />
                               </span>
                             : <span className="absolute inset-0 flex items-center justify-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', fontSize: 28 }}>{vis?.emoji ?? '🛒'}</span>
                     const aspect = it.itemType === 'player_avatar' ? '1 / 1' : it.itemType === 'avatar_frame' ? '6 / 7' : it.itemType === 'rubies_bundle' ? '16 / 9' : it.itemType === 'card_back' ? '1044 / 1416' : '3 / 4'

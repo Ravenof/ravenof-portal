@@ -35,9 +35,9 @@ export const REWARD_MISSING_ASSET = I + 'fi-gifts.png'
 
 type Def = { asset: string; name: string; desc: string; opticalScale?: number }
 const DEFS: Record<string, Def> = {
-  silver:        { asset: I + 'cur-silver.png',  name: 'rewards.item.silver.name',        desc: 'rewards.item.silver.desc' },
-  rubies:        { asset: I + 'cur-rubies.png',  name: 'rewards.item.rubies.name',         desc: 'rewards.item.rubies.desc' },
-  essence:       { asset: I + 'cur-essence.png', name: 'rewards.item.essence.name',        desc: 'rewards.item.essence.desc', opticalScale: 1.08 },
+  silver:        { asset: I + 'cur-silver.png?v=2',  name: 'rewards.item.silver.name',        desc: 'rewards.item.silver.desc' },
+  rubies:        { asset: I + 'cur-rubies.png?v=2',  name: 'rewards.item.rubies.name',         desc: 'rewards.item.rubies.desc' },
+  essence:       { asset: I + 'cur-essence.png?v=2', name: 'rewards.item.essence.name',        desc: 'rewards.item.essence.desc', opticalScale: 1.08 },
   account_xp:    { asset: I + 'fi-academy.png',  name: 'rewards.item.account_xp.name',   desc: 'rewards.item.account_xp.desc' },
   season_xp:     { asset: I + 'seg-season.png',  name: 'rewards.item.season_xp.name',       desc: 'rewards.item.season_xp.desc' },
   pack:          { asset: I + 'pack.png',        name: 'rewards.item.pack.name',     desc: 'rewards.item.pack.desc', opticalScale: 0.92 },

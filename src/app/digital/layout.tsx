@@ -303,9 +303,9 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
               {pathname === '/digital' && <FormatSwitch variant={deskUi ? 'tabs' : 'chip'} />}
             </div>
             {/* Balansai: kol nežinomi — „—" (niekada ne 0). Fiksuoti matmenys — be layout shift. */}
-            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-silver.png`} value={balances ? formatNumber(balances.silver) : '—'} />
-            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-rubies.png`} iconW={13} value={balances ? formatNumber(balances.rubies) : '—'} />
-            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-essence.png`} value={balances ? formatNumber(balances.essence) : '—'} />
+            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-silver.png?v=2`} value={balances ? formatNumber(balances.silver) : '—'} />
+            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-rubies.png?v=2`} iconW={13} value={balances ? formatNumber(balances.rubies) : '—'} />
+            <RavenofResourcePill icon={`${RAVENOF_ASSET}/currencies/cur-essence.png?v=2`} value={balances ? formatNumber(balances.essence) : '—'} />
             <button onClick={toggleLang} className="ravenof-press" style={{ font: `700 ${deskUi ? 13 : 10}px var(--ravenof-font-display)`, color: 'var(--ravenof-text-secondary)', border: '1px solid var(--ravenof-border-strong)', padding: deskUi ? '0 12px' : '6px 8px', height: deskUi ? 42 : undefined, minWidth: deskUi ? 42 : undefined, borderRadius: 3, background: 'none', cursor: 'pointer', textAlign: 'center' }} aria-label={t('settings.language')}>
               {locale.toUpperCase()}
             </button>

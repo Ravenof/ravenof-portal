@@ -68,6 +68,9 @@
     "classicTag": "BE ŽMK",
     "modeSubClassic": "Be modifikatorių",
     "zmk": "ŽMK kovos",
-    "zmkTag": "ŽMK"
+    "zmkTag": "ŽMK",
+    "infoTitle": "Kas yra ŽMK ir Klasika?",
+    "infoZmk": "Kaskart, kai daroma žala, traukiama korta iš žalos modifikatorių kaladės (ŽMK): +0, +1, −1, +2, −2, ×2 arba ×0. Tavo 4 ATK smūgis gali tapti 5… arba 0! Daugiau sėkmės ir netikėtų posūkių.",
+    "infoClassic": "Žala visada lygi kortų vertėms – jokio ŽMK traukimo, ×2 ar ×0. Gryna strategija be atsitiktinumo. Atskiras reitingas ir eilės."
   }
 }

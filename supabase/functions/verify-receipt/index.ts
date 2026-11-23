@@ -23,13 +23,23 @@ async function googleAccessToken(): Promise<string> {
   return (await r.json()).access_token
 }
 
-async function verifyGoogle(productId: string, token: string) {
+async function verifyGoogle(productId: string, token: string, userId: string) {
   const pkg = Deno.env.get('GOOGLE_PACKAGE_NAME')!
   const at = await googleAccessToken()
-  const r = await fetch(`https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${pkg}/purchases/products/${productId}/tokens/${token}`, { headers: { authorization: `Bearer ${at}` } })
+  const base = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${pkg}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(token)}`
+  const r = await fetch(base, { headers: { authorization: `Bearer ${at}` } })
   const j = await r.json()
-  // purchaseState 0 = purchased; consumptionState 0 = not consumed
-  return { ok: r.ok && j.purchaseState === 0, externalId: j.orderId ?? token, raw: j }
+  // purchaseState: 0 = purchased, 1 = canceled, 2 = pending
+  // obfuscatedExternalAccountId = žaidėjo id, perduotas pirkimo metu (appAccountToken) –
+  // svetimo žaidėjo kvito „perpanaudoti" negalima.
+  const acc = j.obfuscatedExternalAccountId as string | undefined
+  const ok = r.ok && j.purchaseState === 0 && (!acc || acc === userId)
+  // Vartojamas produktas: suvartojam (consume = ir acknowledge), kad būtų galima pirkti vėl.
+  const consume = async () => {
+    if (j.consumptionState === 1) return
+    try { await fetch(`${base}:consume`, { method: 'POST', headers: { authorization: `Bearer ${at}` } }) } catch { /* kitą kartą per recovery */ }
+  }
+  return { ok, externalId: j.orderId ?? token, raw: j, consume }
 }
 
 async function verifyApple(_productId: string, _transactionId: string) {
@@ -49,7 +59,7 @@ Deno.serve(async (req) => {
   const body = await req.json().catch(() => null) as { platform?: string; productId?: string; token?: string } | null
   if (!body?.platform || !body.productId || !body.token) return Response.json({ error: 'bad request' }, { status: 400 })
 
-  const v = body.platform === 'google' ? await verifyGoogle(body.productId, body.token)
+  const v: { ok: boolean; externalId: string; raw: unknown; consume?: () => Promise<void> } = body.platform === 'google' ? await verifyGoogle(body.productId, body.token, user.id)
     : body.platform === 'apple' ? await verifyApple(body.productId, body.token)
     : body.platform === 'steam' ? await verifySteam(body.productId, body.token)
     : { ok: false, externalId: '', raw: {} }
@@ -57,5 +67,7 @@ Deno.serve(async (req) => {
 
   const { data, error } = await admin.rpc('rvn_grant_purchase', { p_user: user.id, p_platform: body.platform, p_product: body.productId, p_external: v.externalId, p_raw: v.raw })
   if (error) return Response.json({ error: error.message }, { status: 500 })
+  // Suteikta (arba jau buvo suteikta anksčiau – duplicate) → galima suvartoti pirkinį
+  await v.consume?.()
   return Response.json(data)
 })

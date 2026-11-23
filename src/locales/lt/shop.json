@@ -56,6 +56,15 @@
   "purchased": "Nupirkta: {{name}}",
   "purchasedN": "„{{name}}\" ×{{count}} nupirkta!",
   "purchasedShort": "✓ Nupirkta",
+  "rubies": {
+    "androidOnly": "Rubinus pirkti galima Android programėlėje per Google Play. Jei mygtukai neaktyvūs – atnaujink programėlę Google Play.",
+    "bonusAmount": "{{base}} + {{bonus}} dovanų",
+    "success": "+{{count}} rubinų įskaityta!",
+    "recovered": "Įskaityti ankstesni pirkimai: {{count}}",
+    "pending": "Mokėjimas dar laukia patvirtinimo – rubinai bus įskaityti, kai jis praeis.",
+    "failed": "Pirkimas nepavyko. Pinigai nenuskaičiuoti arba bus grąžinti – bandyk dar kartą.",
+    "unavailable": "Pirkimas galimas tik Android programėlėje (Google Play)."
+  },
   "sections": {
     "frames": "Avatarų rėmeliai",
     "avatars": "Žaidėjo avatarai",

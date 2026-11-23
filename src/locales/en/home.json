@@ -67,6 +67,9 @@
     "classicTag": "NO DMD",
     "modeSubClassic": "No modifiers",
     "zmk": "DMD battles",
-    "zmkTag": "DMD"
+    "zmkTag": "DMD",
+    "infoTitle": "What are DMD and Classic?",
+    "infoZmk": "Every time damage is dealt, a card is drawn from the Damage Modifier Deck (DMD): +0, +1, −1, +2, −2, ×2 or ×0. Your 4 ATK hit can become 5… or 0! More luck and surprise twists.",
+    "infoClassic": "Damage always equals the card values – no DMD draw, ×2 or ×0. Pure strategy without randomness. Separate rating and queues."
   }
 }
