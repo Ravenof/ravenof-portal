@@ -30,6 +30,64 @@ const TXT = {
   },
 } as const
 
+// Linksmos „ruošimosi" eilutės atnaujinimo metu – kad ekranas neatrodytų sustingęs.
+const FLAVOR = {
+  lt: [
+    'Nuvalomi stalai po vakarykščio turnyro…',
+    'Korvas tikrina, ar visos kortos savo vietose…',
+    'Žarijų kalvis kala naujus kortų kampus…',
+    'Sutarčių ragana skaito smulkų šriftą…',
+    'Šešėlių kišenvagis grąžina pavogtas kortas. Ne visas.',
+    'Kapitonė perskaičiuoja rubinus skrynioje…',
+    'Nekronautas žadina užsnūdusius skeletus…',
+    'Pelkių žiniuonė maišo naujų efektų virą…',
+    'Varpinės gydytoja lopo sudaužytus skydus…',
+    'Maišoma žalos modifikatorių kaladė…',
+    'Gaujos vadas bando suprasti, kas pasikeitė…',
+    'Arenos čempionas šluoja areną…',
+    'Varnų pranašė jau žino, kas laimės kitą kovą…',
+    'Maršo būgnininkas derina būgną…',
+    'Uždegamos žvakės pilies koridoriuose…',
+    'Tylos mokinys… tyli.',
+    'Vyriausiasis teisėjas peržiūri naujas taisykles…',
+    'Geležinė sesuo šveičia šarvus…',
+  ],
+  en: [
+    'Wiping the tables after last night\'s tournament…',
+    'Korvas is checking every card is in its place…',
+    'The Ember Smith is forging new card corners…',
+    'The Pact Witch is reading the fine print…',
+    'The Shadow Pickpocket returns the stolen cards. Most of them.',
+    'The Captain is recounting the rubies in the chest…',
+    'The Necronaut is waking the sleepy skeletons…',
+    'The Bog Seer is stirring a fresh pot of effects…',
+    'The Bell Healer is patching up broken shields…',
+    'Shuffling the Damage Modifier Deck…',
+    'The Pack Boss is trying to figure out what changed…',
+    'The Arena Champion is sweeping the arena…',
+    'The Raven Oracle already knows who wins the next battle…',
+    'The March Drummer is tuning the drum…',
+    'Lighting the candles in the castle halls…',
+    'The Disciple of Silence is… silent.',
+    'The High Judge is reviewing the new rules…',
+    'The Iron Sister is polishing her armor…',
+  ],
+} as const
+
+function FlavorLine({ lang }: { lang: 'lt' | 'en' }) {
+  const list = FLAVOR[lang]
+  const [i, setI] = useState(() => Math.floor(Math.random() * list.length))
+  useEffect(() => {
+    const t = window.setInterval(() => setI((n) => (n + 1 + Math.floor(Math.random() * (list.length - 1))) % list.length), 2800)
+    return () => window.clearInterval(t)
+  }, [list.length])
+  return (
+    <p key={i} style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, lineHeight: 1.45, color: '#cfc4ae', fontStyle: 'italic', margin: '0 auto 16px', minHeight: 42, maxWidth: 420, animation: 'rvnUpdLine 2.8s ease both' }}>
+      {list[i]}
+    </p>
+  )
+}
+
 const BATTLE_PATH = /^\/digital\/(pve|pvp|ranked|tutorial)(\/|$)/
 const gold = '#d4a33b'
 const btn: CSSProperties = { padding: '10px 22px', borderRadius: 8, border: `1px solid ${gold}`, background: 'linear-gradient(#3a2c14,#241a0c)', color: '#f3dfae', fontFamily: 'Cinzel, serif', fontWeight: 700, fontSize: 15, cursor: 'pointer' }
@@ -62,14 +120,18 @@ export function UpdateLayer() {
     else { title = s.phase === 'applying' ? t.applying : t.updating; sub = t.updatingSub; progress = true }
     return (
       <div role="alertdialog" aria-modal style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'grid', placeItems: 'center', padding: 24, background: 'radial-gradient(70% 60% at 50% 45%, #221a2c 0%, #0a0a0f 72%)', color: '#e9dfcb', textAlign: 'center' }}>
-        <div style={{ maxWidth: 520 }}>
+        <div style={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/brand/ravenof-logo.png" alt="Ravenof" draggable={false} style={{ display: 'block', width: 'min(46vw, 300px)', maxHeight: '26vh', objectFit: 'contain', margin: '0 auto 18px', filter: 'drop-shadow(0 10px 30px rgba(0,0,0,.8))' }} />
+          <img src="/brand/ravenof-logo.png" alt="Ravenof" draggable={false} style={{ display: 'block', width: 'min(46vw, 300px)', maxHeight: '26vh', objectFit: 'contain', margin: '0 auto 18px', filter: 'drop-shadow(0 10px 30px rgba(0,0,0,.8))', animation: s.phase === 'downloading' || s.phase === 'applying' ? 'rvnUpdLogo 2.4s ease-in-out infinite' : undefined }} />
           <h1 style={{ fontFamily: 'Cinzel, serif', fontSize: 24, color: gold, margin: '0 0 10px' }}>{title}</h1>
-          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, lineHeight: 1.5, color: '#b9ad98', margin: '0 0 20px' }}>{sub}</p>
+          <style>{'@keyframes rvnUpdLine{0%{opacity:0;transform:translateY(6px)}12%{opacity:1;transform:none}85%{opacity:1}100%{opacity:0}}@keyframes rvnUpdShine{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}@keyframes rvnUpdLogo{0%,100%{filter:drop-shadow(0 10px 30px rgba(0,0,0,.8)) drop-shadow(0 0 0 rgba(212,163,59,0))}50%{filter:drop-shadow(0 10px 30px rgba(0,0,0,.8)) drop-shadow(0 0 18px rgba(212,163,59,.35))}}'}</style>
+          <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, lineHeight: 1.5, color: '#b9ad98', margin: progress ? '0 0 14px' : '0 0 20px' }}>{sub}</p>
+          {progress && <FlavorLine lang={lang} />}
           {progress && (
-            <div aria-label={`${Math.round(s.percent)}%`} style={{ height: 10, borderRadius: 6, background: '#1c1712', border: '1px solid #4a3c22', overflow: 'hidden', margin: '0 auto 8px', maxWidth: 360 }}>
-              <div style={{ height: '100%', width: `${s.phase === 'applying' ? 100 : Math.max(3, s.percent)}%`, background: `linear-gradient(90deg, #7a5a1c, ${gold})`, transition: 'width .3s ease' }} />
+            <div aria-label={`${Math.round(s.percent)}%`} style={{ height: 10, borderRadius: 6, background: '#1c1712', border: '1px solid #4a3c22', overflow: 'hidden', margin: '0 auto 8px', width: '100%', maxWidth: 360 }}>
+              <div style={{ position: 'relative', overflow: 'hidden', height: '100%', width: `${s.phase === 'applying' ? 100 : Math.max(3, s.percent)}%`, background: `linear-gradient(90deg, #7a5a1c, ${gold})`, transition: 'width .3s ease' }}>
+                <span style={{ position: 'absolute', inset: 0, width: '40%', background: 'linear-gradient(90deg, transparent, rgba(255,240,200,.55), transparent)', animation: 'rvnUpdShine 1.4s linear infinite' }} />
+              </div>
             </div>
           )}
           {progress && s.target && <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, color: '#7d7466' }}>{APP_VERSION} → {s.target.version}</div>}
