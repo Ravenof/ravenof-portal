@@ -59,9 +59,10 @@ export function RubyPacks({ desktop: D, onToast, onPurchased }: { desktop: boole
       setPacks(ps)
       const pr = await getStorePrices(ps.map((p) => p.product_id))
       if (alive) setPrices(pr)
+      // Nutrūkę / vėliau apmokėti pirkiniai – įskaitom atidarius sekciją (po kainų, ne lygiagrečiai)
+      const n = await recoverGooglePurchases()
+      if (alive && n > 0) { playSuccess(); onToast(t('shop.rubies.recovered', { count: n })); refreshWallet() }
     })
-    // Nutrūkę / vėliau apmokėti pirkiniai – įskaitom atidarius sekciją
-    recoverGooglePurchases().then((n) => { if (alive && n > 0) { playSuccess(); onToast(t('shop.rubies.recovered', { count: n })); refreshWallet() } })
     return () => { alive = false }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

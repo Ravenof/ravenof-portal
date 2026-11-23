@@ -28,7 +28,9 @@ async function googleAccessToken(): Promise<string> {
   const sig = new Uint8Array(await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(`${header}.${claim}`)))
   const jwt = `${header}.${claim}.${btoa(String.fromCharCode(...sig)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')}`
   const r = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}` })
-  return (await r.json()).access_token
+  const tj = await r.json()
+  if (!tj.access_token) console.error('google token failed', JSON.stringify(tj).slice(0, 500))
+  return tj.access_token
 }
 
 async function verifyGoogle(productId: string, token: string, userId: string) {
@@ -72,7 +74,10 @@ Deno.serve(async (req) => {
     : body.platform === 'apple' ? await verifyApple(body.productId, body.token)
     : body.platform === 'steam' ? await verifySteam(body.productId, body.token)
     : { ok: false, externalId: '', raw: {} }
-  if (!v.ok) return json({ error: 'receipt invalid', raw: v.raw }, { status: 402 })
+  if (!v.ok) {
+    console.error('verify failed', body.platform, body.productId, JSON.stringify(v.raw).slice(0, 1500))
+    return json({ error: 'receipt invalid', raw: v.raw }, { status: 402 })
+  }
 
   const { data, error } = await admin.rpc('rvn_grant_purchase', { p_user: user.id, p_platform: body.platform, p_product: body.productId, p_external: v.externalId, p_raw: v.raw })
   if (error) return json({ error: error.message }, { status: 500 })

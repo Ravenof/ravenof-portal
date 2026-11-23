@@ -56,6 +56,15 @@ interface NativePurchasesPlugin {
 let npInst: NativePurchasesPlugin | null = null
 // tingus registravimas – modulis importuojamas ir SSR metu
 const np = (): NativePurchasesPlugin => (npInst ??= registerPlugin<NativePurchasesPlugin>('NativePurchases'))
+// Plugin'as po kiekvieno kvietimo uždaro bendrą BillingClient – lygiagretūs kvietimai
+// (getProducts + getPurchases atidarius parduotuvę) vienas kitam nutraukia ryšį.
+// Todėl visi billing kvietimai eina griežtai po vieną.
+let billingQueue: Promise<unknown> = Promise.resolve()
+function serial<T>(fn: () => Promise<T>): Promise<T> {
+  const run = billingQueue.then(fn, fn)
+  billingQueue = run.catch(() => undefined)
+  return run
+}
 
 /** Ar šiame įrenginyje galima pirkti per Google Play (Android + naujas AAB su plugin'u). */
 export function billingAvailable(): boolean {
@@ -66,7 +75,7 @@ export function billingAvailable(): boolean {
 export async function getStorePrices(ids: string[]): Promise<Record<string, string>> {
   if (!billingAvailable() || ids.length === 0) return {}
   try {
-    const { products } = await np().getProducts({ productIdentifiers: ids, productType: 'inapp' })
+    const { products } = await serial(() => np().getProducts({ productIdentifiers: ids, productType: 'inapp' }))
     return Object.fromEntries((products ?? []).map((p) => [p.identifier, p.priceString]))
   } catch (e) { console.warn('[iap] getProducts:', e); return {} }
 }
@@ -81,7 +90,7 @@ export async function buyProduct(productId: string): Promise<BuyResult> {
   const userId = user.id
   let tx: NPTransaction
   try {
-    tx = await np().purchaseProduct({ productIdentifier: productId, productType: 'inapp', quantity: 1, isConsumable: false, autoAcknowledgePurchases: false, appAccountToken: userId })
+    tx = await serial(() => np().purchaseProduct({ productIdentifier: productId, productType: 'inapp', quantity: 1, isConsumable: false, autoAcknowledgePurchases: false, appAccountToken: userId }))
   } catch (e) {
     const err = e as { code?: string; message?: string }
     const txt = `${err?.code ?? ''} ${err?.message ?? ''}`.toUpperCase()
@@ -103,8 +112,10 @@ export async function recoverGooglePurchases(): Promise<number> {
   const userId = user.id
   let n = 0
   try {
-    const { purchases } = await np().getPurchases({ productType: 'inapp', appAccountToken: userId })
-    for (const p of purchases ?? []) {
+    // Be appAccountToken filtro plugin'e: serveris pats tikrina obfuscatedExternalAccountId
+    const { purchases } = await serial(() => np().getPurchases({ productType: 'inapp' }))
+    for (const p of (purchases ?? []) as (NPTransaction & { appAccountToken?: string | null })[]) {
+      if (p.appAccountToken && p.appAccountToken !== userId) continue // kito paskyros pirkinys
       if (p.purchaseState && p.purchaseState !== '1') continue // dar laukia apmokėjimo
       const token = p.purchaseToken ?? p.transactionId
       if (!token || !p.productIdentifier) continue
