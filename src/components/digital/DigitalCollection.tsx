@@ -18,13 +18,13 @@ import { getActivePacks, getPackInventory, markCollectionSeen, type Pack } from 
 import { requestOpenStore, emitWalletChanged } from '@/lib/digital/native'
 import { GameCard } from '@/components/ui/GameCard'
 import { PackOpen } from './PackOpen'
+import { PackChooser } from './PackChooser'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { cardImage, cardText, ensureCardTranslations } from '@/lib/cards/i18n'
 import { RavenofCardDetailModal, type RavenofCardDetail } from './RavenofCardDetailModal'
 import { RavenofTextField, ravenofFactionColor, ravenofFactionIcon, ravenofRarityColor, ravenofRarityGem, ravenofCardTypeIcon } from './ui/RavenofKit'
 import { useDesktopUi } from './ui/useDesktopUi'
 import { DT, deskGrid } from './ui/deskTokens'
-import { DeskDialog } from './ui/DeskKit'
 
 type Col = RavenofCardDetail
 
@@ -198,37 +198,9 @@ export function DigitalCollection() {
         />
       )}
 
-      {/* ── Pakų pasirinkimo modalas ── */}
-      {chooser && !desktop && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4" style={{ background: 'rgba(4,3,8,0.9)' }} onClick={() => setChooser(false)}>
-          <div className="w-[min(360px,92vw)] ravenof-panel p-5" onClick={(e) => e.stopPropagation()}>
-            <p className="text-center" style={{ font: '700 14px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)', letterSpacing: '0.06em', marginBottom: 12 }}>{t('collection.whichPack')}</p>
-            <div className="space-y-2">
-              {ownedPacks.map((pk) => (
-                <button key={pk.id} onClick={() => { playUiClick(); setChooser(false); setOpeningPack(pk) }} className="ravenof-press w-full text-left px-3 py-2.5" style={{ background: 'rgba(212,163,59,0.1)', border: '1px solid var(--ravenof-border-accent)', cursor: 'pointer' }}>
-                  <span style={{ font: '700 13px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)' }}>{pk.name}</span>
-                  <span className="ml-2" style={{ font: '400 12px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>×{inv[pk.id]}</span>
-                </button>
-              ))}
-            </div>
-            <button onClick={() => { playUiClick(); setChooser(false) }} className="mt-3 w-full ravenof-btn ravenof-btn-secondary" style={{ minHeight: 34, fontSize: 10 }}>{t('common.cancel')}</button>
-          </div>
-        </div>
-      )}
-
-      {chooser && desktop && (
-        <DeskDialog onClose={() => setChooser(false)} title={t('collection.whichPack')} width={DT.modal.sm} zIndex={160} closeLabel={t('common.close')}
-          footer={<button onClick={() => { playUiClick(); setChooser(false) }} className="rvn-d-btn rvn-d-btn-ghost">{t('common.cancel')}</button>}>
-          <div className="flex flex-col" style={{ gap: DT.sp.sm }}>
-            {ownedPacks.map((pk) => (
-              <button key={pk.id} onClick={() => { playUiClick(); setChooser(false); setOpeningPack(pk) }} className="ravenof-press w-full text-left flex items-center"
-                style={{ minHeight: DT.ctl + 6, padding: '8px 16px', gap: 12, background: 'rgba(212,163,59,0.1)', border: '1px solid var(--ravenof-border-accent)', cursor: 'pointer' }}>
-                <span className="flex-1 min-w-0" style={{ font: `700 ${DT.fs.h3}px var(--ravenof-font-display)`, color: 'var(--ravenof-gold-bright)' }}>{pk.name}</span>
-                <span style={{ font: `600 ${DT.fs.body}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)' }}>×{inv[pk.id]}</span>
-              </button>
-            ))}
-          </div>
-        </DeskDialog>
+      {/* ── Pakų pasirinkimo modalas (pakų paveikslėliai) ── */}
+      {chooser && (
+        <PackChooser packs={ownedPacks} inv={inv} onClose={() => setChooser(false)} onPick={(pk) => { setChooser(false); setOpeningPack(pk) }} />
       )}
       {openingPack && (
         <PackOpen packId={openingPack.id} packName={openingPack.name} packImage={openingPack.image_url}

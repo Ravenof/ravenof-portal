@@ -9,7 +9,6 @@
 // tab bar „Parduotuvė", ir iš Hub, ir per requestOpenStore eventą.
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { RewardChip } from '@/components/digital/ui/RewardBits'
-import Link from 'next/link'
 import { createPortal } from 'react-dom'
 import { playUiClick, playSuccess, playError } from '@/lib/ui-sound'
 import { useEscClose } from '@/lib/useEscClose'
@@ -28,6 +27,7 @@ import { useDesktopUi } from '@/components/digital/ui/useDesktopUi'
 import { DT } from '@/components/digital/ui/deskTokens'
 import { useDialogFocus } from '@/components/digital/ui/DeskKit'
 import { X } from 'lucide-react'
+import { PackOpenFlow } from './PackChooser'
 
 type Sel = { t: 'shop'; id: number } | { t: 'deal'; id: string } | { t: 'starter'; id: string }
 type Section = { key: string; labelKey: string }
@@ -48,7 +48,9 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   const f = (m: number, d: number) => (D ? d : m)
   // Escape: atidaryta prekės peržiūra → uždaro tik ją (desktop dialogas tai daro pats), kitaip – visą parduotuvę
   const [selOpenForEsc, setSelOpenForEsc] = useState(false)
-  useEscClose(useCallback(() => { if (!selOpenForEsc) onClose() }, [selOpenForEsc, onClose]))
+  // Pakų atplėšimas tiesiai iš parduotuvės (ne per Kolekciją)
+  const [packFlow, setPackFlow] = useState(false)
+  useEscClose(useCallback(() => { if (!selOpenForEsc && !packFlow) onClose() }, [selOpenForEsc, packFlow, onClose]))
   const [items, setItems] = useState<ShopItem[]>([])
   const [deal, setDeal] = useState<DealCard[]>([])
   const [starters, setStarters] = useState<StarterDeck[]>([])
@@ -529,10 +531,10 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
             })}
           </div>
           {packInv > 0 && (
-            <Link href="/digital/collection" onClick={() => { playUiClick(); onClose() }}
-              className="ravenof-press shrink-0 block w-full text-center" style={{ font: `700 ${f(10, 13)}px var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', padding: D ? '14px 8px' : '8px 6px', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)', textTransform: 'uppercase' }}>
+            <button type="button" onClick={() => { playUiClick(); setPackFlow(true) }}
+              className="ravenof-press shrink-0 block w-full text-center" style={{ font: `700 ${f(10, 13)}px var(--ravenof-font-display)`, letterSpacing: 1, color: 'var(--ravenof-on-gold)', background: 'var(--ravenof-grad-gold)', border: 'none', cursor: 'pointer', padding: D ? '14px 8px' : '8px 6px', clipPath: 'polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)', textTransform: 'uppercase' }}>
               {t('shop.openPacks', { count: packInv })}
-            </Link>
+            </button>
           )}
         </div>
 
@@ -619,6 +621,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
       {toast && !sel && (
         <div className="ravenof-toast" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', bottom: 'calc(18px + env(safe-area-inset-bottom, 0px))', zIndex: 160 }}>{toast}</div>
       )}
+      {packFlow && <PackOpenFlow onClose={() => setPackFlow(false)} onChanged={() => { refresh(); onPurchased?.() }} />}
     </div>,
     document.body,
   )
