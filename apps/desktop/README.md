@@ -16,6 +16,15 @@ Installeris įdiegia į `%LOCALAPPDATA%\Programs\Ravenof`, sukuria darbalaukio n
 Nauja versija: pakelti `version` šiame package.json → `npm run build:app` → `npm run dist:win`.
 
 ## Steam
-`steam_appid.txt` su tikru App ID (dev metu – Steam klientas turi būti paleistas), `steam.js` ACH_MAP
-(badge slug → Steam API name), overlay `--in-process-gpu` jau įjungtas. Steam depot = `release\win-unpacked`
-(`electron-builder --win dir`).
+- **App ID**: `steam.js` → `DEFAULT_APP_ID` (dabar 480 = Valve testinis „Spacewar"). Paleidus per Steam App ID ateina iš
+  `SteamAppId` env; dev metu galima `steam_appid.txt` arba `STEAM_APPID`. Steam klientas turi veikti.
+- **Prisijungimas per Steam**: `steam.js authTicket()` (getAuthTicketForWebApi('ravenof')) → `src/lib/digital/steam.ts` →
+  edge funkcija `supabase/functions/steam-auth` (AuthenticateUserTicket) → `verifyOtp`. Susiejimai – lentelė `steam_accounts`.
+  Supabase secrets: `STEAM_WEB_API_KEY` (Steamworks → Users & Permissions → Manage Groups → Web API key),
+  `STEAM_APP_ID`, pasirinktinai `STEAM_API_HOST` (numatyta partner.steam-api.com).
+- **Achievement'ai**: `steam.js` ACH_MAP (badge slug → Steam API name) – sukurti ir Steamworks puslapyje.
+- **Overlay**: `--in-process-gpu` jau įjungtas.
+- **Įkėlimas (SteamPipe)**: šaknyje `build-steam.bat` (surenka `release\win-unpacked` ir per SteamCMD įkelia
+  `steam\app_build.vdf`). Nustatymai – `.env.steam.local` (žr. `.env.steam.local.example`). Build'as keliamas ne live –
+  šaką nustatai Steamworks → SteamPipe → Builds.
+- **Atnaujinimai**: EXE atnaujina Steam; žaidimo turinio OTA bundle'ai (updater.js) veikia kaip ir be Steam.

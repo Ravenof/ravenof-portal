@@ -29,7 +29,6 @@
       "preload.js",
       "steam.js",
       "updater.js",
-      "steam_appid.txt",
       "build/icon.png",
       "build/installer.nsh"
     ],

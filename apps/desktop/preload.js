@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('ravenofDesktop', {
   platform: process.platform,
   steamPlayer: () => ipcRenderer.invoke('steam:player'),
   unlockAchievement: (slug) => ipcRenderer.invoke('steam:unlock', slug),
+  // Prisijungimas per Steam: { ticket (hex), steamId, persona } arba null
+  steamAuthTicket: () => ipcRenderer.invoke('steam:authTicket'),
   // OAuth (Google/Facebook): atidaryti sistemos naršyklę ir gauti ravenof:// grįžimą
   openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   onAuthCallback: (cb) => {

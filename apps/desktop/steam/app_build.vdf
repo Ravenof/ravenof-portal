@@ -1,0 +1,23 @@
+"AppBuild"
+{
+	"AppID" "__APPID__"
+	"Desc" "__DESC__"
+	"ContentRoot" "..\release\win-unpacked\"
+	"BuildOutput" "..\release\steam-output\"
+	"SetLive" ""
+	"Preview" "0"
+	"Depots"
+	{
+		"__DEPOTID__"
+		{
+			"FileMapping"
+			{
+				"LocalPath" "*"
+				"DepotPath" "."
+				"recursive" "1"
+			}
+			"FileExclusion" "*.pdb"
+			"FileExclusion" "steam_appid.txt"
+		}
+	}
+}

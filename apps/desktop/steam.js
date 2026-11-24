@@ -9,12 +9,25 @@ const ACH_MAP = {
   collector_100: 'ACH_COLLECTOR_100',
 }
 
+// Steam App ID: paleidus per Steam – SteamAppId env; dev – STEAM_APPID / steam_appid.txt;
+// kitaip – DEFAULT_APP_ID. 480 = Valve testinis „Spacewar" (kol gausim tikrą App ID).
+const DEFAULT_APP_ID = 480
+const AUTH_IDENTITY = 'ravenof'   // turi sutapti su supabase/functions/steam-auth IDENTITY
+
 let client = null
+let lastTicket = null
+
+function readAppId() {
+  const env = process.env.SteamAppId || process.env.STEAM_APPID
+  if (env && Number(env)) return Number(env)
+  try { const t = require('node:fs').readFileSync(require('node:path').join(__dirname, 'steam_appid.txt'), 'utf8').trim(); if (Number(t)) return Number(t) } catch { /* nėra */ }
+  return DEFAULT_APP_ID
+}
 
 function init() {
   try {
     const sw = require('steamworks.js')
-    const appId = Number(process.env.STEAM_APPID || require('node:fs').readFileSync(require('node:path').join(__dirname, 'steam_appid.txt'), 'utf8').trim())
+    const appId = readAppId()
     if (!appId) return
     client = sw.init(appId)
     sw.electronEnableSteamOverlay()
@@ -32,9 +45,24 @@ function unlock(badgeSlug) {
 
 function player() {
   if (!client) return null
-  try { return { steamId: client.localplayer.getSteamId().steamId64, name: client.localplayer.getName() } } catch { return null }
+  try { return { steamId: String(client.localplayer.getSteamId().steamId64), name: client.localplayer.getName() } } catch { return null }
 }
 
-function shutdown() { client = null }
+/** Web API bilietas serveriui (steam-auth edge funkcija). null – Steam nėra / nepavyko. */
+async function authTicket() {
+  if (!client) return null
+  try {
+    try { lastTicket?.cancel?.() } catch { /* */ }
+    const t = await client.auth.getAuthTicketForWebApi(AUTH_IDENTITY)
+    lastTicket = t
+    const p = player()
+    return { ticket: Buffer.from(t.getBytes()).toString('hex'), steamId: p?.steamId ?? null, persona: p?.name ?? null }
+  } catch (e) {
+    console.log('[steam] auth ticket nepavyko:', e.message)
+    return null
+  }
+}
 
-module.exports = { init, unlock, player, shutdown }
+function shutdown() { try { lastTicket?.cancel?.() } catch { /* */ } client = null }
+
+module.exports = { init, unlock, player, authTicket, shutdown }

@@ -106,6 +106,7 @@ app.whenReady().then(() => {
   steam.init()
   ipcMain.handle('steam:player', () => steam.player())
   ipcMain.handle('steam:unlock', (_e, slug) => steam.unlock(String(slug)))
+  ipcMain.handle('steam:authTicket', () => steam.authTicket())
   ipcMain.handle('shell:openExternal', (_e, url) => { const u = String(url); if (/^https?:\/\//.test(u)) return shell.openExternal(u) })
   // ── OTA updater IPC (renderer: src/lib/updater/electronAdapter.ts) ──
   const reloadWin = () => { if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.reloadIgnoringCache() }

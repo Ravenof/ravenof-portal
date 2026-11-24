@@ -7,6 +7,16 @@ import { useEffect, useRef, useState } from 'react'
 import { useT } from '@/lib/i18n/react'
 import { playUiClick, playError, playSuccess } from '@/lib/ui-sound'
 import { startOAuth, listenOAuthCallback, completeOAuth, usesExternalBrowser, type OAuthProvider } from '@/lib/digital/oauth'
+import { steamAvailable, signInWithSteam } from '@/lib/digital/steam'
+
+const STEAM_ICON = (
+  <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden>
+    <circle cx="12" cy="12" r="10.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    <circle cx="15.5" cy="9" r="3" fill="none" stroke="currentColor" strokeWidth="1.6" />
+    <circle cx="8.5" cy="15.5" r="2.2" fill="currentColor" />
+    <path d="M10.3 14.3l3-3.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+)
 
 const ICON: Record<OAuthProvider, React.ReactNode> = {
   google: (
@@ -23,9 +33,24 @@ const ICON: Record<OAuthProvider, React.ReactNode> = {
 
 export function OAuthButtons({ next, onDone, onError }: { next: string | null; onDone: () => Promise<void> | void; onError: (msg: string) => void }) {
   const t = useT()
-  const [busy, setBusy] = useState<OAuthProvider | null>(null)
+  const [busy, setBusy] = useState<OAuthProvider | 'steam' | null>(null)
   const [waiting, setWaiting] = useState(false)
+  const [hasSteam, setHasSteam] = useState(false)
   const done = useRef(false)
+
+  // Steam mygtukas – tik desktop versijoje, kai Steam klientas veikia
+  useEffect(() => { let alive = true; steamAvailable().then((v) => { if (alive) setHasSteam(v) }); return () => { alive = false } }, [])
+
+  const goSteam = async () => {
+    if (busy) return
+    playUiClick()
+    setBusy('steam')
+    const r = await signInWithSteam()
+    if (!r.ok) { setBusy(null); playError(); onError(t('auth.err.steamFailed')); return }
+    done.current = true
+    playSuccess()
+    await onDone()
+  }
 
   // Deep link grįžimas (Electron / Capacitor) – klausom visą laiką, kol ekranas atidarytas
   useEffect(() => {
@@ -71,6 +96,14 @@ export function OAuthButtons({ next, onDone, onError }: { next: string | null; o
         <span>{t('auth.orContinueWith')}</span>
         <div style={{ flex: 1, height: 1, background: 'var(--ravenof-border-hairline)' }} />
       </div>
+      {hasSteam && (
+        <button type="button" onClick={goSteam} disabled={!!busy} className="ravenof-press flex items-center justify-center gap-2" style={{
+          height: 40, border: '1px solid rgba(102,192,244,.55)', background: 'linear-gradient(180deg, #1b2838, #0f1923)', color: '#c7d5e0',
+          font: '700 11px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', cursor: busy ? 'default' : 'pointer', borderRadius: 3, opacity: busy && busy !== 'steam' ? .5 : 1,
+        }}>
+          {STEAM_ICON}<span>{busy === 'steam' ? t('auth.steamBusy') : t('auth.steamContinue')}</span>
+        </button>
+      )}
       <div className="flex" style={{ gap: 8 }}>
         {btn('google', 'Google')}
         {btn('facebook', 'Facebook')}

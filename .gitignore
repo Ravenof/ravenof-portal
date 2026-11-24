@@ -73,3 +73,7 @@ build-apk-local.log
 .env.publish.local
 tools/.publish-cache.json
 /store-media/
+
+# Steam (build-steam.bat)
+.env.steam.local
+apps/desktop/steam/app_build.gen.vdf
