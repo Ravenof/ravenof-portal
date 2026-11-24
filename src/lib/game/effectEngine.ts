@@ -376,7 +376,10 @@ function applyMappingInner(api: GameApi, g: GameState, caster: Side, m: EffectMa
       const combat = ctx.combatTarget
       if (trigSrc && n === 1 && !m.targetSelect && !m.allowRandomTarget && triggerSourceStillValid(g, trigSrc) && inAll(trigSrc)) {
         targets = [trigSrc]
-      } else if (combat && n === 1 && !m.targetSelect && !m.allowRandomTarget && (combat.kind === 'player' || triggerSourceStillValid(g, combat)) && inAll(combat)) {
+      } else if (combat && n === 1 && (m.useAttackTarget || (!m.targetSelect && !m.allowRandomTarget)) && (combat.kind === 'player' || triggerSourceStillValid(g, combat)) && inAll(combat)) {
+        // 836: useAttackTarget („atakuodamas padaro …") VISADA pirmiausia taiko atakuotam taikiniui – net jei
+        // mapping'e paliktas allowRandomTarget / targetSelect (Kalx'as, Dagberd'as nuodus/stun mesdavo atsitiktiniam).
+        // Atsitiktinis / targetSelect lieka tik atsarginis variantas (pvz. puolamas čempionas, o taikiniai – padarai).
         // Kovos kanonas: onAttack/onAttacked/onAfterAttack efektas → kovos taikinys (žr. ApplyCtx.combatTarget)
         targets = [combat]
       } else if (m.targetSelect) targets = pickNBySelect(g, all, m.targetSelect, n)
