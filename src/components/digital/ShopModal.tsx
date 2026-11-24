@@ -172,7 +172,8 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
 
   const shopShown = useMemo(() => {
     const types = SHOP_SECTIONS.find((s) => s.key === section)?.types ?? []
-    return items.filter((i) => types.includes(i.itemType) && (REAL_MONEY_SHOP_ENABLED || !isRealMoneyOnly(i)))
+    // shop_items, kurių vienintelė kaina – tikri pinigai, neturi IAP produkto → nerodomi (rubinai – iš iap_products)
+    return items.filter((i) => types.includes(i.itemType) && !isRealMoneyOnly(i))
   }, [items, section])
 
   const selShop = sel?.t === 'shop' ? items.find((i) => i.id === sel.id) ?? null : null
@@ -221,7 +222,7 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     </>
   )
   const priceRow = (silver?: number | null, rubies?: number | null, state?: { label: string; color: string } | null) => (
-    <div className="shrink-0 flex items-center justify-center" style={{ gap: f(5, 8), padding: D ? '0 10px' : '6px 4px', height: D ? 44 : undefined, borderTop: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.6)' }}>
+    <div className="relative shrink-0 flex items-center justify-center" style={{ gap: f(5, 8), padding: D ? '0 10px' : '6px 4px', height: D ? 44 : undefined, borderTop: '1px solid var(--ravenof-border-hairline)', background: 'rgba(7,6,10,.6)' }}>
       {state ? <span style={{ font: `700 ${f(11, 14)}px var(--ravenof-font-body)`, color: state.color }}>{state.label}</span> : <>
         {silver != null && <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={`${RAVENOF_ASSET}/currencies/cur-silver.png?v=2`} alt="" style={{ width: f(14, 18), height: f(14, 18), objectFit: 'contain' }} /><span style={{ font: `700 ${f(11, 15)}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-primary)', fontVariantNumeric: 'tabular-nums' }}>{D ? formatNumber(silver) : silver}</span></>}
         {silver != null && rubies != null && <span style={{ color: 'var(--ravenof-text-secondary)', fontSize: f(9, 13) }}>/</span>}
@@ -242,7 +243,8 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
     </button>
   ) : (
     <button key={key} onClick={onOpen} className="ravenof-press relative flex flex-col overflow-hidden text-left" style={{ minHeight: 0, border: '1px solid var(--ravenof-border-hairline)', background: 'var(--ravenof-bg-surface-2)', cursor: 'pointer', opacity: dim ? 0.6 : 1, padding: 0 }}>
-      <span className="relative block w-full" style={{ aspectRatio: '3 / 4', minHeight: 90 }}>
+      {/* overflow-hidden: artFull išblukintas fonas (scale 1.25) kitaip išlenda žemyn ir, būdamas absolute, uždengia kainos juostą */}
+      <span className="relative block w-full overflow-hidden" style={{ aspectRatio: '3 / 4', minHeight: 90 }}>
         {art}
         <span className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(7,6,10,.9))' }} />
         <span className="absolute" style={{ left: 8, bottom: 5, right: 6 }}>
