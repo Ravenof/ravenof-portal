@@ -1,0 +1,14 @@
+{
+  "name": "Ravenof kortų numeracija + eksportas",
+  "id": "ravenof-cards-renumber-export",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "devAllowedDomains": ["http://localhost:47821"],
+    "reasoning": "PNG eksportas siunčiamas į vietinį tools/figma-card-sink.mjs serverį"
+  }
+}
