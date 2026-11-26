@@ -42,30 +42,52 @@ const used = new Set()
 const frameCount = {}
 for (const e of manifest.cards) { const k = e.faction + '/' + e.frame; frameCount[k] = (frameCount[k] || 0) + 1 }
 
-const rows = []
-for (const e of manifest.cards) {
-  let hit = null, how = ''
-  const key = e.faction + '/' + e.frame
-  if (frameCount[key] === 1 && byNumber.has(key) && !used.has(byNumber.get(key).id)) { hit = byNumber.get(key); how = 'card_number' }
-  if (!hit) {
-    let cand = cards.filter((c) => !used.has(c.id) && norm(c.name) === norm(e.lt.name))
-    const ph = /CHAMPIOIN_Phase_(\d)/.exec(e.frame)
-    if (ph && cand.length > 1) cand = cand.filter((c) => String(c.champion_phase) === ph[1])
-    if (cand.length > 1) { const pref = cand.filter((c) => String(c.card_number || '').startsWith(e.faction + '/')); if (pref.length) cand = pref }
-    if (cand.length >= 1) { hit = cand.sort((a, b) => String(a.card_number).localeCompare(String(b.card_number), 'lt', { numeric: true }))[0]; how = cand.length > 1 ? 'vardas (keli – paimtas pirmas)' : 'vardas' }
+// Rankiniai pataisymai (Figma numeris → DB card_number) ir praleidžiamos kortos (dar ne galutinis vaizdas)
+const OVERRIDE = { 40: 'impas', 490: 'Ninjachamp1', 491: 'Ninjachamp2', 492: 'Ninjachamp3' }
+const SKIP = { 386: 'antra Zordakas Brutalusis kopija su laikinu paveikslėliu' }
+const loose = (s) => norm(s).replace(/[^\p{L}\p{N} ]/gu, '').trim()
+function lev(a, b) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)])
+  for (let j = 1; j <= b.length; j++) d[0][j] = j
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1))
+  return d[a.length][b.length]
+}
+const rows = manifest.cards.map((e) => ({ n: e.n, faction: e.faction, frame: e.frame, figma_lt: e.lt.name, figma_en: e.en?.name ?? '', db_id: '', db_name: '', db_number: '', match: 'NERASTA', e }))
+const take = (r, hit, how) => { used.add(hit.id); Object.assign(r, { db_id: hit.id, db_name: hit.name, db_number: hit.card_number ?? '', match: how }) }
+const pickPhase = (r, cand) => { const ph = /CHAMPIOIN_Phase_(\d)/.exec(r.frame); return ph && cand.length > 1 ? cand.filter((c) => String(c.champion_phase) === ph[1]) : cand }
+const sortNum = (a) => a.sort((x, y) => String(x.card_number).localeCompare(String(y.card_number), 'lt', { numeric: true }))
+// 0) praleidžiamos ir rankiniai
+for (const r of rows) {
+  if (SKIP[r.n]) { r.match = 'PRALEISTA: ' + SKIP[r.n]; continue }
+  if (OVERRIDE[r.n] && byNumber.has(OVERRIDE[r.n])) take(r, byNumber.get(OVERRIDE[r.n]), 'rankinis')
+}
+// 1) card_number = frakcija/rėmelis (kai rėmelio vardas unikalus)
+for (const r of rows.filter((x) => x.match === 'NERASTA')) {
+  const key = r.faction + '/' + r.frame
+  const hit = byNumber.get(key)
+  if (frameCount[key] === 1 && hit && !used.has(hit.id)) take(r, hit, 'card_number')
+}
+// 2) vardas – pirma tos pačios frakcijos DB kortos, 3) vardas – bet kurios, 4) apytikslis vardas (≤2 raidės skirtumas)
+for (const pass of ['same', 'any', 'fuzzy']) {
+  for (const r of rows.filter((x) => x.match === 'NERASTA')) {
+    let cand = cards.filter((c) => !used.has(c.id) && (pass === 'fuzzy' ? (loose(c.name) === loose(r.figma_lt) || lev(loose(c.name), loose(r.figma_lt)) <= 2) : norm(c.name) === norm(r.figma_lt)))
+    if (pass === 'same') cand = cand.filter((c) => String(c.card_number || '').startsWith(r.faction + '/'))
+    if (pass === 'any') cand = cand.filter((c) => { const pre = String(c.card_number || '').split('/')[0]; return !(c.card_number || '').includes('/') || !manifest.cards.some((m) => m.faction === pre && norm(m.lt.name) === norm(c.name)) })
+    cand = pickPhase(r, cand)
+    if (!cand.length) continue
+    take(r, sortNum(cand)[0], (pass === 'fuzzy' ? 'panašus vardas' : 'vardas') + (cand.length > 1 ? ' (keli – paimtas pirmas)' : ''))
   }
-  if (hit) used.add(hit.id)
-  rows.push({ n: e.n, faction: e.faction, frame: e.frame, figma_lt: e.lt.name, figma_en: e.en?.name ?? '', db_id: hit?.id ?? '', db_name: hit?.name ?? '', db_number: hit?.card_number ?? '', match: hit ? how : 'NERASTA', e })
 }
 const cell = (v) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s }
 const cols = ['n', 'faction', 'frame', 'figma_lt', 'figma_en', 'db_name', 'db_number', 'match']
 writeFileSync(resolve(DIR, 'report.csv'), '﻿' + [cols.join(','), ...rows.map((r) => cols.map((c) => cell(r[c])).join(','))].join('\n'))
 const notInFigma = cards.filter((c) => !used.has(c.id) && !/^(TUT-|BASE-)/.test(String(c.card_number)))
 writeFileSync(resolve(DIR, 'db-not-in-figma.csv'), '﻿' + ['name,card_number', ...notInFigma.map((c) => cell(c.name) + ',' + cell(c.card_number))].join('\n'))
-const miss = rows.filter((r) => !r.db_id), amb = rows.filter((r) => r.match.startsWith('vardas (keli'))
-console.log(`Figma kortų: ${rows.length} | suporuota: ${rows.length - miss.length} | nerasta DB: ${miss.length} | dviprasmiškos: ${amb.length} | DB kortų be Figma: ${notInFigma.length}`)
+const miss = rows.filter((r) => !r.db_id), amb = rows.filter((r) => r.match.includes('(keli')), fz = rows.filter((r) => r.match.startsWith('panašus') || r.match === 'rankinis')
+console.log(`Figma kortų: ${rows.length} | suporuota: ${rows.length - miss.length} | nerasta DB / praleista: ${miss.length} | dviprasmiškos: ${amb.length} | DB kortų be Figma: ${notInFigma.length}`)
 for (const r of miss.slice(0, 40)) console.log('  NERASTA', r.n, r.faction, r.frame, '|', r.figma_lt)
 for (const r of amb.slice(0, 20)) console.log('  KELIOS', r.n, r.figma_lt, '→', r.db_number)
+for (const r of fz) console.log('  ' + r.match.toUpperCase(), r.n, r.figma_lt, '→', r.db_name, '(' + r.db_number + ')')
 console.log('Ataskaita:', resolve(DIR, 'report.csv'), '| DB be Figma:', resolve(DIR, 'db-not-in-figma.csv'))
 if (!APPLY) { console.log('\nTai buvo peržiūra. Įkelti: node tools/cards-sync-figma.mjs --apply'); process.exit(0) }
 
