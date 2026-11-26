@@ -24,6 +24,9 @@ const env = (n) => { try { const m = readFileSync(resolve(root, '.env.local'), '
 const URL_BASE = process.env.NEXT_PUBLIC_SUPABASE_URL || env('NEXT_PUBLIC_SUPABASE_URL')
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY || env('SUPABASE_SERVICE_ROLE_KEY')
 const APPLY = process.argv.includes('--apply')
+// --only 529,530 – įkelti tik šiuos Figma numerius
+const onlyArg = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null
+const ONLY = onlyArg ? new Set(String(onlyArg).split(',').map((x) => Number(x.trim())).filter(Boolean)) : null
 if (!URL_BASE || !SERVICE) { console.error('KLAIDA: .env.local reikia NEXT_PUBLIC_SUPABASE_URL ir SUPABASE_SERVICE_ROLE_KEY'); process.exit(1) }
 if (!existsSync(resolve(DIR, 'manifest.json'))) { console.error('KLAIDA: nėra ' + DIR + '\\manifest.json – pirma eksportuok iš Figma plugin\'o'); process.exit(1) }
 const db = createClient(URL_BASE, SERVICE, { auth: { persistSession: false } })
@@ -44,7 +47,7 @@ for (const e of manifest.cards) { const k = e.faction + '/' + e.frame; frameCoun
 
 // Rankiniai pataisymai (Figma numeris → DB card_number) ir praleidžiamos kortos (dar ne galutinis vaizdas)
 const OVERRIDE = { 40: 'impas', 490: 'Ninjachamp1', 491: 'Ninjachamp2', 492: 'Ninjachamp3' }
-const SKIP = { 386: 'antra Zordakas Brutalusis kopija su laikinu paveikslėliu' }
+const SKIP = { 386: 'antra Zordakas Brutalusis kopija su laikinu paveikslėliu', 304: 'Olafas Burgas (400, 2/5) – nedėti' }
 const loose = (s) => norm(s).replace(/[^\p{L}\p{N} ]/gu, '').trim()
 function lev(a, b) {
   const d = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)])
@@ -93,7 +96,7 @@ if (!APPLY) { console.log('\nTai buvo peržiūra. Įkelti: node tools/cards-sync
 
 const V = Date.now().toString(36)
 let ok = 0, fail = 0
-for (const r of rows.filter((x) => x.db_id)) {
+for (const r of rows.filter((x) => x.db_id && (!ONLY || ONLY.has(x.n)))) {
   for (const lang of ['lt', 'en']) {
     const f = r.e[lang]?.file; if (!f || !existsSync(resolve(DIR, f))) continue
     try {

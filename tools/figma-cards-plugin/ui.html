@@ -11,6 +11,7 @@
   <button id="e">3. Eksportuoti PNG</button>
 </div>
 <div>Tik šios kortos (nr., pvz. 9,13,20): <input id="only" style="width:200px"> <button id="eo">Eksportuoti tik jas</button></div>
+<div>Pakeisti tekstą: <input id="rf" style="width:110px"> → <input id="rt" style="width:110px"> <button id="rb">Pakeisti</button></div>
 <div id="p"></div>
 <pre id="o">Eksportui pirma paleisk: node tools/figma-card-sink.mjs</pre>
 <script>
@@ -21,6 +22,7 @@
   document.getElementById('r').onclick = () => { if (confirm('Pakeisti visų kortų numerius LT ir EN puslapiuose?')) { o.textContent = 'Numeruojama…'; send('renumber') } }
   document.getElementById('e').onclick = () => { o.textContent = 'Eksportuojama…'; send('export') }
   document.getElementById('eo').onclick = () => { o.textContent = 'Eksportuojama…'; parent.postMessage({ pluginMessage: { type: 'export', only: document.getElementById('only').value } }, '*') }
+  document.getElementById('rb').onclick = () => { o.textContent = 'Keičiama…'; parent.postMessage({ pluginMessage: { type: 'replace', from: document.getElementById('rf').value, to: document.getElementById('rt').value } }, '*') }
   const ack = (ok) => parent.postMessage({ pluginMessage: { type: 'ack', ok } }, '*')
   onmessage = async (ev) => {
     const m = ev.data.pluginMessage; if (!m) return

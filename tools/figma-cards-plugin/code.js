@@ -82,6 +82,26 @@ const waitAck = () => new Promise((r) => { ackResolve = r })
 
 figma.ui.onmessage = async (msg) => {
   if (msg.type === 'ack') { const r = ackResolve; ackResolve = null; r && r(msg); return }
+  if (msg.type === 'replace') {
+    // Teksto pakeitimas kortose (abu puslapiai): pvz. vardo rašybos klaida
+    try {
+      const from = String(msg.from || ''), to = String(msg.to || '')
+      if (!from) return
+      const hits = []
+      for (const pn of [LT_PAGE, EN_PAGE]) {
+        const pg = pageBy(pn); await pg.loadAsync()
+        for (const t of pg.findAllWithCriteria({ types: ['TEXT'] })) {
+          if (!t.characters.includes(from)) continue
+          for (const f of t.getRangeAllFontNames(0, t.characters.length)) await figma.loadFontAsync(f)
+          t.characters = t.characters.split(from).join(to)
+          let top = t; while (top.parent && top.parent.type !== 'PAGE') top = top.parent
+          hits.push(pn.slice(-3) + ': ' + top.name)
+        }
+      }
+      figma.ui.postMessage({ type: 'log', text: `Pakeista ${hits.length} tekst.:\n` + hits.join('\n') })
+    } catch (e) { figma.ui.postMessage({ type: 'log', text: 'KLAIDA: ' + (e && e.message ? e.message : String(e)) }) }
+    return
+  }
   try {
     const c = await collect()
     const total = c.ordered.length

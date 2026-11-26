@@ -6,6 +6,7 @@
 // ════════════════════════════════════════════════════════════════════════════
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { resolveRewardVisualV2 } from '@/lib/rewards/rewardVisuals'
 import type { RewardDefinition } from '@/lib/progression'
 import { useT } from '@/lib/i18n/react'
@@ -196,10 +197,12 @@ export function ProgressionModal({ open, onClose, title, kicker, width = 560, ch
   }, [open, onClose])
 
   if (!open) return null
-  return (
+  // Portalas į <body>: kitaip fixed langas lieka turinio konteineryje ir
+  // kairę pusę uždengia navigacijos juosta (mobile landscape).
+  const node = (
     <div role="dialog" aria-modal="true" aria-label={title}
       className="rvn-prog-in"
-      style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(4,3,7,.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(4,3,7,.82)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div ref={ref} className="rvn-prog-clip"
         style={{ width: 'min(96vw, ' + width + 'px)', maxHeight: desktop ? 'calc(100vh - 48px)' : '92vh', display: 'flex', flexDirection: 'column', background: `linear-gradient(180deg, ${C.surface}, #0c0a11)`, border: `1px solid ${C.line}` }}>
@@ -216,6 +219,7 @@ export function ProgressionModal({ open, onClose, title, kicker, width = 560, ch
       </div>
     </div>
   )
+  return typeof document !== 'undefined' ? createPortal(node, document.body) : node
 }
 
 // ── Būsenų ekranai ──────────────────────────────────────────────────────────

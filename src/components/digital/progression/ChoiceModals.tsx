@@ -63,10 +63,10 @@ export function FactionBoosterChoiceModal({ choice, queue, onDone, onCancel }: {
           display: 'flex', flexDirection: 'column',
           boxShadow: on ? '0 0 0 1px rgba(226,185,88,.35), 0 12px 30px rgba(0,0,0,.5)' : 'none',
         }}>
-        <div style={{ position: 'relative', height: 230, display: 'grid', placeItems: 'center', overflow: 'hidden', borderBottom: `1px solid ${on ? C.gold : C.lineIn}`, background: 'radial-gradient(80% 70% at 50% 60%, rgba(226,185,88,.10), transparent 70%), #0a0810' }}>
+        <div style={{ position: 'relative', height: D ? 230 : 'clamp(120px, 36vh, 230px)', display: 'grid', placeItems: 'center', overflow: 'hidden', borderBottom: `1px solid ${on ? C.gold : C.lineIn}`, background: 'radial-gradient(80% 70% at 50% 60%, rgba(226,185,88,.10), transparent 70%), #0a0810' }}>
           {p.imageUrl
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={p.imageUrl} alt="" aria-hidden style={{ maxWidth: '78%', maxHeight: '90%', objectFit: 'contain', filter: `drop-shadow(0 14px 30px rgba(0,0,0,.75))${on ? '' : ' saturate(.8) brightness(.85)'}`, transition: 'transform 200ms ease, filter 200ms ease', transform: on ? 'scale(1.06)' : 'none' }} />
+            ? <img src={p.imageUrl} alt="" aria-hidden style={{ maxWidth: '78%', maxHeight: D ? '90%' : 'calc(100% - 28px)', marginTop: D ? 0 : 18, objectFit: 'contain', filter: `drop-shadow(0 14px 30px rgba(0,0,0,.75))${on ? '' : ' saturate(.8) brightness(.85)'}`, transition: 'transform 200ms ease, filter 200ms ease', transform: on ? 'scale(1.06)' : 'none' }} />
             : <RewardIcon reward={{ type: 'faction_booster_choice', quantity: 1 }} size={96} />}
           <span style={{ position: 'absolute', left: 12, top: 10, font: `${D ? 600 : 500} ${D ? DT.fs.label : 9}px ${BODY}`, letterSpacing: 2, textTransform: 'uppercase', color: accent }}>
             {t(`progression.choice.${p.alignment === 'dark' ? 'dark' : 'light'}`)}
