@@ -10,6 +10,7 @@
   <button id="r">2. Sunumeruoti</button>
   <button id="e">3. Eksportuoti PNG</button>
 </div>
+<div>Tik šios kortos (nr., pvz. 9,13,20): <input id="only" style="width:200px"> <button id="eo">Eksportuoti tik jas</button></div>
 <div id="p"></div>
 <pre id="o">Eksportui pirma paleisk: node tools/figma-card-sink.mjs</pre>
 <script>
@@ -19,11 +20,13 @@
   document.getElementById('c').onclick = () => { o.textContent = 'Tikrinama…'; send('check') }
   document.getElementById('r').onclick = () => { if (confirm('Pakeisti visų kortų numerius LT ir EN puslapiuose?')) { o.textContent = 'Numeruojama…'; send('renumber') } }
   document.getElementById('e').onclick = () => { o.textContent = 'Eksportuojama…'; send('export') }
+  document.getElementById('eo').onclick = () => { o.textContent = 'Eksportuojama…'; parent.postMessage({ pluginMessage: { type: 'export', only: document.getElementById('only').value } }, '*') }
   const ack = (ok) => parent.postMessage({ pluginMessage: { type: 'ack', ok } }, '*')
   onmessage = async (ev) => {
     const m = ev.data.pluginMessage; if (!m) return
     if (m.type === 'log') { o.textContent = m.text; p.textContent = '' }
     if (m.type === 'progress') p.textContent = m.text
+    if (m.type === 'only') document.getElementById('only').value = m.list
     if (m.type === 'file') {
       try { const r = await fetch(SINK + '/file?path=' + encodeURIComponent(m.path), { method: 'POST', body: m.bytes }); ack(r.ok) } catch { ack(false) }
     }

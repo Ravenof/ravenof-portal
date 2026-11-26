@@ -14,15 +14,19 @@ const SCALE = 4            // 261x354 → 1044x1416
 const pageBy = (n) => figma.root.children.find((p) => p.name.trim().toLowerCase() === n)
 const visibleIn = (n, root) => { let x = n; while (x && x !== root) { if (x.visible === false) return false; x = x.parent } return true }
 
-function numberNode(card) {
-  const bi = card.findOne((n) => n.name === 'BOTTOM_Information')
-  if (!bi || !('findAll' in bi)) return null
-  return bi.findAll((n) => n.type === 'TEXT').find((t) => /\d+\s*\/\s*\d+/.test(t.characters)) || null
+const NUM_RE = /^\s*\d+\s*\/\s*\d+/
+// Visi matomi numerio tekstai kortoje (kai kuriose kortose naujas sluoksnis uždėtas ant seno –
+// keičiam VISUS, kad matomas viršutinis irgi pasikeistų)
+function numberNodes(card) {
+  const y0 = card.absoluteTransform[1][2], h = card.height
+  return card.findAll((n) => n.type === 'TEXT' && NUM_RE.test(n.characters) && visibleIn(n, card) && n.absoluteTransform[1][2] - y0 > h * 0.85)
 }
+function numberNode(card) { const a = numberNodes(card); return a.length ? a[a.length - 1] : null }
 function cardName(card) {
-  for (const g of card.findAll((n) => n.name === 'CHARACTERS_Name')) {
-    if (!visibleIn(g, card) || !('findAll' in g)) continue
-    const s = g.findAll((x) => x.type === 'TEXT' && visibleIn(x, card)).map((x) => x.characters.trim()).filter(Boolean).join(' ')
+  // viršutinis (paskutinis) matomas vardo blokas – žr. numberNodes
+  const gs = card.findAll((n) => n.name === 'CHARACTERS_Name').filter((g) => visibleIn(g, card) && 'findAll' in g)
+  for (let i = gs.length - 1; i >= 0; i--) {
+    const s = gs[i].findAll((x) => x.type === 'TEXT' && visibleIn(x, card)).map((x) => x.characters.trim()).filter(Boolean).join(' ')
     if (s) return s
   }
   return ''
@@ -65,11 +69,12 @@ async function collect() {
 }
 
 async function setNum(card, txt) {
-  const t = numberNode(card); if (!t) return false
-  const fonts = t.getRangeAllFontNames(0, t.characters.length)
-  for (const f of fonts) await figma.loadFontAsync(f)
-  t.characters = txt
-  return true
+  const all = numberNodes(card); if (!all.length) return 0
+  for (const t of all) {
+    for (const f of t.getRangeAllFontNames(0, t.characters.length)) await figma.loadFontAsync(f)
+    t.characters = txt
+  }
+  return all.length
 }
 
 let ackResolve = null
@@ -86,21 +91,27 @@ figma.ui.onmessage = async (msg) => {
     }
     if (msg.type === 'renumber') {
       let n = 0, done = 0
+      const multi = []
       for (const o of c.ordered) {
         n++
         const txt = `${n} / ${total}`
-        if (await setNum(o.lt, txt)) done++
+        const k = await setNum(o.lt, txt)
+        if (k) done++
+        if (k > 1) multi.push(n)
         if (o.en) await setNum(o.en, txt)
         if (n % 25 === 0) figma.ui.postMessage({ type: 'progress', text: `Numeruojama ${n}/${total}` })
       }
-      figma.ui.postMessage({ type: 'log', text: `Sunumeruota ${done} kortų (1–${total}), LT ir EN vienodai.` })
+      figma.ui.postMessage({ type: 'log', text: `Sunumeruota ${done} kortų (1–${total}), LT ir EN vienodai.\nKortos su keliais numerio sluoksniais (${multi.length}): ${multi.join(',')}` })
+      figma.ui.postMessage({ type: 'only', list: multi.join(',') })
       return
     }
     if (msg.type === 'export') {
       const manifest = []
+      const only = msg.only ? new Set(String(msg.only).split(',').map((x) => Number(x.trim())).filter(Boolean)) : null
       let n = 0
       for (const o of c.ordered) {
         n++
+        if (only && !only.has(n)) continue
         const num = String(n).padStart(3, '0')
         const entry = { n, faction: o.faction, frame: o.lt.name, lt: { id: o.lt.id, name: cardName(o.lt), file: `lt/${num}.png` }, en: o.en ? { id: o.en.id, name: cardName(o.en), file: `en/${num}.png` } : null }
         for (const side of ['lt', 'en']) {
@@ -114,9 +125,8 @@ figma.ui.onmessage = async (msg) => {
         manifest.push(entry)
         figma.ui.postMessage({ type: 'progress', text: `Eksportuota ${n}/${total}` })
       }
-      figma.ui.postMessage({ type: 'manifest', manifest: { total, exportedAt: new Date().toISOString(), cards: manifest } })
-      await waitAck()
-      figma.ui.postMessage({ type: 'log', text: `Baigta: ${total} kortų × 2 kalbos išsaugota.` })
+      if (!only) { figma.ui.postMessage({ type: 'manifest', manifest: { total, exportedAt: new Date().toISOString(), cards: manifest } }); await waitAck() }
+      figma.ui.postMessage({ type: 'log', text: `Baigta: ${manifest.length} kortų × 2 kalbos išsaugota.` })
     }
   } catch (e) {
     figma.ui.postMessage({ type: 'log', text: 'KLAIDA: ' + (e && e.message ? e.message : String(e)) })
