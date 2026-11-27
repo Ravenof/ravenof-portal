@@ -6,8 +6,12 @@
  *   • suporuoja kiekvieną Figma kortą su DB korta (cards):
  *       1) card_number == "<frakcija>/<Figma rėmelio vardas>" (kai rėmelio vardas unikalus)
  *       2) pagal LT vardą (čempionų fazės – pagal champion_phase)
- *   • --apply: PNG → WebP, įkelia į Storage card-images/cards/v2/<id>-<lt|en>.webp,
- *     atnaujina cards.image_url (LT) ir card_assets (EN, asset_type=image).
+ *   • --apply: PNG → WebP 783 px pločio (žaidimo standartas: ~135 KB kortai, greitai piešiasi
+ *     telefone), įkelia į Storage card-images/cards/v3/<id>-<lt|en>-<versija>.webp (kaskart
+ *     NAUJAS failo vardas – jokių ?v= ir jokio pasenusio CDN kešo), atnaujina cards.image_url (LT)
+ *     ir card_assets (EN, asset_type=image), o pabaigoje paleidžia tools/build-media.mjs, kad
+ *     APK/EXE vietinių failų sąrašas (apps/digital/media/manifest.json) atitiktų naujus adresus.
+ *     Be šito žingsnio žaidimas naujų kortų vietoje neranda ir siunčiasi jas iš tinklo.
  * Be --apply – tik ataskaita (store-media/cards-figma-export/report.csv).
  *   node tools/cards-sync-figma.mjs            # peržiūra
  *   node tools/cards-sync-figma.mjs --apply    # įkelti
@@ -17,6 +21,11 @@ import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
+import { spawnSync } from 'node:child_process'
+
+// Kortos plotis žaidime. Figma eksportas 1044×1416 – per didelis kolekcijos tinkleliui ir atsisiuntimui.
+const CARD_WIDTH = 783
+const CARD_QUALITY = 84
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const DIR = resolve(root, 'store-media/cards-figma-export')
@@ -100,11 +109,11 @@ for (const r of rows.filter((x) => x.db_id && (!ONLY || ONLY.has(x.n)))) {
   for (const lang of ['lt', 'en']) {
     const f = r.e[lang]?.file; if (!f || !existsSync(resolve(DIR, f))) continue
     try {
-      const webp = await sharp(resolve(DIR, f)).webp({ quality: 88 }).toBuffer()
-      const path = `cards/v2/${r.db_id}-${lang}.webp`
+      const webp = await sharp(resolve(DIR, f)).resize({ width: CARD_WIDTH, withoutEnlargement: true }).webp({ quality: CARD_QUALITY }).toBuffer()
+      const path = `cards/v3/${r.db_id}-${lang}-${V}.webp`
       const up = await db.storage.from('card-images').upload(path, webp, { contentType: 'image/webp', upsert: true, cacheControl: '31536000' })
       if (up.error) throw up.error
-      const url = `${URL_BASE}/storage/v1/object/public/card-images/${path}?v=${V}`
+      const url = `${URL_BASE}/storage/v1/object/public/card-images/${path}`
       if (lang === 'lt') { const { error } = await db.from('cards').update({ image_url: url }).eq('id', r.db_id); if (error) throw error }
       else { const { error } = await db.from('card_assets').upsert({ card_id: r.db_id, locale: 'en', asset_type: 'image', url, updated_at: new Date().toISOString() }, { onConflict: 'card_id,locale,asset_type' }); if (error) throw error }
       ok++
@@ -113,3 +122,10 @@ for (const r of rows.filter((x) => x.db_id && (!ONLY || ONLY.has(x.n)))) {
   if ((ok + fail) % 50 === 0) console.log('  įkelta', ok, 'klaidų', fail)
 }
 console.log(`Baigta: įkelta ${ok} vaizdų, klaidų ${fail}.`)
+
+// Vietinių failų sąrašas (APK/EXE) turi atitikti naujus adresus – kitaip žaidimas kortas siųsis iš tinklo.
+if (ok > 0 && !process.argv.includes('--no-media')) {
+  console.log('\nAtnaujinami vietiniai žaidimo failai (tools/build-media.mjs)…')
+  const r = spawnSync(process.execPath, [resolve(root, 'tools/build-media.mjs')], { cwd: root, stdio: 'inherit' })
+  if (r.status !== 0) console.error('(!) build-media nepavyko – paleisk ranka: npm run media:build')
+}
