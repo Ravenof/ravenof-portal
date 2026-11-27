@@ -39,23 +39,41 @@ function slideDist(el: HTMLElement): number {
 }
 
 // ── Kaimyninių puslapių paveikslėlių preload ─────────────────────────────────
+// (843) Eilė su maža lygiagretumo riba ir žemu prioritetu – kad preload'as
+// nekonkuruotų su matomo puslapio paveikslėliais. Kviesti TIK kai dabartinis
+// puslapis jau užsikrovęs; verčiant puslapį – cancelPreload().
 const preloaded = new Set<string>()
-export function preloadImages(urls: string[]): void {
-  if (typeof window === 'undefined') return
-  for (const u of urls) {
-    if (!u || preloaded.has(u)) continue
+const PRELOAD_PARALLEL = 3
+let preQueue: string[] = []
+let preActive = 0
+function pumpPreload(): void {
+  while (preActive < PRELOAD_PARALLEL && preQueue.length) {
+    const u = preQueue.shift() as string
+    if (preloaded.has(u)) continue
     preloaded.add(u)
+    preActive++
     const im = new Image()
+    ;(im as HTMLImageElement & { fetchPriority?: string }).fetchPriority = 'low'
     im.decoding = 'async'
+    const next = () => { preActive--; pumpPreload() }
+    im.onload = next
+    im.onerror = () => { preloaded.delete(u); next() }
     im.src = u
   }
 }
+export function preloadImages(urls: string[]): void {
+  if (typeof window === 'undefined') return
+  preQueue = urls.filter((u) => !!u && !preloaded.has(u))
+  pumpPreload()
+}
+/** Išmeta dar nepradėtus siųsti paveikslėlius (jau siunčiami – iki 3 – pabaigiami). */
+export function cancelPreload(): void { preQueue = [] }
 
 /** Vienas apsivertimo garsas per puslapio vertimą (ne 24 iš karto). */
 let flipSoundGen = -1
 
 // ── Tinklelis ────────────────────────────────────────────────────────────────
-export function FlipGrid<T>({ items, flip, getKey, renderCell, className, layerStyle, backUrl, backCss, testId }: {
+export function FlipGrid<T>({ items, flip, getKey, renderCell, className, layerStyle, backUrl, backCss, testId, onPageReady }: {
   items: T[]
   flip: PageFlip
   getKey: (item: T) => string
@@ -66,11 +84,25 @@ export function FlipGrid<T>({ items, flip, getKey, renderCell, className, layerS
   backUrl?: string | null
   backCss?: string | null
   testId?: string
+  /** Visų puslapio kortų paveikslėliai užsikrovė (signalas kaimynų preload'ui). */
+  onPageReady?: () => void
 }) {
   const boxRef = useRef<HTMLDivElement>(null)
   const layerRef = useRef<HTMLDivElement>(null)
   const seen = useRef(flip.n)
   const snap = useRef<{ n: number; el: HTMLElement | null }>({ n: flip.n, el: null })
+
+  // puslapio „užsikrovė" sekimas: kai visos kortos praneša onReady → onPageReady
+  const sig = items.map(getKey).join('|')
+  const ready = useRef<{ sig: string; keys: Set<string>; fired: boolean }>({ sig, keys: new Set(), fired: false })
+  if (ready.current.sig !== sig) ready.current = { sig, keys: new Set(), fired: false }
+  const onPageReadyRef = useRef(onPageReady)
+  onPageReadyRef.current = onPageReady
+  const markReady = (key: string) => {
+    const r = ready.current
+    r.keys.add(key)
+    if (!r.fired && r.keys.size >= items.length) { r.fired = true; onPageReadyRef.current?.() }
+  }
 
   // Išeinantis puslapis = dabartinio DOM kopija (paimama PRIEŠ React pakeičiant turinį),
   // kad jau užkrauti paveikslėliai nemirksėtų.
@@ -107,7 +139,7 @@ export function FlipGrid<T>({ items, flip, getKey, renderCell, className, layerS
       <div key={flip.n} ref={layerRef} style={{ gridArea: '1 / 1', minWidth: 0, ...layerStyle }}>
         {items.map((it, i) => (
           <FlipCell key={getKey(it)} index={i} flip={flip} backUrl={backUrl} backCss={backCss}>
-            {(onReady) => renderCell(it, onReady)}
+            {(onReady) => renderCell(it, () => { onReady(); markReady(getKey(it)) })}
           </FlipCell>
         ))}
       </div>

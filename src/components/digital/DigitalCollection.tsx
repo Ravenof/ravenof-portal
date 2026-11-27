@@ -25,7 +25,7 @@ import { RavenofCardDetailModal, type RavenofCardDetail } from './RavenofCardDet
 import { RavenofTextField, ravenofFactionColor, ravenofFactionIcon, ravenofRarityColor, ravenofRarityGem, ravenofCardTypeIcon } from './ui/RavenofKit'
 import { useDesktopUi } from './ui/useDesktopUi'
 import { DT, deskGrid } from './ui/deskTokens'
-import { FlipGrid, RollNumber, preloadImages, type PageFlip } from './CollectionPageFlip'
+import { FlipGrid, RollNumber, preloadImages, cancelPreload, type PageFlip } from './CollectionPageFlip'
 import { thumbUrl } from '@/lib/img'
 import { useCosmetics, activeCardBackVisual } from '@/lib/digital/cosmeticsStore'
 
@@ -157,19 +157,25 @@ export function DigitalCollection() {
   }
   const backVis = activeCardBackVisual(useCosmetics())
   const thumbW = desktop ? 400 : 240
-  // kaimyninių puslapių paveikslėliai kraunami fone, kad vertimas nelauktų tinklo
+  // Kaimyninių puslapių paveikslėliai kraunami fone, kad vertimas nelauktų tinklo.
+  // (843) TIK kai dabartinis puslapis jau užsikrovęs (arba po 3 s), po kelis iš eilės,
+  // pirma – vertimo kryptimi; verčiant puslapį eilė nutraukiama.
+  const pageKey = `${curPage}|${pageCards.length}|${pageCards[0]?.id ?? ''}`
+  const [readyKey, setReadyKey] = useState('')
+  const pageIdle = readyKey === pageKey
   useEffect(() => {
     const tm = setTimeout(() => {
       const urls: string[] = []
-      for (const p of [curPage + 1, curPage - 1]) {
+      if (backVis.url) urls.push(backVis.url)
+      const fwd = flip.dir === -1 ? -1 : 1
+      for (const p of [curPage + fwd, curPage - fwd]) {
         if (p < 0 || p > pages - 1) continue
         for (const c of filtered.slice(p * PAGE_SIZE, p * PAGE_SIZE + PAGE_SIZE)) if (c.image) urls.push(thumbUrl(c.image, thumbW) ?? c.image)
       }
-      if (backVis.url) urls.push(backVis.url)
       preloadImages(urls)
-    }, 350)
-    return () => clearTimeout(tm)
-  }, [filtered, curPage, pages, thumbW, backVis.url])
+    }, pageIdle ? 150 : 3000)
+    return () => { clearTimeout(tm); cancelPreload() }
+  }, [filtered, curPage, pages, thumbW, backVis.url, pageIdle, flip.dir])
 
   const selected = useMemo(() => filtered.find((c) => c.id === selId) ?? null, [filtered, selId])
   const selIdx = selected ? filtered.findIndex((c) => c.id === selected.id) : -1
@@ -364,7 +370,7 @@ export function DigitalCollection() {
               </div>
             ) : (
               <>
-                <FlipGrid items={pageCards} flip={flip} getKey={(c) => c.id} testId="card-browser"
+                <FlipGrid items={pageCards} flip={flip} getKey={(c) => c.id} testId="card-browser" onPageReady={() => setReadyKey(pageKey)}
                   className="flex-1 min-h-0 overflow-y-auto ravenof-scroll" backUrl={backVis.url} backCss={backVis.css}
                   layerStyle={{ ...deskGrid(DT.card.collection, DT.sp.lg), paddingTop: 6, paddingBottom: DT.sp.lg, paddingRight: DT.sp.xs }}
                   renderCell={(c, ready) => (
@@ -486,7 +492,7 @@ export function DigitalCollection() {
       ) : (
         <>
           {/* Responsyvus kelių eilučių tinklelis su slinktimi — ekranas nebešvaisto vietos */}
-          <FlipGrid items={pageCards} flip={flip} getKey={(c) => c.id} testId="card-browser"
+          <FlipGrid items={pageCards} flip={flip} getKey={(c) => c.id} testId="card-browser" onPageReady={() => setReadyKey(pageKey)}
             className="flex-1 min-h-0 overflow-y-auto ravenof-scroll" backUrl={backVis.url} backCss={backVis.css}
             layerStyle={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 8, alignContent: 'start' }}
             renderCell={(c, ready) => (
