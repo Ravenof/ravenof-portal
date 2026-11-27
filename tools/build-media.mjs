@@ -38,8 +38,15 @@ const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT
 if (!url || !key) { console.error('Trūksta NEXT_PUBLIC_SUPABASE_URL / ANON_KEY (.env.local)'); process.exit(1) }
 
 const sb = createClient(url, key)
-const { data, error } = await sb.rpc('rvn_media_manifest')
-if (error) { console.error('rvn_media_manifest:', error.message); process.exit(1) }
+// (847) Supabase grąžina daugiausia 1000 eilučių vienu kartu – manifestas jau didesnis
+// (LT + EN kortos), todėl imam puslapiais; kitaip dalis failų tyliai nepatenka į bundle'ą.
+const data = []
+for (let from = 0; ; from += 1000) {
+  const { data: page, error } = await sb.rpc('rvn_media_manifest').order('url').range(from, from + 999)
+  if (error) { console.error('rvn_media_manifest:', error.message); process.exit(1) }
+  data.push(...(page ?? []))
+  if (!page || page.length < 1000) break
+}
 const OBJ = '/storage/v1/object/public/'
 let entries = (data ?? []).filter((e) => typeof e.url === 'string' && e.url.includes(OBJ))
 const isVideo = (e) => e.kind === 'video' || /\.(mp4|webm|mov)(\?|$)/i.test(e.url)

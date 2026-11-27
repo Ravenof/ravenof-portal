@@ -14,9 +14,16 @@ export type DlProgress = {
 }
 
 export async function getMediaManifest(): Promise<ManifestEntry[]> {
-  const { data, error } = await createClient().rpc('rvn_media_manifest')
-  if (error) { console.warn('[media] manifest:', error.message); return [] }
-  const list = (data as ManifestEntry[]) ?? []
+  // (847) manifestas > 1000 eilučių (LT + EN kortos) – Supabase vienu kartu grąžina iki 1000, imam puslapiais
+  const sb = createClient()
+  const list: ManifestEntry[] = []
+  for (let from = 0; from < 20000; from += 1000) {
+    const { data, error } = await sb.rpc('rvn_media_manifest').order('url').range(from, from + 999)
+    if (error) { console.warn('[media] manifest:', error.message); if (from === 0) return []; break }
+    const page = (data as ManifestEntry[]) ?? []
+    list.push(...page)
+    if (page.length < 1000) break
+  }
   // Santykiniai /public keliai (pvz. /cards/x.webp) → absoliutūs su origin,
   // kad cache raktas sutaptų su tuo, ko prašo puslapis.
   const origin = typeof location !== 'undefined' ? location.origin : ''
