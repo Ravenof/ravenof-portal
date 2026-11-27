@@ -1,7 +1,7 @@
 // ── App bundle runtime ───────────────────────────────────────────────────────
 // Dalykai, kuriuos Next'e darė serveris / root layout'as, ir local-first specifika.
-import { markTransformsBroken } from '@/lib/img'
-import { installMediaShim, localMediaCount } from './mediaShim'
+import { setLocalMediaCheck } from '@/lib/img'
+import { installMediaShim, localMediaCount, hasLocalMedia } from './mediaShim'
 import { installFpsOverlay } from './fpsOverlay'
 import { startOfflineSync } from '@/lib/offline/sync'
 import { warmOfflineCache } from '@/lib/offline/warm'
@@ -16,7 +16,8 @@ export async function installAppBundleRuntime(): Promise<void> {
   await installMediaShim()
   // Supabase image transformacijų bundle'e nenaudojam: vietiniai failai jau optimizuoti,
   // o /render/image URL'ai reikštų tinklo užklausą ir egress'ą.
-  if (localMediaCount() > 0) markTransformsBroken()
+  // (845) Tik vietoje esantiems failams; kitiems (naujesni už APK/EXE turinį) – mažas thumb'as iš tinklo.
+  if (localMediaCount() > 0) setLocalMediaCheck(hasLocalMedia)
   installFpsOverlay()
   // Offline sync eilė (decks/deck_cards/profiles rašymai be tinklo) – žr. src/lib/offline/offlineFetch.ts
   startOfflineSync()
