@@ -25,6 +25,9 @@ import { RavenofCardDetailModal, type RavenofCardDetail } from './RavenofCardDet
 import { RavenofTextField, ravenofFactionColor, ravenofFactionIcon, ravenofRarityColor, ravenofRarityGem, ravenofCardTypeIcon } from './ui/RavenofKit'
 import { useDesktopUi } from './ui/useDesktopUi'
 import { DT, deskGrid } from './ui/deskTokens'
+import { FlipGrid, RollNumber, preloadImages, type PageFlip } from './CollectionPageFlip'
+import { thumbUrl } from '@/lib/img'
+import { useCosmetics, activeCardBackVisual } from '@/lib/digital/cosmeticsStore'
 
 type Col = RavenofCardDetail
 
@@ -142,6 +145,31 @@ export function DigitalCollection() {
   const curPage = Math.min(page, pages - 1)
   const pageCards = filtered.slice(curPage * PAGE_SIZE, curPage * PAGE_SIZE + PAGE_SIZE)
   useEffect(() => { setPage(0) }, [q, faction, rarity, type, ownedOnly, newOnly, sort])
+
+  // ── Puslapio vertimo animacija (842) – žr. CollectionPageFlip.tsx ──
+  const [flip, setFlip] = useState<PageFlip>({ dir: 0, n: 0, at: 0 })
+  const turnPage = (d: 1 | -1) => {
+    const next = curPage + d
+    if (next < 0 || next > pages - 1) return
+    playUiClick()
+    setFlip((f) => ({ dir: d, n: f.n + 1, at: performance.now() }))
+    setPage(next)
+  }
+  const backVis = activeCardBackVisual(useCosmetics())
+  const thumbW = desktop ? 400 : 240
+  // kaimyninių puslapių paveikslėliai kraunami fone, kad vertimas nelauktų tinklo
+  useEffect(() => {
+    const tm = setTimeout(() => {
+      const urls: string[] = []
+      for (const p of [curPage + 1, curPage - 1]) {
+        if (p < 0 || p > pages - 1) continue
+        for (const c of filtered.slice(p * PAGE_SIZE, p * PAGE_SIZE + PAGE_SIZE)) if (c.image) urls.push(thumbUrl(c.image, thumbW) ?? c.image)
+      }
+      if (backVis.url) urls.push(backVis.url)
+      preloadImages(urls)
+    }, 350)
+    return () => clearTimeout(tm)
+  }, [filtered, curPage, pages, thumbW, backVis.url])
 
   const selected = useMemo(() => filtered.find((c) => c.id === selId) ?? null, [filtered, selId])
   const selIdx = selected ? filtered.findIndex((c) => c.id === selected.id) : -1
@@ -336,16 +364,16 @@ export function DigitalCollection() {
               </div>
             ) : (
               <>
-                <div className="flex-1 min-h-0 overflow-y-auto ravenof-scroll" data-testid="card-browser"
-                  style={{ ...deskGrid(DT.card.collection, DT.sp.lg), paddingTop: 6, paddingBottom: DT.sp.lg, paddingRight: DT.sp.xs }}>
-                  {pageCards.map((c) => (
-                    <RavenofCardCell key={c.id} desk c={c} onClick={() => { playUiClick(); openCard(c.id) }} notOwnedLabel={t('collection.notOwnedBadge')} isNew={newIds.has(c.id)} newLabel={t('collection.newBadge')} />
-                  ))}
-                </div>
+                <FlipGrid items={pageCards} flip={flip} getKey={(c) => c.id} testId="card-browser"
+                  className="flex-1 min-h-0 overflow-y-auto ravenof-scroll" backUrl={backVis.url} backCss={backVis.css}
+                  layerStyle={{ ...deskGrid(DT.card.collection, DT.sp.lg), paddingTop: 6, paddingBottom: DT.sp.lg, paddingRight: DT.sp.xs }}
+                  renderCell={(c, ready) => (
+                    <RavenofCardCell desk c={c} onImgReady={ready} onClick={() => { playUiClick(); openCard(c.id) }} notOwnedLabel={t('collection.notOwnedBadge')} isNew={newIds.has(c.id)} newLabel={t('collection.newBadge')} />
+                  )} />
                 <div className="shrink-0 flex items-center justify-center" style={{ gap: DT.sp.lg, paddingTop: DT.sp.md, borderTop: '1px solid var(--ravenof-border-hairline)' }}>
-                  <button onClick={() => { if (curPage > 0) { playUiClick(); setPage(curPage - 1) } }} aria-label={t('collection.prevPage')} title={t('collection.prevPage')} disabled={curPage === 0} className="ravenof-press flex items-center justify-center" style={pagerBtn(curPage > 0)}>‹</button>
-                  <span style={{ font: `600 ${DT.fs.body}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', minWidth: 64, textAlign: 'center' }}>{curPage + 1} / {pages}</span>
-                  <button onClick={() => { if (curPage < pages - 1) { playUiClick(); setPage(curPage + 1) } }} aria-label={t('collection.nextPage')} title={t('collection.nextPage')} disabled={curPage >= pages - 1} className="ravenof-press flex items-center justify-center" style={pagerBtn(curPage < pages - 1)}>›</button>
+                  <button onClick={() => turnPage(-1)} aria-label={t('collection.prevPage')} title={t('collection.prevPage')} disabled={curPage === 0} className="ravenof-press flex items-center justify-center" style={pagerBtn(curPage > 0)}>‹</button>
+                  <span style={{ font: `600 ${DT.fs.body}px var(--ravenof-font-body)`, color: 'var(--ravenof-text-secondary)', minWidth: 64, textAlign: 'center' }}><RollNumber value={curPage + 1} flip={flip} /> / {pages}</span>
+                  <button onClick={() => turnPage(1)} aria-label={t('collection.nextPage')} title={t('collection.nextPage')} disabled={curPage >= pages - 1} className="ravenof-press flex items-center justify-center" style={pagerBtn(curPage < pages - 1)}>›</button>
                 </div>
               </>
             )}
@@ -458,16 +486,17 @@ export function DigitalCollection() {
       ) : (
         <>
           {/* Responsyvus kelių eilučių tinklelis su slinktimi — ekranas nebešvaisto vietos */}
-          <div className="flex-1 grid min-h-0 overflow-y-auto ravenof-scroll" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 8, alignContent: 'start' }} data-testid="card-browser">
-            {pageCards.map((c) => (
-              <RavenofCardCell key={c.id} c={c} onClick={() => { playUiClick(); openCard(c.id) }} notOwnedLabel={t('collection.notOwnedBadge')} isNew={newIds.has(c.id)} newLabel={t('collection.newBadge')} />
-            ))}
-          </div>
+          <FlipGrid items={pageCards} flip={flip} getKey={(c) => c.id} testId="card-browser"
+            className="flex-1 min-h-0 overflow-y-auto ravenof-scroll" backUrl={backVis.url} backCss={backVis.css}
+            layerStyle={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(118px, 1fr))', gap: 8, alignContent: 'start' }}
+            renderCell={(c, ready) => (
+              <RavenofCardCell c={c} onImgReady={ready} onClick={() => { playUiClick(); openCard(c.id) }} notOwnedLabel={t('collection.notOwnedBadge')} isNew={newIds.has(c.id)} newLabel={t('collection.newBadge')} />
+            )} />
           <div className="shrink-0 flex items-center justify-center" style={{ gap: 14, paddingTop: 8 }}>
-            <button onClick={() => { if (curPage > 0) { playUiClick(); setPage(curPage - 1) } }} aria-label={t('collection.prevPage')} disabled={curPage === 0} className="ravenof-press flex items-center justify-center"
+            <button onClick={() => turnPage(-1)} aria-label={t('collection.prevPage')} disabled={curPage === 0} className="ravenof-press flex items-center justify-center"
               style={{ width: 44, height: 34, border: '1px solid var(--ravenof-border-strong)', background: 'none', cursor: curPage > 0 ? 'pointer' : 'default', color: curPage > 0 ? 'var(--ravenof-text-primary)' : '#4a4552' }}>‹</button>
-            <span style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}>{curPage + 1}/{pages}</span>
-            <button onClick={() => { if (curPage < pages - 1) { playUiClick(); setPage(curPage + 1) } }} aria-label={t('collection.nextPage')} disabled={curPage >= pages - 1} className="ravenof-press flex items-center justify-center"
+            <span style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-text-secondary)' }}><RollNumber value={curPage + 1} flip={flip} />/{pages}</span>
+            <button onClick={() => turnPage(1)} aria-label={t('collection.nextPage')} disabled={curPage >= pages - 1} className="ravenof-press flex items-center justify-center"
               style={{ width: 44, height: 34, border: '1px solid var(--ravenof-border-strong)', background: 'none', cursor: curPage < pages - 1 ? 'pointer' : 'default', color: curPage < pages - 1 ? 'var(--ravenof-text-primary)' : '#4a4552' }}>›</button>
           </div>
         </>
@@ -479,15 +508,17 @@ export function DigitalCollection() {
 }
 
 // ── Kortos langelis (prototipo grid; GameCard = game-feel wrapper išsaugotas) ──
-function RavenofCardCell({ c, onClick, notOwnedLabel, isNew, newLabel, desk = false }: { c: Col; onClick: () => void; notOwnedLabel: string; isNew?: boolean; newLabel?: string; desk?: boolean }) {
+function RavenofCardCell({ c, onClick, notOwnedLabel, isNew, newLabel, desk = false, onImgReady }: { c: Col; onClick: () => void; notOwnedLabel: string; isNew?: boolean; newLabel?: string; desk?: boolean; onImgReady?: () => void }) {
   const [bad, setBad] = useState(false)
+  // korta be paveikslėlio – „paruošta" iškart (puslapio vertimo animacijai)
+  useEffect(() => { if (!c.image) onImgReady?.() }, [c.image, onImgReady])
   const owned = c.owned > 0
   return (
     <GameCard glowColor={owned ? ravenofRarityColor(c.rarity) + '88' : 'rgba(120,120,140,0.3)'} sounds={owned}>
       <button onClick={onClick} className="ravenof-press w-full block" style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', minWidth: 0 }} {...(desk ? { title: c.name } : null)}>
         <span role="img" aria-label={c.name} className="relative block w-full" style={{ aspectRatio: '1044 / 1416', borderRadius: 5, border: `1px solid ${owned ? 'var(--ravenof-border-strong)' : '#221e29'}`, overflow: 'hidden' }}>
           {c.image && !bad
-            ? <SmartImg src={c.image} width={desk ? 400 : 240} alt={c.name} onFail={() => setBad(true)}
+            ? <SmartImg src={c.image} width={desk ? 400 : 240} alt={c.name} onLoad={onImgReady} onFail={() => { setBad(true); onImgReady?.() }}
                 className="absolute inset-0 w-full h-full"
                 style={{ objectFit: 'contain', filter: owned ? undefined : 'grayscale(1) brightness(0.55)' }} />
             : <span className="absolute inset-0 flex flex-col items-center justify-center gap-1 px-1 text-center" style={{ background: 'linear-gradient(160deg,#1a1325,#0a0810)', filter: owned ? undefined : 'grayscale(1) brightness(0.7)' }}>
