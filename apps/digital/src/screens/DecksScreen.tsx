@@ -7,6 +7,14 @@ import { DigitalDecks } from '@/components/digital/DigitalDecks'
 import { createClient } from '@/lib/supabase/client'
 import type { CardWithRelations, CollectionMap, DeckEntry, DeckVisibility, Faction } from '@/types'
 import { RequireUser } from './RequireUser'
+import { screenCacheGet, screenCacheSet } from '@/lib/digital/screenCache'
+
+function sameMap(a: CollectionMap, b: CollectionMap): boolean {
+  const ka = Object.keys(a)
+  if (ka.length !== Object.keys(b).length) return false
+  for (const k of ka) if (a[k] !== b[k]) return false
+  return true
+}
 
 type Tab = 'builder' | 'my' | 'community'
 type InitialDeck = { id: string; name: string; description: string; factionId: number | null; visibility: DeckVisibility; entries: DeckEntry[]; sideEntries: DeckEntry[] } | null
@@ -40,7 +48,9 @@ function Inner({ user }: { user: User }) {
   const deckId = sp.get('deck')
   const tabParam = sp.get('tab')
   const tab: Tab = tabParam === 'builder' ? 'builder' : tabParam === 'community' ? 'community' : 'my'
-  const [data, setData] = useState<Loaded | null>(null)
+  // (844) be konkrečios kaladės – rodomas paskutinis užkrautas vaizdas, atnaujinama fone
+  const memoKey = `decksScreen:${user.id}`
+  const [data, setData] = useState<Loaded | null>(() => (deckId ? null : screenCacheGet<Loaded>(memoKey)))
 
   useEffect(() => {
     let alive = true
@@ -66,7 +76,10 @@ function Inner({ user }: { user: User }) {
           initialDeck = { id: deck.id as string, name: deck.name as string, description: (deck.description ?? '') as string, factionId: deck.faction_id as number | null, visibility: deck.visibility as DeckVisibility, entries, sideEntries }
         }
       }
-      if (alive) setData({ cards, factions, collection, initialDeck })
+      const next: Loaded = { cards, factions, collection, initialDeck }
+      if (!deckId) screenCacheSet(memoKey, next)
+      // tie patys duomenys → paliekam seną objektą, kad atidarytas ekranas nepersipieštų
+      if (alive) setData((prev) => (prev && !deckId && !prev.initialDeck && prev.cards === cards && prev.factions === factions && sameMap(prev.collection, collection) ? prev : next))
     })()
     return () => { alive = false }
   }, [user.id, deckId])

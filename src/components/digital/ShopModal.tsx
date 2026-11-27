@@ -15,6 +15,7 @@ import { useEscClose } from '@/lib/useEscClose'
 import { getPackInventory, getActivePacks } from '@/lib/economy'
 import { useAccount } from '@/lib/digital/accountStore'
 import { useCosmetics } from '@/lib/digital/cosmeticsStore'
+import { screenCacheGet, screenCacheSet } from '@/lib/digital/screenCache'
 import { formatNumber } from '@/lib/i18n/core'
 import { getShop, purchaseShopItem, purchaseShopItemBulk, isStackable, SHOP_SECTIONS, PURCHASE_ERR_KEY, REAL_MONEY_SHOP_ENABLED, isRealMoneyOnly, type ShopItem } from '@/lib/gamification/shop'
 import { useT, useContent } from '@/lib/i18n/react'
@@ -41,6 +42,8 @@ const ALL_SECTIONS: Section[] = [
   { key: 'starter', labelKey: 'shop.sections.starter' },
 ]
 
+type ShopMemo = { items: ShopItem[]; deal: DealCard[]; starters: StarterDeck[]; packImgs: Record<string, string | null>; packInv: number }
+
 export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPurchased?: () => void }) {
   const t = useT()
   const tc = useContent()
@@ -53,9 +56,11 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   // Pakų atplėšimas tiesiai iš parduotuvės (ne per Kolekciją)
   const [packFlow, setPackFlow] = useState(false)
   useEscClose(useCallback(() => { if (!selOpenForEsc && !packFlow) onClose() }, [selOpenForEsc, packFlow, onClose]))
-  const [items, setItems] = useState<ShopItem[]>([])
-  const [deal, setDeal] = useState<DealCard[]>([])
-  const [starters, setStarters] = useState<StarterDeck[]>([])
+  // (844) paskutinis užkrautas vaizdas – parduotuvė atsidaro iškart, atnaujinama fone
+  const [memo] = useState(() => screenCacheGet<ShopMemo>('shop'))
+  const [items, setItems] = useState<ShopItem[]>(memo?.items ?? [])
+  const [deal, setDeal] = useState<DealCard[]>(memo?.deal ?? [])
+  const [starters, setStarters] = useState<StarterDeck[]>(memo?.starters ?? [])
   // Balansai — iš bendro accountStore. Kol balances=null (kraunasi) — pirkimai
   // UŽBLOKUOTI ir rodoma "—", ne 0 (audit: jokiu fake zero / klaidinancio "neuztenka").
   const account = useAccount()
@@ -81,8 +86,9 @@ export function ShopModal({ onClose, onPurchased }: { onClose: () => void; onPur
   }, [cosStore.items, cosStore.owned])
   const equippedIds = useMemo(() => new Set([cosStore.active.avatar, cosStore.active.cardBack, cosStore.activeFrame].filter(Boolean) as string[]), [cosStore.active, cosStore.activeFrame])
   // tikrų card_packs vaizdai (shop pack prekės su payload item_id = pako uuid)
-  const [packImgs, setPackImgs] = useState<Record<string, string | null>>({})
-  const [packInv, setPackInv] = useState(0)
+  const [packImgs, setPackImgs] = useState<Record<string, string | null>>(memo?.packImgs ?? {})
+  const [packInv, setPackInv] = useState(memo?.packInv ?? 0)
+  useEffect(() => { if (items.length) screenCacheSet('shop', { items, deal, starters, packImgs, packInv } satisfies ShopMemo) }, [items, deal, starters, packImgs, packInv])
   const [section, setSection] = useState('packs')
   const [sel, setSel] = useState<Sel | null>(null)
   useEffect(() => { setSelOpenForEsc(!!sel) }, [sel])

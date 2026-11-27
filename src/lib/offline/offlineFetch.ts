@@ -14,12 +14,37 @@
 // nekešuojam rašymui); kaladėms/nustatymams – paskutinis kliento rašymas laimi.
 
 import { kv } from './kv'
+import { emitDataMutation } from './mutations'
 
 const CACHEABLE_GET = [/\/rest\/v1\/(?!rpc\/)/, /\/auth\/v1\/user$/]
 const READ_RPC = /\/rest\/v1\/rpc\/(rvn_get_|rvn_list_|rvn_media_manifest|rvn_wallet|rvn_balances|rvn_daily_|rvn_season_|rvn_quest_status|rvn_login_)/
 const QUEUE_TABLES = /\/rest\/v1\/(decks|deck_cards|profiles)(\?|$)/
 const QUEUE_RPC = /\/rest\/v1\/rpc\/(rvn_set_active_deck|rvn_set_deck_avatar|rvn_save_digital_settings)$/
 const MAX_CACHE_AGE_MS = 30 * 24 * 3600 * 1000
+
+// ── (844) Greitas kelias: kešas PIRMA ────────────────────────────────────────
+// • Katalogo lentelės (kortos, frakcijos, retumai, tipai, pakai, vertimai) beveik
+//   nesikeičia: grąžinam kešuotą atsakymą iškart, o senesnį nei 1 min atnaujinam
+//   fone (pakeitimas admin'e žaidėjui pasirodo kitą kartą atidarius ekraną).
+// • /auth/v1/user (supabase.auth.getUser()) – 5 min iš kešo: ekranams reikia tik
+//   vartotojo id, o teises serveris vis tiek tikrina pagal token'ą (RLS).
+// Admin puslapiuose negalioja – ten visada švieži duomenys.
+// Užklausoms su kortų `gameplay` lauku (kova) irgi negalioja.
+const STATIC_GET = /\/rest\/v1\/(cards|factions|rarities|card_types|keywords|card_packs|card_translations|card_assets)\?/
+const AUTH_USER = /\/auth\/v1\/user$/
+const STATIC_FRESH_MS = 60_000
+const AUTH_USER_TTL_MS = 5 * 60_000
+// Užklausos, po kurių ekranų kopijos (screenCache) nebegalioja.
+const MUTATING_RPC = /\/rest\/v1\/rpc\/rvn_(open_pack|buy_|purchase_|craft_|disenchant_|claim_|copy_community_deck|trade_|admin_grant|unlock_season_pass|tutorial_complete|report_match|report_ranked_match|record_ranked_match|login_checkin|set_active_deck|set_deck_avatar|equip_cosmetic|list_card|cancel_listing)/
+const MUTATING_TABLES = /\/rest\/v1\/(decks|deck_cards|user_collections)(\?|$)/
+const revalidating = new Set<string>()
+
+function onAdminPage(): boolean {
+  try { return typeof location !== 'undefined' && /\/admin(\/|$)/.test(location.pathname + location.hash) } catch { return false }
+}
+function fromCache(c: Cached, tag: string): Response {
+  return new Response(c.body, { status: c.status, headers: { ...c.headers, 'x-rvn-cache': tag } })
+}
 
 type Cached = { status: number; headers: Record<string, string>; body: string; at: number }
 type Queued = { id: string; at: number; method: string; url: string; headers: Record<string, string>; body: string | null }
@@ -58,8 +83,39 @@ export function createOfflineFetch(base: typeof fetch = fetch): typeof fetch {
     const bodyText = isRead || isQueueable ? (method === 'GET' ? null : await req.clone().text()) : null
     const cacheKey = isRead ? `${userKeyFromAuth(req.headers)}|${method}|${url}|${bodyText ?? ''}` : null
 
+    if (cacheKey && method === 'GET' && !onAdminPage()) {
+      // kovos duomenys (kortų gameplay konfigūracija) – visada iš tinklo, kad admin pataisymai galiotų iškart
+      const isStatic = STATIC_GET.test(url) && !/gameplay/.test(url)
+      const isAuthUser = AUTH_USER.test(url)
+      if (isStatic || isAuthUser) {
+        const c = await kv.get<Cached>('responses', cacheKey)
+        const age = c ? Date.now() - c.at : Infinity
+        if (c && isAuthUser && age < AUTH_USER_TTL_MS) return fromCache(c, 'user')
+        if (c && isStatic && age < MAX_CACHE_AGE_MS) {
+          const online = typeof navigator === 'undefined' || navigator.onLine !== false
+          if (age > STATIC_FRESH_MS && online && !revalidating.has(cacheKey)) {
+            revalidating.add(cacheKey)
+            void base(req.clone())
+              .then(async (res) => {
+                if (!res.ok) return
+                const body = await res.text()
+                await kv.set('responses', cacheKey, { status: res.status, headers: pickHeaders(res.headers), body, at: Date.now() } satisfies Cached)
+              })
+              .catch(() => { /* fone – kitą kartą */ })
+              .finally(() => { revalidating.delete(cacheKey) })
+          }
+          return fromCache(c, 'swr')
+        }
+      }
+    }
+
     try {
       const res = await base(req)
+      if (res.ok && method !== 'GET' && method !== 'HEAD') {
+        // vartotojo duomenų keitimas → kešuotas /auth/v1/user nebegalioja
+        if (AUTH_USER.test(url)) void kv.del('responses', `${userKeyFromAuth(req.headers)}|GET|${url}|`)
+        if (MUTATING_TABLES.test(url) || MUTATING_RPC.test(url)) emitDataMutation()
+      }
       if (isRead && res.ok && cacheKey) {
         const body = await res.clone().text()
         void kv.set('responses', cacheKey, { status: res.status, headers: pickHeaders(res.headers), body, at: Date.now() } satisfies Cached)

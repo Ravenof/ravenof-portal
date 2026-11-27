@@ -27,6 +27,8 @@ import { useDesktopUi } from './ui/useDesktopUi'
 import { DT, deskGrid } from './ui/deskTokens'
 import { FlipGrid, RollNumber, preloadImages, cancelPreload, type PageFlip } from './CollectionPageFlip'
 import { thumbUrl } from '@/lib/img'
+import { screenCacheGet, screenCacheSet } from '@/lib/digital/screenCache'
+import { getLocale } from '@/lib/i18n/core'
 import { useCosmetics, activeCardBackVisual } from '@/lib/digital/cosmeticsStore'
 
 type Col = RavenofCardDetail
@@ -41,6 +43,10 @@ const SORT_LABEL: Record<SortKey, string> = {
   'owned': 'collection.sortShort.owned',
 }
 
+// (844) paskutinis užkrautas vaizdas – ekranas atsidaro iškart, duomenys atnaujinami fone
+type CollectionMemo = { cards: Col[]; newIds: string[]; packList: Pack[]; inv: Record<string, number> }
+const memoKey = () => 'collection:' + getLocale()
+
 const PAGE_SIZE = 24 // audit #17: žymiai daugiau kortų puslapyje (buvo 6 → ~88 psl.)
 
 export function DigitalCollection() {
@@ -49,10 +55,11 @@ export function DigitalCollection() {
   const tc = useContent()
   // Desktop (≥1024): puslapio antraštė + kairė filtrų kolona + adaptyvus grid. Mobile — nekeičiamas.
   const { desktop } = useDesktopUi()
-  const [cards, setCards] = useState<Col[] | null>(null)
+  const [memo] = useState(() => screenCacheGet<CollectionMemo>(memoKey()))
+  const [cards, setCards] = useState<Col[] | null>(memo?.cards ?? null)
   const [loggedOut, setLoggedOut] = useState(false)
-  const [packList, setPackList] = useState<Pack[]>([])
-  const [inv, setInv] = useState<Record<string, number>>({})
+  const [packList, setPackList] = useState<Pack[]>(memo?.packList ?? [])
+  const [inv, setInv] = useState<Record<string, number>>(memo?.inv ?? {})
   const [chooser, setChooser] = useState(false)
   const [openingPack, setOpeningPack] = useState<Pack | null>(null)
 
@@ -64,7 +71,7 @@ export function DigitalCollection() {
   // Numatytai rodomos TIK turimos kortos (vartotojo pageidavimas); išjungus – filtras skaičiuojamas kaip aktyvus
   const [ownedOnly, setOwnedOnly] = useState(true)
   /** Kortos, kurių žaidėjas dar nematė kolekcijoje (user_collections.is_new). */
-  const [newIds, setNewIds] = useState<Set<string>>(new Set())
+  const [newIds, setNewIds] = useState<Set<string>>(() => new Set(memo?.newIds ?? []))
   const [newOnly, setNewOnly] = useState(false)
   const [selId, setSelId] = useState<string | null>(null)
   const [detailOpen, setDetailOpen] = useState(false)
@@ -103,6 +110,7 @@ export function DigitalCollection() {
 
   const refreshInv = useCallback(() => { getPackInventory().then(setInv) }, [])
   useEffect(() => { load(); refreshInv(); getActivePacks().then(setPackList) }, [load, refreshInv])
+  useEffect(() => { if (cards) screenCacheSet(memoKey(), { cards, newIds: Array.from(newIds), packList, inv } satisfies CollectionMemo) }, [cards, newIds, packList, inv])
   const ownedPacks = packList.filter((p) => (inv[p.id] ?? 0) > 0)
   const totalPacks = Object.values(inv).reduce((a, b) => a + b, 0)
   const openPacks = () => { playUiClick(); if (ownedPacks.length === 0) { requestOpenStore(); return } if (ownedPacks.length === 1) setOpeningPack(ownedPacks[0]); else setChooser(true) }

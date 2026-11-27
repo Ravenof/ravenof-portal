@@ -23,6 +23,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Edit2, Trash2, Copy, Lock, Globe, X, List } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { LoadingOrRetry } from './ui/LoadingOrRetry'
+import { screenCacheGet, screenCacheSet } from '@/lib/digital/screenCache'
+import { getLocale } from '@/lib/i18n/core'
 import { playUiClick, playSuccess, playError, playCardFlip, playImpact, playCardPick } from '@/lib/ui-sound'
 import { isDeckSizeValid, formatDeckCount, formatDeckCountShort } from '@/lib/deck-validation'
 import { costCurve, COST_CURVE_LABELS, displayAvgCost } from '@/lib/cards/cost'
@@ -266,7 +268,10 @@ export function DigitalMyDecks({ userId, onEdit, onCreate }: { userId: string; o
   const gc = useGameContent()
   const { desktop } = useDesktopUi()
   const rm = useReducedMotion()
-  const [decks, setDecks] = useState<Deck[] | null>(null)
+  // (844) paskutinis užkrautas vaizdas – atsidaro iškart, atnaujinama fone
+  const memoKey = `myDecks:${userId}:${getLocale()}`
+  const [decks, setDecks] = useState<Deck[] | null>(() => screenCacheGet<Deck[]>(memoKey))
+  useEffect(() => { if (decks) screenCacheSet(memoKey, decks) }, [decks, memoKey])
   const [covers, setCovers] = useState<Record<number, string>>({})
   const [openDeck, setOpenDeck] = useState<Deck | null>(null)
   const [deckCards, setDeckCards] = useState<DeckCard[] | null>(null)
