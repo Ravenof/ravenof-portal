@@ -38,7 +38,8 @@ type Tab = 'avatar' | 'card_back' | 'avatar_frame' | 'deck_avatars'
 
 /** Kaip gaunamas užrakintas daiktas (be atsitiktinių spėjimų — žinomi šaltiniai). */
 function lockHintKey(c: Cosmetic): { key: string; params?: Record<string, string | number> } {
-  const lvl: Record<string, number> = { basic_card_back: 10, rare_card_back: 20, premium_card_back: 30, legendary_card_back: 40, prestige_card_back: 50, basic_player_avatar: 10, rare_player_avatar: 20, premium_player_avatar: 30, legendary_player_avatar: 40 }
+  // (849) lygių kelio kosmetika; seni *_card_back ID nuo 816 yra parduotuvės prekės
+  const lvl: Record<string, number> = { cb_prestizas: 50 }
   if (lvl[c.id]) return { key: 'profile.cosmetics.lockLevel', params: { level: lvl[c.id] } }
   if (c.priceGold > 0) return { key: 'profile.cosmetics.lockShopRubies' }
   return { key: 'profile.cosmetics.lockRewards' }

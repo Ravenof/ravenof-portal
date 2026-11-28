@@ -1,46 +1,62 @@
 'use client'
-// ── Paskyros lygio pakopos emblema (848) ─────────────────────────────────────
-// LAIKINA vektorinė emblema, kol nėra tikrų paveikslėlių (emblem-01…10). Forma
-// visoms pakopoms ta pati (skydas su varnu ir lygio plokštele), keičiasi tik
-// spalvos — taip pat, kaip bus su tikrais failais. Kai jie atsiras, užtenka
-// pakeisti šį komponentą: visos vietos (antraštė, lygių ekranas, kovos pabaiga)
-// naudoja jį.
+// ── Paskyros lygio pakopos emblema (848 → 849 tikri paveikslėliai) ───────────
+// 10 pakopų + Prestižas: public/ravenof-ui/levels/emblem-01…11(.webp | -s.webp).
+// Visos vietos (antraštė, lygių ekranas, kovos pabaiga) naudoja šį komponentą.
+//
+// Paveikslėliai skirtingo silueto (karūnos, sparnai), todėl kiekvienas dedamas
+// taip, kad jo LYGIO PLOKŠTELĖ atsidurtų toje pačioje dėžutės vietoje – skaičius
+// visada ten pat, o puošyba gali išlįsti už dėžutės ribų (išdėstymo nekeičia).
 import { RANK_GROUPS, getRankGroupForLevel } from '@/lib/gamification/levels'
 
-/** Pakopos numeris 1–10 pagal lygį. */
+/** Pakopos numeris 0–9 pagal lygį. */
 export function tierIndexForLevel(level: number): number {
   const g = getRankGroupForLevel(level)
   const i = RANK_GROUPS.indexOf(g)
   return i < 0 ? 0 : i
 }
 
-// [rėmas, vidus, varnas] — nuo geležies iki aukso/baltos
-const TONES: [string, string, string][] = [
-  ['#6b6474', '#15121b', '#8d8698'], // Naujokas – geležis
-  ['#8a8fa0', '#161420', '#b4b9c8'], // Žaidėjas – kalta geležis
-  ['#b07a3c', '#1a1410', '#d49a55'], // Taktikas – bronza
-  ['#9fb4c4', '#121820', '#c9dbe8'], // Patyręs – plienas
-  ['#c9ccd4', '#14161a', '#e8eaf0'], // Veteranas – sidabras
-  ['#d4a33b', '#1a1508', '#f2c45a'], // Meistras – auksas
-  ['#e0863a', '#1c0f0a', '#ffb060'], // Didmeistris – auksas ir raudonis
-  ['#b79cf0', '#150f22', '#dccbff'], // Legenda – platina ir violetas
-  ['#f0b429', '#0a0810', '#ffd879'], // Elitas – obsidianas ir auksas
-  ['#fff0c2', '#221a08', '#ffffff'], // Panteonas – spindintis auksas
+// [plotis, aukštis (šaltinio px), plokštelės centras x, y, plokštelės aukštis (dalimis), mastelis]
+// Reikšmės išmatuotos iš store-media/level-emblems-src paveikslėlių (brief'as: projekto doc paskyros-lygiu-assets-brief).
+const EMBLEMS: [number, number, number, number, number, number][] = [
+  [904, 1001, 0.499, 0.792, 0.176, 1.0],    // 1 Naujokas
+  [907, 1001, 0.499, 0.792, 0.176, 1.0],    // 2 Žaidėjas
+  [905, 1001, 0.499, 0.792, 0.177, 1.0],    // 3 Taktikas
+  [905, 1001, 0.499, 0.793, 0.177, 1.002],  // 4 Patyręs
+  [908, 1002, 0.499, 0.792, 0.177, 1.005],  // 5 Veteranas
+  [858, 1016, 0.499, 0.807, 0.162, 1.033],  // 6 Meistras
+  [874, 1020, 0.5, 0.802, 0.171, 1.022],    // 7 Didmeistris
+  [934, 921, 0.5, 0.793, 0.176, 1.044],     // 8 Legenda
+  [933, 1020, 0.498, 0.73, 0.123, 1.192],   // 9 Elitas
+  [933, 1001, 0.498, 0.799, 0.166, 1.041],  // 10 Panteonas
+  [933, 989, 0.499, 0.766, 0.159, 1.066],   // 11 Prestižas
 ]
+// Lygio skaičiaus spalva pagal pakopą
+const NUM_COLOR = ['#b9b3c2', '#b4b9c8', '#e3a765', '#c9dbe8', '#e8eaf0', '#f2c45a', '#ffc070', '#dccbff', '#ffd879', '#fff3d0', '#ff8a8a']
+const PLAQUE_Y = 0.792   // kur dėžutėje atsiduria plokštelės centras
+const BASE_H = 1001      // 1 pakopos aukštis = dėžutės aukštis
 
-export function LevelEmblem({ level, size = 48, showLevel = true, title }: { level: number; size?: number; showLevel?: boolean; title?: string }) {
-  const [rim, fill, bird] = TONES[tierIndexForLevel(level)] ?? TONES[0]
+export function LevelEmblem({ level, size = 48, showLevel = true, title, prestige = false }: { level: number; size?: number; showLevel?: boolean; title?: string; prestige?: boolean }) {
+  const idx = prestige ? 10 : Math.min(9, Math.max(0, tierIndexForLevel(level)))
+  const [w, h, cx, cy, ph, k] = EMBLEMS[idx]
+  const boxW = size
+  const boxH = Math.round(size * 1.107)
+  const s = (boxH / BASE_H) * k
+  const imgW = w * s
+  const imgH = h * s
+  const n = String(idx + 1).padStart(2, '0')
+  const src = `/ravenof-ui/levels/emblem-${n}${size <= 44 ? '-s' : ''}.webp`
+  // mažuose dydžiuose skaičius didesnis už plokštelę – kitaip neįskaitomas
+  const font = Math.max(ph * imgH * 0.74, 9)
   return (
-    <svg width={size} height={Math.round(size * 1.107)} viewBox="0 0 112 124" role="img" aria-label={title ?? String(level)} style={{ flex: 'none', display: 'block' }}>
-      <path d="M56 4 L104 20 V66 C104 94 82 112 56 120 C30 112 8 94 8 66 V20 Z" fill={fill} stroke={rim} strokeWidth="4" />
-      <path d="M56 17 L93 30 V64 C93 86 77 100 56 107 C35 100 19 86 19 64 V30 Z" fill="none" stroke={rim} strokeOpacity=".45" strokeWidth="1.5" />
-      <path d={showLevel ? 'M38 56 C44 38 62 34 74 42 L84 38 L78 48 C80 60 70 72 56 72 L44 80 L48 68 C42 66 38 62 38 56 Z' : 'M38 62 C44 44 62 40 74 48 L84 44 L78 54 C80 66 70 78 56 78 L44 86 L48 74 C42 72 38 68 38 62 Z'} fill={bird} />
+    <span role="img" aria-label={title ?? String(level)} title={title || undefined}
+      style={{ position: 'relative', display: 'block', flex: 'none', width: boxW, height: boxH }}>
+      <img src={src} alt="" draggable={false}
+        style={{ position: 'absolute', left: boxW / 2 - cx * imgW, top: PLAQUE_Y * boxH - cy * imgH, width: imgW, height: imgH, maxWidth: 'none', pointerEvents: 'none', userSelect: 'none' }} />
       {showLevel && (
-        <>
-          <rect x="34" y="84" width="44" height="26" rx="3" fill="#07060A" stroke={rim} strokeWidth="2" />
-          <text x="56" y="103.5" textAnchor="middle" fontFamily="Cinzel, Georgia, serif" fontWeight="800" fontSize="19" fill={bird}>{level}</text>
-        </>
+        <span aria-hidden style={{ position: 'absolute', left: 0, right: 0, top: PLAQUE_Y * boxH, transform: 'translateY(-50%)', textAlign: 'center',
+          font: `800 ${font.toFixed(1)}px/1 var(--ravenof-font-display, Cinzel, Georgia, serif)`, color: NUM_COLOR[idx],
+          textShadow: '0 0 3px #000, 0 1px 2px #000, 0 0 6px rgba(0,0,0,.9)' }}>{level}</span>
       )}
-    </svg>
+    </span>
   )
 }

@@ -296,7 +296,7 @@ export function AccountLevelScreen() {
         {/* ── Viršus: kur aš esu · kiek liko · kas toliau ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: DT.sp.xl, flexWrap: 'wrap', paddingBottom: DT.sp.lg, borderBottom: '1px solid #1e1a26' }}>
           <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: DT.sp.lg }}>
-            <LevelEmblem level={state.level} size={92} title={tierName(curTier)} />
+            <LevelEmblem level={state.level} size={92} title={tierName(curTier)} prestige={inPrestige} />
             <div>
               <Kicker color={C.gold} style={kickS}>{t('profile.level.kicker')}</Kicker>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 2 }}>
@@ -432,7 +432,7 @@ export function AccountLevelScreen() {
   return (
     <div className="rvn-prog-in" style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
       <div style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', padding: compact ? '8px 12px' : '10px 18px', borderBottom: '1px solid #1e1a26' }}>
-        <LevelEmblem level={state.level} size={44} title={tierName(curTier)} />
+        <LevelEmblem level={state.level} size={44} title={tierName(curTier)} prestige={inPrestige} />
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span style={{ font: `800 15px ${DISPLAY}`, color: C.goldHi, lineHeight: 1.1 }}>{t('profile.level.levelN', { level: state.level })}</span>
           <span style={{ font: `600 11px ${BODY}`, color: C.bone }}>{tierName(curTier)}</span>
