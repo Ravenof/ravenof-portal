@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation'
 import { playUiClick } from '@/lib/ui-sound'
 import { DigitalDeckBuilder } from './DigitalDeckBuilder'
 import { DigitalMyDecks } from './DigitalMyDecks'
+import { useFeatureLock } from '@/lib/digital/unlocks'
+import { FeatureLockPanel } from './ui/FeatureGate'
 import { DigitalCommunityDecks } from './DigitalCommunityDecks'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
 import { useT } from '@/lib/i18n/react'
@@ -39,6 +41,8 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
   // ?deck= egzistuoja TIK builder'yje. Vietinė būsena — tik optimistinis atspindys,
   // kad tab'as persijungtų iškart (server roundtrip'as atnaujina initialTab).
   const [tab, setTab] = useState<Tab>(initialTab)
+  // (848) kaladžių kūrimas atrakinamas pagal paskyros lygį
+  const builderLock = useFeatureLock('deckBuilder')
   useEffect(() => { setTab(initialTab) }, [initialTab, initialDeck?.id])
 
   const goTab = (next: Tab) => {
@@ -94,11 +98,13 @@ export function DigitalDecks({ userId, cards, factions, collection, initialTab, 
       </div>}
 
       <div className="flex-1 min-h-0" style={{ overflowY: tab === 'builder' ? 'hidden' : 'auto' }}>
-        {tab === 'builder' && (
+        {tab === 'builder' && (builderLock.locked ? (
+          <FeatureLockPanel feature="deckBuilder" required={builderLock.required} level={builderLock.level} />
+        ) : (
           <DigitalDeckBuilder userId={userId} cards={cards} factions={factions} collection={collection} initialDeck={initialDeck}
             onSaved={() => { setTab('my'); router.push('/digital/decks?tab=my') }}
             onBack={() => { setTab('my'); router.push('/digital/decks?tab=my') }} />
-        )}
+        ))}
         {tab === 'my' && (
           <DigitalMyDecks userId={userId}
             onEdit={(id) => router.push('/digital/decks?tab=builder&deck=' + id)}

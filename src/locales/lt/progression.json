@@ -172,14 +172,15 @@
   },
   "rankGroup": {
     "elitas": "Elitas",
-    "highMaster": "Aukštasis Meistras",
+    "highMaster": "Didmeistris",
     "legend": "Legenda",
     "master": "Meistras",
     "novice": "Naujokas",
     "panteonas": "Panteonas",
     "player": "Žaidėjas",
-    "seasoned": "Patyręs Žaidėjas",
-    "tactician": "Taktikas"
+    "seasoned": "Patyręs",
+    "tactician": "Taktikas",
+    "veteran": "Veteranas"
   },
   "rarity": {
     "common": "Paprasta",

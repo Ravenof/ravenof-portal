@@ -85,6 +85,8 @@ export type MatchRewardResult = {
   streak?: number; rankedDelta?: number
   accountXpBefore?: number; accountXpAfter?: number
   levelRewards?: LevelRewardEntry[]
+  /** (848) pirmos dienos pergalės XP premija, jau įskaičiuota į rewards.account_xp */
+  firstWinBonus?: number
   balances?: Balances
   /** Gyvo evento daugiklis, pritaikytas šiai kovai (jei buvo) */
   event?: { id: string; titleLt: string; titleEn: string | null; silver: number; account_xp: number; season_xp: number; bonus?: { silver: number; account_xp: number; season_xp: number } } | null

@@ -179,7 +179,8 @@
     "panteonas": "Pantheon",
     "player": "Player",
     "seasoned": "Seasoned Player",
-    "tactician": "Tactician"
+    "tactician": "Tactician",
+    "veteran": "Veteran"
   },
   "rarity": {
     "common": "Common",

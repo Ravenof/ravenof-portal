@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { playUiClick } from '@/lib/ui-sound'
+import { useUnlocks, featureLock } from '@/lib/digital/unlocks'
 import { getWallet, getBalances, type Wallet, type Balances } from '@/lib/economy'
 import { emitWalletChanged } from '@/lib/digital/native'
 import { WelcomeReward } from './WelcomeReward'
@@ -115,13 +116,15 @@ export function DigitalHub({ loggedIn }: { loggedIn: boolean }) {
     // Naujokui, kol neįveikta 1 pamoka, į kasdienius atlygius automatiškai nenukreipiam –
     // pirma mokymai, kad pirmas apsilankymas neužverstų trimis dalykais iškart.
     const noviceP = getNoviceState().then((n) => { setNovice(n); return n })
-    Promise.all([getLoginRewards(), noviceP]).then(([ml, nv]) => {
+    Promise.all([getLoginRewards(), noviceP, useUnlocks.getState().refresh()]).then(([ml, nv]) => {
       if (!ml || isProgressionError(ml)) return
       setStreak(ml.streak ?? 0)
       const cl = ml.claimableDay != null
       setLoginClaimable(cl); setClaimable(cl)
       const holdForLessons = !!nv && nv.novice && !nv.lesson1Done
-      if (cl && !holdForLessons) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); router.push('/digital/rewards') } }
+      // (848) kasdieniai atlygiai gali būti dar neatrakinti pagal lygį – tada nenukreipiam
+      const dailyLocked = featureLock(useUnlocks.getState(), 'daily').locked
+      if (cl && !holdForLessons && !dailyLocked) { const k = `rvn:login-${new Date().toISOString().slice(0, 10)}`; if (!localStorage.getItem(k)) { localStorage.setItem(k, '1'); router.push('/digital/rewards') } }
     })
     // Sezono kelias — v2 (tas pats šaltinis kaip /digital/season, ne senasis v1)
     getSeasonPathV2().then((sp) => {

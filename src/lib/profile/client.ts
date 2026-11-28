@@ -115,6 +115,17 @@ export type AccountLevelState = {
   track: AccountLevelCell[]
   pendingChoices: PendingRewardChoice[]
   balances: Balances
+  // ── (848) nauji laukai; neprivalomi – senesnė serverio versija jų negrąžina ──
+  /** pakopos po 5 lygius (+ 'prestige' 50 lygiui) */
+  tiers?: { key: string; from: number; to: number }[]
+  /** prestižo ratas po 50 lygio */
+  prestige?: { everyXp: number; rewards: RewardDefinition[]; active: boolean; loops: number; xpIntoLoop: number } | null
+  /** funkcija → lygis, kuriame ji atrakinama */
+  unlocks?: Record<string, number> | null
+  xpSources?: { firstWinOfDay?: number; lesson?: number } | null
+  /** paskyros XP už kovą pagal režimą (iš match_rewards) */
+  matchXp?: Partial<Record<'bot' | 'unranked' | 'ranked', { win: number; loss: number }>> | null
+  firstWinAvailable?: boolean
 }
 
 /** Lygio takelis + XP + laukiantys pasirinkimai (savo arba nurodyto žaidėjo). */

@@ -27,6 +27,9 @@ import { playUiClick } from '@/lib/ui-sound'
 import { loadDigitalSettings } from '@/lib/settings-sync'
 import { applyAccessibility } from '@/lib/settings'
 import { useAccount } from '@/lib/digital/accountStore'
+import { useUnlocks } from '@/lib/digital/unlocks'
+import { RouteFeatureGate } from '@/components/digital/ui/FeatureGate'
+import { LevelEmblem } from '@/components/digital/ui/LevelEmblem'
 import { useCosmetics, activeAvatarVisual } from '@/lib/digital/cosmeticsStore'
 import { onWalletChanged, onOpenStore, setNativeImmersive, scheduleReturnReminders, lockLandscape, unlockOrientation, isPortraitNow, isNativeApp } from '@/lib/digital/native'
 import { createClient } from '@/lib/supabase/client'
@@ -165,6 +168,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
   }, [pathname])
 
   useEffect(() => { void useAccount.getState().refresh() }, [pathname])
+  // (848) režimų atrakinimas pagal lygį – atnaujinam kartu su paskyra
+  useEffect(() => { void useUnlocks.getState().refresh() }, [pathname])
   useEffect(() => { setStoreOpen(false); setSettingsOpen(false) }, [pathname])
   useEffect(() => {
     const onFocus = () => refreshWallet()
@@ -269,6 +274,8 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             {/* Profilio chip: avataras + vardas + rangas/lygis */}
             <button onClick={() => { playUiClick(); router.push('/digital/profile') }} aria-label={t('profile.overview.title')} className="ravenof-press flex items-center gap-2 min-w-0 shrink-0 text-left" style={{ background: 'none', border: 'none', padding: 0 }}>
               <span className="shrink-0" style={{ width: deskUi ? 46 : 38, height: deskUi ? 46 : 38, borderRadius: '50%', border: '2px solid var(--ravenof-gold)', boxShadow: '0 0 12px rgba(212,163,59,.25)', background: (cosmeticAvatarUrl || profile?.avatarUrl) ? `center/cover url(${cosmeticAvatarUrl || profile?.avatarUrl})` : 'radial-gradient(circle at 50% 32%, #3a2a4e, #0c0a14)' }} />
+              {/* (848) paskyros lygio pakopos emblema su lygio skaičiumi */}
+              {account.loaded && profile && <LevelEmblem level={profile.level} size={deskUi ? 34 : 26} title={t('profile.level.levelN', { level: profile.level })} />}
               <span className="flex flex-col min-w-0" style={{ gap: 1 }}>
                 {!account.loaded ? (
                   /* Kol paskyra nepakrauta — skeleton (fiksuoti matmenys, be „Žaidėjas"/0) */
@@ -321,7 +328,7 @@ export default function DigitalLayout({ children }: { children: React.ReactNode 
             : deskUi
               ? { paddingTop: showHeader ? 8 : 24, paddingBottom: 24, paddingLeft: 'var(--rvn-page-px)', paddingRight: 'var(--rvn-page-px)', overflowX: 'hidden' }
               : { paddingTop: showHeader ? 0 : 'calc(env(safe-area-inset-top, 0px) + 10px)', paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))', paddingRight: 'max(16px, env(safe-area-inset-right, 0px))' }}>
-          <div className={fullBleed ? 'h-full' : deskUi ? `${wide ? 'rvn-d-page-wide' : 'rvn-d-page'} h-full` : 'max-w-screen-lg mx-auto h-full'}>{children}</div>
+          <div className={fullBleed ? 'h-full' : deskUi ? `${wide ? 'rvn-d-page-wide' : 'rvn-d-page'} h-full` : 'max-w-screen-lg mx-auto h-full'}><RouteFeatureGate pathname={pathname}>{children}</RouteFeatureGate></div>
         </main>
       </div>
 

@@ -14,6 +14,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { playUiClick } from '@/lib/ui-sound'
+import { useFeatureLock } from '@/lib/digital/unlocks'
 import type { AiDifficulty } from '@/lib/tutorial/ai'
 import { getMatchRewardPreview } from '@/lib/economy'
 import { ActiveDeckSelectorModal } from '@/components/digital/ActiveDeckSelectorModal'
@@ -56,6 +57,15 @@ export function DigitalPvE() {
   const [oppFaction, setOppFaction] = useState<number | ''>('')
   const [oppDeck, setOppDeck] = useState('')
   const [difficulty, setDifficulty] = useState<AiDifficulty>('normal')
+  // (848) vidutinis ir sunkus DI atrakinami pagal paskyros lygį
+  const normalLock = useFeatureLock('pveNormal')
+  const hardLock = useFeatureLock('pveHard')
+  const diffLock = (d: AiDifficulty) => (d === 'normal' ? normalLock : d === 'hard' ? hardLock : null)
+  useEffect(() => {
+    if ((difficulty === 'hard' && hardLock.locked) || (difficulty === 'normal' && normalLock.locked)) {
+      setDifficulty(!normalLock.locked ? 'normal' : 'easy')
+    }
+  }, [difficulty, normalLock.locked, hardLock.locked])
   // Naujokas / Patyręs (2026-09-19) – NEPRIKLAUSOMAI nuo sudėtingumo (tas lemia tik boto
   // protą). Naujokas: varžovas žaidžia TIKRA starter kalade (atsitiktinė ar pasirinkta
   // frakcija). Patyręs: kaladė iš viso frakcijos kortų pool'o. Pasirinkimas ir naujoko
@@ -274,10 +284,13 @@ export function DigitalPvE() {
           <div className="flex shrink-0" data-testid="ai-difficulty" style={{ border: '1px solid var(--ravenof-border-strong)' }}>
             {(['easy', 'normal', 'hard'] as AiDifficulty[]).map((d) => {
               const s = difficulty === d
+              const lk = diffLock(d)
+              const locked = !!lk?.locked
               return (
-                <button key={d} onClick={() => { playUiClick(); setDifficulty(d) }} data-setup-tile={`diff-${d}`} aria-pressed={s}
-                  className="ravenof-press flex-1" title={t(`battle.pve.diffDesc.${d}`)} style={{
-                    padding: desktop ? '0 4px' : '10px 4px', minHeight: desktop ? 46 : undefined, border: 0, cursor: 'pointer', textTransform: 'uppercase',
+                <button key={d} onClick={() => { if (locked) return; playUiClick(); setDifficulty(d) }} data-setup-tile={`diff-${d}`} aria-pressed={s} aria-disabled={locked}
+                  className="ravenof-press flex-1" title={locked ? t('profile.unlock.lockedAt', { level: lk!.required }) : t(`battle.pve.diffDesc.${d}`)} style={{
+                    opacity: locked ? 0.4 : 1,
+                    padding: desktop ? '0 4px' : '10px 4px', minHeight: desktop ? 46 : undefined, border: 0, cursor: locked ? 'not-allowed' : 'pointer', textTransform: 'uppercase',
                     font: `700 ${desktop ? 14 : 11}px var(--ravenof-font-display)`, letterSpacing: 1.5,
                     background: s ? 'var(--ravenof-grad-gold)' : 'transparent',
                     color: s ? 'var(--ravenof-on-gold)' : 'var(--ravenof-text-secondary)',

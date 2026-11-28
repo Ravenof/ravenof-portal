@@ -53,6 +53,8 @@ import type { AiDifficulty, AiWeightDelta } from '@/lib/tutorial/ai'
 import { reportMatchV2, recordRankedMatch, type MatchMode, type LevelRewardEntry } from '@/lib/economy'
 import { getRecentAchievements, type RecentAchievement } from '@/lib/profile/client'
 import { getLevelForXp, getLevelProgress, levelReward } from '@/lib/gamification/levels'
+import { LevelEmblem } from '@/components/digital/ui/LevelEmblem'
+import { useUnlocks, type UnlockFeature } from '@/lib/digital/unlocks'
 import { reportQuestEvent } from '@/lib/gamification/quests'
 import { friendRequestById } from '@/lib/social'
 import { parseGameplayConfig, EFFECT_TYPES, type ZmkCardDef, type EffectMapping, type SummonEffectType, type BattleSoundType } from '@/lib/game/types'
@@ -3548,7 +3550,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
   // ── Kovos atlygis + level-up šventė (config-driven v2; bot/unranked; ne demo/ranked/campaign) ──
   // Ranked atlygis skiriamas RankedClient. Bot/unranked eina per rvn_report_match_v2
   // (config reikšmės, validumas, dienos cap, level rewards) — vienas šaltinis.
-  const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; seasonXp: number; before: number; after: number; valid: boolean; levelRewards: LevelRewardEntry[]; eventTitle?: string | null } | null>(null)
+  const [matchReward, setMatchReward] = useState<{ gold: number; xp: number; seasonXp: number; before: number; after: number; valid: boolean; levelRewards: LevelRewardEntry[]; firstWinBonus?: number; eventTitle?: string | null } | null>(null)
   // Po kovos įvykdyti pasiekimai — VIENA tvarkinga santrauka (ne keli popup'ai).
   // Užsipildo TIK po serverio patvirtinimo (rvn_get_recent_achievements).
   const [matchAchievements, setMatchAchievements] = useState<RecentAchievement[]>([])
@@ -3597,7 +3599,7 @@ export function TutorialGame({ deckId, deckName, onClose, practice = false, botC
       const after = r.accountXpAfter ?? before
       setMatchReward({
         gold: r.rewards?.silver ?? 0, xp: r.rewards?.account_xp ?? 0, seasonXp: r.rewards?.season_xp ?? 0,
-        before, after, valid: !!r.valid, levelRewards: r.levelRewards ?? [],
+        before, after, valid: !!r.valid, levelRewards: r.levelRewards ?? [], firstWinBonus: r.firstWinBonus ?? 0,
         eventTitle: r.event ? ((getLocale() === 'en' && r.event.titleEn) ? r.event.titleEn : r.event.titleLt) : null,
       })
       if (r.valid && getLevelForXp(after) > getLevelForXp(before)) { try { playSuccess() } catch { /* fx niekada nelaužia UI */ } }
@@ -7308,6 +7310,13 @@ doAction({ t: 'endTurn', actor: 'you' })
                 </div>
               )}
 
+              {/* ── (848) Pirmos dienos pergalės XP premija (jau įskaičiuota į XP) ── */}
+              {matchReward && matchReward.valid && (matchReward.firstWinBonus ?? 0) > 0 && (
+                <div className="rvn-cele-extra" data-testid="match-first-win" style={{ ['--cta' as string]: extraDelay, font: `700 ${dk ? 13 : 10}px var(--ravenof-font-display)`, letterSpacing: 1.5, textTransform: 'uppercase', color: 'var(--ravenof-gold-bright)' }}>
+                  {t('battle.game.firstWinBonus', { xp: matchReward.firstWinBonus ?? 0 })}
+                </div>
+              )}
+
               {/* ── Lygio progresas ── */}
               {matchReward && matchReward.valid && prog && (
                 <div className="rvn-cele-extra" style={{ ['--cta' as string]: extraDelay, width: short ? 240 : '100%', maxWidth: dk ? 420 : 300 }}>
@@ -7357,14 +7366,21 @@ doAction({ t: 'endTurn', actor: 'you' })
                 <motion.div initial={{ scale: 0.85, y: 12 }} animate={{ scale: 1, y: 0 }} transition={{ type: 'spring', stiffness: 200, damping: 18 }}
                   className="relative text-center w-[min(430px,94vw)]" style={{ zoom: endK }}>
                   <p style={{ font: '700 12px var(--ravenof-font-display)', letterSpacing: 5, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)', margin: 0 }}>{t('battle.game.newLevelEyebrow')}</p>
-                  <div className="mx-auto flex items-center justify-center" style={{ width: 104, height: 104, marginTop: 22, marginBottom: 22, border: '2px solid #D4A33B', outline: '1px solid #D4A33B55', outlineOffset: 6, transform: 'rotate(45deg)', background: 'linear-gradient(160deg, #171126, #0a0810)', boxShadow: '0 0 40px rgba(212,163,59,0.3)' }}>
-                    <span style={{ transform: 'rotate(-45deg)', font: '700 44px var(--ravenof-font-display)', color: 'var(--ravenof-gold-bright)' }}>{prog.level}</span>
-                  </div>
+                  {/* (848) pakopos emblema vietoj rombo – ta pati, kaip antraštėje ir lygių kelyje */}
+                  <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 220, damping: 14, delay: 0.1 }}
+                    className="mx-auto flex items-center justify-center" style={{ marginTop: 18, marginBottom: 16, filter: 'drop-shadow(0 0 26px rgba(212,163,59,0.45))' }}>
+                    <LevelEmblem level={prog.level} size={118} />
+                  </motion.div>
                   <p style={{ font: '700 17px var(--ravenof-font-display)', letterSpacing: 1, textTransform: 'uppercase', color: 'var(--ravenof-text-primary)', margin: 0 }}>{t('battle.game.levelTitle', { level: prog.level })}</p>
                   <p style={{ font: '500 10px var(--ravenof-font-body)', letterSpacing: 3, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)', margin: '3px 0 0' }}>{prog.title}</p>
                   {matchReward!.levelRewards.length > 0 && (() => {
-                    const agg = { silver: 0, essence: 0, rubies: 0, packs: 0, items: [] as string[] }
+                    const agg = { silver: 0, essence: 0, rubies: 0, packs: 0, choices: 0, items: [] as string[] }
                     for (const e of matchReward!.levelRewards) for (const it of e.payload) {
+                      // (848) pasirenkami atlygiai (boosteris / korta) laukia lygių kelyje
+                      if (it.type === 'faction_booster_choice' || it.type === 'card_choice') { agg.choices += Number(it.quantity ?? it.count ?? 1) || 1; continue }
+                      // v2 atlygių formatas ({type:'silver'|'essence'|'rubies', amount}, {type:'card_back'})
+                      if (it.type === 'silver' || it.type === 'essence' || it.type === 'rubies') { agg[it.type] += Number(it.amount) || 0; continue }
+                      if (it.type === 'card_back') { agg.items.push(t('battle.game.cardBack')); continue }
                       if (it.type === 'currency') { const a = Number(it.amount) || 0; if (it.currency === 'silver') agg.silver += a; else if (it.currency === 'essence') agg.essence += a; else if (it.currency === 'rubies') agg.rubies += a }
                       else if (it.type === 'item') { if (it.item_type === 'pack') agg.packs += Number(it.quantity) || 0; else if (it.item_type === 'card_back') agg.items.push(t('battle.game.cardBack')) }
                     }
@@ -7377,7 +7393,7 @@ doAction({ t: 'endTurn', actor: 'you' })
                     if (agg.rubies > 0) tiles.push(tile(<RewardChip it={{ type: 'currency', currency: 'rubies', amount: agg.rubies }} size={26} textSize={11} color="#fca5a5" />, 'rubies'))
                     if (agg.packs > 0) tiles.push(tile(<RewardChip it={{ type: 'item', item_type: 'pack', quantity: agg.packs }} size={26} textSize={11} color="#fdba74" />, 'packs'))
                     agg.items.forEach((n, i) => tiles.push(tile(<RewardChip it={{ type: 'item', item_type: 'card_back', item_id: n }} size={26} textSize={11} color="#93c5fd" />, `item-${i}`)))
-                    return tiles.length ? (
+                    return tiles.length || agg.choices ? (
                       <>
                         <div className="ravenof-ornament" style={{ marginTop: 18 }} aria-hidden>
                           <span style={{ font: '500 9px var(--ravenof-font-body)', letterSpacing: 3, textTransform: 'uppercase', color: 'var(--ravenof-text-secondary)' }}>{t('battle.game.unlocked')}</span>
@@ -7385,8 +7401,24 @@ doAction({ t: 'endTurn', actor: 'you' })
                         <motion.div initial={{ y: 8, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }} className="flex flex-wrap items-stretch justify-center gap-2.5" style={{ marginTop: 12 }}>
                           {tiles}
                         </motion.div>
+                        {agg.choices > 0 && (
+                          <p data-testid="levelup-choices" style={{ font: '600 11px var(--ravenof-font-body)', color: 'var(--ravenof-gold-bright)', margin: '12px 0 0' }}>{t('battle.game.choicesWaiting', { n: agg.choices })}</p>
+                        )}
                       </>
                     ) : null
+                  })()}
+                  {/* (848) šiuo lygiu atrakinti režimai */}
+                  {(() => {
+                    const u = useUnlocks.getState()
+                    if (!u.loaded || u.allOpen) return null
+                    const got = (Object.entries(u.features) as [UnlockFeature, number][]).filter(([, req]) => req > lvlBefore && req <= prog.level).map(([f]) => t(`profile.unlock.feature.${f}`))
+                    if (!got.length) return null
+                    return (
+                      <p data-testid="levelup-unlocks" style={{ font: '600 12px/1.45 var(--ravenof-font-body)', color: 'var(--ravenof-text-primary)', margin: '14px 0 0' }}>
+                        <span style={{ color: 'var(--ravenof-text-secondary)', letterSpacing: 2, textTransform: 'uppercase', fontSize: 9, display: 'block', marginBottom: 3 }}>{t('battle.game.newModes')}</span>
+                        {got.join(' · ')}
+                      </p>
+                    )
                   })()}
                   <button onClick={() => { playUiClick(); setLuDismissed(true) }} autoFocus
                     className="ravenof-press mx-auto block" style={{ marginTop: 22, width: 210, textAlign: 'center',

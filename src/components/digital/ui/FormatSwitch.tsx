@@ -11,13 +11,17 @@ import { useT } from '@/lib/i18n/react'
 import { playUiClick } from '@/lib/ui-sound'
 import { useBattleFormat, setBattleFormat, CLASSIC_ACCENT, type BattleFormat } from '@/lib/game/format'
 import { useDesktopUi } from './useDesktopUi'
+import { useFeatureLock } from '@/lib/digital/unlocks'
 
 const GOLD = '212,163,59'
 
 export function FormatSwitch({ variant = 'tabs', onChange }: { variant?: 'tabs' | 'chip'; onChange?: (f: BattleFormat) => void }) {
   const t = useT()
   const fmt = useBattleFormat()
-  const pick = (f: BattleFormat) => { if (f === fmt) return; playUiClick(); setBattleFormat(f); onChange?.(f) }
+  // (848) Klasika atrakinama pagal paskyros lygį
+  const classicLock = useFeatureLock('classic')
+  useEffect(() => { if (classicLock.locked && fmt === 'classic') setBattleFormat('zmk') }, [classicLock.locked, fmt])
+  const pick = (f: BattleFormat) => { if (f === fmt) return; if (f === 'classic' && classicLock.locked) return; playUiClick(); setBattleFormat(f); onChange?.(f) }
   const big = variant === 'tabs'
   const D = useDesktopUi().desktop
   const items: { f: BattleFormat; label: string; tag: string }[] = [
@@ -32,9 +36,11 @@ export function FormatSwitch({ variant = 'tabs', onChange }: { variant?: 'tabs' 
       {items.map((it) => {
         const on = it.f === fmt
         const classic = it.f === 'classic'
+        const locked = classic && classicLock.locked
         return (
-          <button key={it.f} role="tab" aria-selected={on} onClick={() => pick(it.f)} className="ravenof-press flex items-center"
-            style={{ gap: big ? 8 : 5, padding: D ? (big ? '0 24px' : '0 14px') : big ? '9px 22px' : '4px 10px', minHeight: D ? (big ? 42 : 36) : undefined, border: 0, cursor: on ? 'default' : 'pointer',
+          <button key={it.f} role="tab" aria-selected={on} aria-disabled={locked} onClick={() => pick(it.f)} className="ravenof-press flex items-center"
+            title={locked ? t('profile.unlock.lockedAt', { level: classicLock.required }) : undefined}
+            style={{ opacity: locked ? 0.4 : 1, gap: big ? 8 : 5, padding: D ? (big ? '0 24px' : '0 14px') : big ? '9px 22px' : '4px 10px', minHeight: D ? (big ? 42 : 36) : undefined, border: 0, cursor: on ? 'default' : locked ? 'not-allowed' : 'pointer',
               font: `800 ${D ? 13 : big ? 11.5 : 9.5}px var(--ravenof-font-display)`, letterSpacing: big ? '0.14em' : '0.1em', textTransform: 'uppercase',
               color: on ? (classic ? '#0a0f18' : '#1a0f04') : 'var(--ravenof-text-secondary)',
               background: on ? (classic ? 'linear-gradient(180deg,#e9f1ff,#96b2d6 55%,#6f8cb3)' : 'linear-gradient(180deg,#ffe08a,#d4a33b 55%,#b5852a)') : 'transparent',

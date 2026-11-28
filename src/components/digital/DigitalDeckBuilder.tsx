@@ -18,6 +18,7 @@ import { validateDeck, getCopyLimit, isCurseCard, canAddSideCard, NEUTRAL_FACTIO
 import { costCurve, COST_CURVE_LABELS, displayAvgCost } from '@/lib/cards/cost'
 import { ravenofRarityColor as rarityColor, ravenofFactionIcon } from '@/components/digital/ui/RavenofKit'
 import { playUiClick, playSuccess, playError, playCardPick, playCardPlace } from '@/lib/ui-sound'
+import { useFeatureLock } from '@/lib/digital/unlocks'
 import type { CardWithRelations, Faction, CollectionMap, DeckVisibility } from '@/types'
 import { SmartImg } from '@/components/ui/SmartImg'
 import { GameCard } from '@/components/ui/GameCard'
@@ -193,6 +194,7 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
 
   useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(null), 2200); return () => clearTimeout(t) }, [toast])
   const flash = (m: string, err = false) => { (err ? playError : playUiClick)(); setToast(m) }
+  const publishLock = useFeatureLock('deckPublish')
 
   const deckQtyOf = (id: string) => store.entries.find((e) => e.card.id === id)?.quantity ?? 0
   const sideQtyOf = (id: string) => store.sideEntries.find((e) => e.card.id === id)?.quantity ?? 0
@@ -632,7 +634,11 @@ export function DigitalDeckBuilder({ userId, cards: cardsRaw, factions, collecti
           <div className={`flex items-center shrink-0 ${desktop ? 'gap-2 mb-2' : 'gap-1.5 mb-1.5'}`}>
             <input value={store.name} onChange={(e) => store.setName(e.target.value)} placeholder={t('deckBuilder.deckNamePlaceholder')} aria-label={t('deckBuilder.deckNamePlaceholder')}
               className={`flex-1 min-w-0 rounded-lg font-semibold outline-none ${desktop ? 'px-3' : 'px-2.5'}`} style={{ minHeight: desktop ? DT.ctl : 32, fontSize: desktop ? DT.fs.body : 12, background: 'rgba(10,8,16,0.9)', border: `1px solid ${store.name.trim() ? `rgba(${GOLD},0.3)` : 'rgba(180,68,79,0.6)'}`, color: 'var(--ravenof-text-primary)', fontFamily: 'var(--rvn-font-display)' }} />
-            <button onClick={() => { playUiClick(); store.setVisibility((store.visibility === 'private' ? 'public' : 'private') as DeckVisibility) }}
+            <button onClick={() => {
+                // (848) skelbti bendruomenei galima tik atrakinus pagal paskyros lygį
+                if (publishLock.locked && store.visibility === 'private') { flash(t('profile.unlock.lockedAt', { level: publishLock.required }), true); return }
+                playUiClick(); store.setVisibility((store.visibility === 'private' ? 'public' : 'private') as DeckVisibility)
+              }}
               title={store.visibility === 'private' ? t('deckBuilder.privateHint') : t('deckBuilder.publicHint')}
               aria-label={store.visibility === 'private' ? t('deckBuilder.privateHint') : t('deckBuilder.publicHint')}
               className="rvn-press shrink-0 rounded-lg flex items-center justify-center" style={{ width: desktop ? DT.ctl : 32, height: desktop ? DT.ctl : 32, fontSize: desktop ? 18 : 14, background: `rgba(${GOLD},0.12)`, border: `1px solid rgba(${GOLD},0.4)` }}>
